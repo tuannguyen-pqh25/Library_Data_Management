@@ -21,16 +21,27 @@ Một việc chỉ được coi là xong khi có đủ: mã nguồn, cách kiể
 
 ### Prompt nền — dán trước mọi prompt bên dưới
 
+> **Đọc `Cores/checkpoint.md` trước** để nắm trạng thái mới nhất của dự án (môi trường, lỗi đã gặp, migration đã chạy).
+
 ```text
-Bạn đang làm việc trong workspace LibraryManagement (Node.js/Express/Sequelize/MySQL + Vue 3/Vite/Vuex).
-Yêu cầu môn học nằm ở Cores/Tieuchiduan.md; chiến lược ở Cores/Chienluoc.md và hướng dẫn phối hợp ở Cores/next_step_guide.md.
+Bạn đang làm việc trong workspace LibraryManagement tại D:\Project\CT467\LibraryManagement.
+Stack: Node.js v26 / Express / Sequelize 6 / MySQL 8.0.46 (port 3306) + Vue 3 / Vite / Vuex.
+Yêu cầu môn học: Cores/Tieuchiduan.md | Chiến lược: Cores/Chienluoc.md | Hướng dẫn: Cores/next_step_guide.md | Trạng thái hiện tại: Cores/checkpoint.md.
+
+Môi trường đã xác nhận:
+- Backend chạy ở http://localhost:5000 (npm run dev trong thư mục backend)
+- Frontend chạy ở http://localhost:5173 (npm run dev trong thư mục frontend)
+- Database: library_db, user: librarymanagement/librarymanagement, host: 127.0.0.1:3306
+- sequelize-cli đọc cấu hình từ backend/config/config.json (KHÔNG phải .env)
+- Migration và seed-admin đã chạy xong. Tài khoản admin: tên "Admin", mật khẩu "admin123"
 
 Quy tắc bắt buộc:
-1) Đọc các file liên quan và kiểm tra git/worktree trước khi sửa. Giữ nguyên thay đổi không liên quan.
+1) Đọc Cores/checkpoint.md và các file liên quan trước khi sửa. Giữ nguyên thay đổi không liên quan.
 2) Chỉ thực hiện phạm vi được giao bên dưới; không tự ý đổi API/schema của người khác.
 3) Dùng migration MỚI cho mọi thay đổi CSDL; không sửa migration cũ và không dùng sequelize.sync({ alter: true }) như cơ chế migration.
 4) Sau khi sửa, chạy các kiểm tra phù hợp, báo cáo file đã đổi, lệnh đã chạy, kết quả và các rủi ro còn lại.
 5) Không chỉ đề xuất: hãy trực tiếp triển khai phần việc nếu không cần quyền truy cập ngoài workspace.
+6) Cập nhật Cores/checkpoint.md sau khi hoàn tất một giai đoạn hoặc sửa một lỗi quan trọng.
 ```
 
 ---
