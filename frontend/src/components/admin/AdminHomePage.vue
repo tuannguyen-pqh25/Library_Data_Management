@@ -13,6 +13,22 @@
 
     <!-- Thống kê -->
     <div class="row mb-5">
+      <div class="col-md-6">
+        <div class="card mb-3">
+          <div class="card-body">
+            <h3 class="card-title text-danger">{{ statistics.tongSachMuonThang ?? '—' }}</h3>
+            <p class="card-text">Số quyển đã mượn trong tháng này</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card mb-3">
+          <div class="card-body">
+            <h3 class="card-title text-info">{{ statistics.tongDocGiaMuonSachNam ?? '—' }}</h3>
+            <p class="card-text">Độc giả đã mượn sách trong năm nay</p>
+          </div>
+        </div>
+      </div>
       <div class="col-md-3">
         <div class="card mb-3">
           <div class="card-body">
@@ -37,23 +53,35 @@
           </div>
         </div>
       </div>
-      <!-- <div class="col-md-3">
-        <div class="card mb-3">
-          <div class="card-body">
-            <h3 class="card-title text-danger">{{ totalBorrowedBooks }}</h3>
-            <p class="card-text">Số sách đã mượn</p>
-          </div>
-        </div>
-      </div> -->
     </div>
+
+    <section>
+      <h3 class="mb-3">Phiếu mượn chưa trả</h3>
+      <p v-if="reportError" class="alert alert-warning">{{ reportError }}</p>
+      <p v-else-if="unreturnedLoans.length === 0" class="text-muted">Không có phiếu mượn đang mượn.</p>
+      <div v-else class="table-responsive">
+        <table class="table table-striped">
+          <thead><tr><th>Mã phiếu mượn</th><th>Độc giả</th><th>Ngày mượn</th><th>Ngày trả dự kiến</th></tr></thead>
+          <tbody>
+            <tr v-for="loan in unreturnedLoans" :key="`${loan.maPhieuMuon}:${loan.maDocGia}`">
+              <td>{{ loan.maPhieuMuon }}</td>
+              <td>{{ loan.fullName || loan.DocGia?.fullName || loan.maDocGia }}</td>
+              <td>{{ formatDate(loan.ngayMuon) }}</td>
+              <td>{{ formatDate(loan.ngayTra) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </div>
 </template>
 
 <script>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useStore } from 'vuex';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
 import { showError } from '@/utils/notifications';
+import api from '@/services/api';
 
 export default {
   name: 'AdminHomePage',
@@ -67,9 +95,9 @@ export default {
     const totalBooks = computed(() => store.getters['book/allBooks']?.length || 0);
     const totalAuthors = computed(() => store.getters['author/allAuthors']?.length || 0);
     const totalPublishers = computed(() => store.getters['publisher/allPublishers']?.length || 0);
-    const totalBorrowedBooks = computed(() => 
-      store.getters['borrow/allBorrowRequests']?.filter(req => req.trangThai === 'approved').length || 0
-    );
+    const statistics = ref({});
+    const unreturnedLoans = ref([]);
+    const reportError = ref(null);
     const loading = computed(() => 
       store.getters['book/isLoading'] ||
       store.getters['author/isLoading'] ||
@@ -90,12 +118,29 @@ export default {
           store.dispatch('book/fetchBooks'),
           store.dispatch('author/fetchAuthors'),
           store.dispatch('publisher/fetchPublishers'),
-          store.dispatch('borrow/fetchBorrowRequests')
+          store.dispatch('borrow/fetchBorrowRequests'),
+          fetchReports()
         ]);
       } catch (error) {
         showError(error.message);
       }
     };
+
+    const fetchReports = async () => {
+      try {
+        const [statisticsResponse, unreturnedResponse] = await Promise.all([
+          api.get('/reports/statistics'),
+          api.get('/reports/unreturned-loans')
+        ]);
+        statistics.value = statisticsResponse.data;
+        unreturnedLoans.value = unreturnedResponse.data;
+        reportError.value = null;
+      } catch (error) {
+        reportError.value = error.response?.data?.message || 'Không thể tải báo cáo mượn sách';
+      }
+    };
+
+    const formatDate = (date) => date ? new Date(date).toLocaleDateString('vi-VN') : '-';
 
     const clearError = () => {
       store.commit('book/SET_ERROR', null);
@@ -110,7 +155,10 @@ export default {
       totalBooks,
       totalAuthors,
       totalPublishers,
-      totalBorrowedBooks,
+      statistics,
+      unreturnedLoans,
+      reportError,
+      formatDate,
       loading,
       error,
       clearError

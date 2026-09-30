@@ -52,7 +52,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="book in filteredBooks" :key="book.maSach">
+          <tr v-for="book in filteredBooks" :key="`${book.maSach}:${book.maTacGia}:${book.maTheLoai}`">
             <td>{{ book.maSach }}</td>
             <td>{{ book.tenSach }}</td>
             <td>{{ book.NhaXuatBan?.tenNXB || 'N/A' }}</td>
@@ -535,7 +535,11 @@ export default {
     const handleDelete = async () => {
       try {
         console.log('Deleting book:', selectedBook.value.maSach);
-        await store.dispatch('book/deleteBook', selectedBook.value.maSach);
+        await store.dispatch('book/deleteBook', {
+          maSach: selectedBook.value.maSach,
+          maTacGia: selectedBook.value.maTacGia || selectedBook.value.TacGia?.maTacGia,
+          maTheLoai: selectedBook.value.maTheLoai || selectedBook.value.TheLoai?.maTheLoai
+        });
         await fetchData();
         showDeleteModal.value = false;
         selectedBook.value = null;
@@ -589,7 +593,11 @@ export default {
 
         if (editingBook.value) {
           await store.dispatch('book/updateBook', {
-            id: editingBook.value.maSach,
+            identity: {
+              maSach: editingBook.value.maSach,
+              maTacGia: editingBook.value.maTacGia || editingBook.value.TacGia?.maTacGia,
+              maTheLoai: editingBook.value.maTheLoai || editingBook.value.TheLoai?.maTheLoai
+            },
             bookData: formData
           });
           showSuccess('Cập nhật sách thành công');
