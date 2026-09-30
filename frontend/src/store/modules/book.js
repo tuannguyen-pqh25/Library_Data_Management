@@ -61,10 +61,12 @@ export default {
       }
     },
 
-    async updateBook({ commit }, { id, bookData }) {
+    async updateBook({ commit }, { identity, bookData }) {
       try {
-        console.log(`Updating book ${id} with data:`, bookData);
-        const response = await api.put(`/sach/${id}`, bookData, {
+        const { maSach, maTacGia, maTheLoai } = identity;
+        const path = [maSach, maTacGia, maTheLoai].map(encodeURIComponent).join('/');
+        console.log(`Updating book ${path} with data:`, bookData);
+        const response = await api.put(`/sach/${path}`, bookData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         console.log('Update book response:', response.data);
@@ -80,10 +82,11 @@ export default {
       }
     },
 
-    async deleteBook({ commit }, id) {
+    async deleteBook({ commit }, { maSach, maTacGia, maTheLoai }) {
       try {
-        console.log(`Deleting book ${id}`);
-        const response = await api.delete(`/sach/${id}`);
+        const path = [maSach, maTacGia, maTheLoai].map(encodeURIComponent).join('/');
+        console.log(`Deleting book ${path}`);
+        const response = await api.delete(`/sach/${path}`);
         console.log('Delete book response:', response.data);
       } catch (error) {
         const errorMessage = error.response?.data?.message || 'Xóa nhà xuất bản thất bại';
