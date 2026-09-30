@@ -96,7 +96,7 @@
   
       const approvedBooks = computed(() => {
         return store.getters['borrow/borrowHistory'].filter(
-          item => item.trangThai === 'Đã duyệt'
+          item => item.trangThai === 'Đang mượn'
         ).length;
       });
 

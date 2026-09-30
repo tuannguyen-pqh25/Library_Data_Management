@@ -44,7 +44,7 @@
             <ul class="navbar-nav">
               <li class="nav-item me-3">
                 <span class="nav-link" style="cursor: pointer;" @click="currentComponent = 'UserProfile'">
-                  Xin chào, {{ currentUser?.hoLot }} {{ currentUser?.ten || 'Độc giả' }}
+                  Xin chào, {{ currentUser?.fullName || 'Độc giả' }}
                 </span>
               </li>
               <li class="nav-item">

@@ -35,10 +35,10 @@ export default {
         const response = await api.get('/muonsach/admin/requests');
         const cleanedData = response.data.map(request => ({
           ...request,
-          DocGia: request.DocGia || { hoLot: 'N/A', ten: '', maDocGia: 'N/A' },
+          DocGia: request.DocGia || { fullName: 'N/A', maDocGia: 'N/A' },
           ChiTietPhieuMuons: request.ChiTietPhieuMuons.map(ct => ({
             ...ct,
-            PhieuTra: ct.PhieuTra || null
+            PhieuTra: Array.isArray(ct.PhieuTra) ? ct.PhieuTra : ct.PhieuTra ? [ct.PhieuTra] : []
           })) || []
         }));
         commit('SET_BORROW_REQUESTS', cleanedData);
@@ -58,7 +58,7 @@ export default {
           ...request,
           ChiTietPhieuMuons: request.ChiTietPhieuMuons.map(ct => ({
             ...ct,
-            PhieuTra: ct.PhieuTra || null
+            PhieuTra: Array.isArray(ct.PhieuTra) ? ct.PhieuTra : ct.PhieuTra ? [ct.PhieuTra] : []
           })) || []
         }));
         commit('SET_BORROW_HISTORY', cleanedData);
@@ -83,10 +83,11 @@ export default {
       }
     },
 
-    async updateBorrowStatus({ commit }, { id, status }) {
+    async updateBorrowStatus({ commit }, { maPhieuMuon, maDocGia, status }) {
       commit('SET_LOADING', true);
       try {
-        const response = await api.put(`/muonsach/admin/requests/${id}`, { trangThai: status });
+        const path = [maPhieuMuon, maDocGia].map(encodeURIComponent).join('/');
+        const response = await api.put(`/muonsach/admin/requests/${path}`, { trangThai: status });
         return response.data;
       } catch (error) {
         commit('SET_ERROR', error.response?.data?.message || 'Có lỗi xảy ra');

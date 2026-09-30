@@ -70,7 +70,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="book in categoryBooks" :key="book.maSach">
+                  <tr v-for="book in categoryBooks" :key="`${book.maSach}:${book.maTacGia}:${book.maTheLoai}`">
                     <td>{{ book.maSach }}</td>
                     <td>{{ book.tenSach }}</td>
                     <td>{{ book.namXuatBan }}</td>

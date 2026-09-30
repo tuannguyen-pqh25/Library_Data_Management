@@ -11,10 +11,24 @@ const generateToken = (user, type) => {
   const payload = {
     id: type === 'admin' ? user.MSNV : user.maDocGia,
     role: type,
-    name: type === 'admin' ? user.hoTenNV : `${user.hoLot} ${user.ten}`
+    name: type === 'admin' ? user.hoTenNV : user.fullName
   };
   const secret = process.env.JWT_SECRET || 'default_secret_key';
   return jwt.sign(payload, secret, { expiresIn: '7d' });
+};
+
+const readerResponse = (reader) => {
+  const data = reader.toJSON();
+  delete data.password;
+  delete data.otp;
+  delete data.otpExpiry;
+  return data;
+};
+
+const firstProcedureRow = (result) => {
+  let rows = result;
+  while (Array.isArray(rows) && rows.length === 1 && Array.isArray(rows[0])) rows = rows[0];
+  return Array.isArray(rows) ? rows[0] : undefined;
 };
 
 // Đăng nhập dành cho nhân viên (admin)
@@ -58,18 +72,17 @@ const loginReader = async (req, res) => {
       return res.status(400).send({ error: 'Invalid login credentials' });
     }
     
-    const [results] = await sequelize.query('CALL sp_check_reader_status(:maDocGia)', {
+    const results = await sequelize.query('CALL sp_check_reader_status(:maDocGia)', {
       replacements: { maDocGia: docgia.maDocGia },
-      type: sequelize.QueryTypes.SELECT
     });
-    const hasPendingLoan = results[0]?.hasPendingLoan || 0;
+    const hasPendingLoan = firstProcedureRow(results)?.hasPendingLoan || 0;
     
     if (hasPendingLoan > 0) {
       return res.status(403).send({ error: 'Cannot login. You have pending borrow requests.' });
     }
     
     const token = generateToken(docgia, 'reader');
-    res.send({ docgia, token });
+    res.send({ docgia: readerResponse(docgia), token });
   } catch (error) {
     res.status(400).send({ error: error.message || 'Đăng nhập thất bại' });
   }
@@ -78,7 +91,10 @@ const loginReader = async (req, res) => {
 // Đăng ký tài khoản độc giả
 const registerReader = async (req, res) => {
   try {
-    const { hoLot, ten, ngaySinh, phai, diaChi, dienThoai, email, password } = req.body;
+    const { fullName, ngaySinh, phai, diaChi, dienThoai, email, password } = req.body;
+    if (typeof fullName !== 'string' || !fullName.trim()) {
+      return res.status(400).json({ error: 'Họ tên độc giả là bắt buộc' });
+    }
 
     // Kiểm tra email đã tồn tại chưa
     const existingReader = await DocGia.findOne({ where: { email } });
@@ -91,8 +107,7 @@ const registerReader = async (req, res) => {
 
     // Tạo độc giả mới (maDocGia tự động tạo bởi autoIncrement)
     const docgia = await DocGia.create({
-      hoLot,
-      ten,
+      fullName: fullName.trim(),
       ngaySinh,
       phai,
       diaChi,
@@ -104,7 +119,7 @@ const registerReader = async (req, res) => {
     // Tạo token
     const token = generateToken(docgia, 'reader');
 
-    res.status(201).json({ message: 'Đăng ký thành công', docgia, token });
+    res.status(201).json({ message: 'Đăng ký thành công', docgia: readerResponse(docgia), token });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -177,14 +192,16 @@ const confirmPasswordReset = async (req, res) => {
 // Kiểm tra trạng thái độc giả
 const checkReaderStatus = async (req, res) => {
   try {
-    const { maDocGia } = req.params; // Lấy maDocGia từ URL
-    const [results] = await sequelize.query('CALL sp_check_reader_status(:maDocGia, @hasPendingLoan)', {
-      replacements: { maDocGia: parseInt(maDocGia) }, // Chuyển sang INT
-      type: sequelize.QueryTypes.SELECT
+    const maDocGia = Number(req.params.maDocGia);
+    if (!Number.isInteger(maDocGia) || maDocGia <= 0) {
+      return res.status(400).json({ error: 'Mã độc giả không hợp lệ' });
+    }
+    const results = await sequelize.query('CALL sp_check_reader_status(:maDocGia)', {
+      replacements: { maDocGia },
     });
-    const hasPendingLoan = results[0]?.hasPendingLoan || 0;
+    const hasPendingLoan = firstProcedureRow(results)?.hasPendingLoan || 0;
 
-    res.send({ maDocGia, hasPendingLoan });
+    res.send({ maDocGia, hasPendingLoan: Number(hasPendingLoan) });
   } catch (error) {
     res.status(400).send({ error: error.message || 'Failed to check reader status' });
   }
