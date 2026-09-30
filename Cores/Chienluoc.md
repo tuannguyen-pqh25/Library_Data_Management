@@ -4,6 +4,14 @@
 
 Mục tiêu là đưa hệ thống quản lý thư viện về trạng thái đúng nghiệp vụ, trình bày được các yêu cầu CSDL trong `Tieuchiduan.md`, rồi bổ sung một số tính năng có giá trị nhưng vừa sức trong bốn tuần. Không phát triển thêm chức năng trên luồng mượn/trả trước khi đã sửa tính nhất quán tồn kho.
 
+### Định hướng tùy biến mã nguồn có sẵn (bổ sung 2026-09-30)
+
+Dự án này do bạn của người dùng xây dựng trước. Công việc hiện tại là kế thừa, sửa và tùy biến cho đồ án; chỉ thay cấu trúc khi có lý do rõ ràng. Các mốc “tuần/ngày” bên dưới là kế hoạch tham khảo, **không phải bằng chứng đã hoàn thành**; đối chiếu `checkpoint.md` và mã nguồn trước khi chọn việc.
+
+Giao diện hiện tại cần cải thiện đáng kể. Thực hiện theo từng màn hình: kiểm tra bản chạy và chụp hiện trạng; chốt hướng thiết kế đủ cụ thể (tên thư viện/nội dung, màu, typography, bố cục); xây bộ quy tắc UI dùng chung; chỉnh trang khách/đăng nhập, khu độc giả, khu quản trị; kiểm tra desktop/mobile, trạng thái dữ liệu, bàn phím và độ tương phản. Tận dụng Vue/Bootstrap đang có và giữ nguyên hợp đồng API, phân quyền, hành vi mượn/trả khi chỉ sửa UI. Không giữ tên, thông tin liên hệ hoặc dấu vết của chủ source cũ trong bản hoàn thiện nếu người dùng không chọn dùng.
+
+Việc cải thiện phần nhìn có thể tiến hành độc lập với sửa logic tồn kho ở các file frontend phù hợp; **không mở rộng nghiệp vụ mượn/trả** cho đến khi lỗi dữ liệu lõi được xử lý và kiểm chứng. Chỉ nhận thêm tính năng có liên quan trực tiếp đến tiêu chí môn học hoặc trải nghiệm demo sau khi các luồng chính ổn định.
+
 Nguyên tắc phối hợp:
 
 - Mỗi thành viên sở hữu một nhóm route, component và migration riêng; không sửa trực tiếp phần của người khác.
@@ -71,3 +79,4 @@ Giao kèo API: A công bố trước tuần 2 payload cho `GET /api/thong-ke/ton
 - Có thể chứng minh bằng API/UI: function kiểm tra tồn, trigger tính phạt, procedure phiếu chưa trả, hai thống kê bắt buộc.
 - Người đọc không truy cập API quản trị; dữ liệu nhạy cảm không xuất hiện trong response đăng nhập/danh sách.
 - `npm run build` frontend và kiểm tra cú pháp backend thành công; README đủ để người khác chạy lại.
+- Các màn hình khách, độc giả, quản trị dùng cùng ngôn ngữ thiết kế, hiển thị tốt trên màn hình nhỏ và lớn; không lộ nội dung nhận diện cũ ngoài ý muốn; có ảnh kiểm tra các luồng chính và trạng thái tải/rỗng/lỗi.

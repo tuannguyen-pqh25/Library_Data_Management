@@ -2,6 +2,8 @@
 
 Đây là dự án Quản lý Thư viện được phát triển với **CSDL (MySQL)**,**Backend (Node.js/Express)** và **Frontend (Vue.js)**.
 
+Đây là mã nguồn có sẵn đang được sửa và tùy biến cho đồ án CT467. Mục tiêu hiện tại gồm hoàn thiện nghiệp vụ theo [`Cores/Tieuchiduan.md`](Cores/Tieuchiduan.md) và cải thiện giao diện. Xem [`Cores/checkpoint.md`](Cores/checkpoint.md) để biết trạng thái mới nhất, [`Cores/Chienluoc.md`](Cores/Chienluoc.md) để biết ưu tiên và [`Cores/next_step_guide.md`](Cores/next_step_guide.md) để lấy prompt triển khai tiếp theo. Ghi chép môi trường trong checkpoint có thể đã cũ; kiểm tra lại trước khi chạy migration hoặc demo.
+
 ---
 
 ## Cài đặt Dự án
