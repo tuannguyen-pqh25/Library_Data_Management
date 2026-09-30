@@ -33,6 +33,7 @@ module.exports = {
       BEGIN
         DECLARE ngayTraDuKien DATE;
         DECLARE soLuongSachMuon INT;
+        DECLARE returnedCount INT;
 
         SELECT PhieuMuon.ngayTra, ChiTietPhieuMuon.soLuongSachMuon
           INTO ngayTraDuKien, soLuongSachMuon
@@ -42,7 +43,19 @@ module.exports = {
          AND ChiTietPhieuMuon.maDocGia = PhieuMuon.maDocGia
         WHERE ChiTietPhieuMuon.maChiTietPM = NEW.maChiTietPM
           AND ChiTietPhieuMuon.maPhieuMuon = NEW.maPhieuMuon
-          AND ChiTietPhieuMuon.maSach = NEW.maSach;
+          AND ChiTietPhieuMuon.maSach = NEW.maSach
+        FOR UPDATE;
+
+        SELECT COUNT(*) INTO returnedCount
+        FROM PhieuTra
+        WHERE maChiTietPM = NEW.maChiTietPM
+          AND maPhieuMuon = NEW.maPhieuMuon
+          AND maSach = NEW.maSach
+        FOR UPDATE;
+
+        IF returnedCount > 0 THEN
+          SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Borrow detail already returned';
+        END IF;
 
         SET NEW.tienPhat = GREATEST(0, DATEDIFF(NEW.ngayTraSach, ngayTraDuKien))
           * 1000 * soLuongSachMuon;
