@@ -31,10 +31,10 @@ Nguyên tắc phối hợp:
 
 | Thành viên | Sở hữu chính | Không chạm vào |
 |---|---|---|
-| A | CSDL, migration, transaction mượn/trả, API `/api/thong-ke` | Giao diện dashboard và catalogue |
-| B | Dashboard quản trị, biểu đồ/bộ lọc, hiển thị số liệu từ API | Controller/migration mượn-trả |
-| C | Trải nghiệm độc giả: tìm kiếm/lọc/phân trang, yêu cầu mượn và lịch sử | Dashboard quản trị, schema lõi |
-| D | Quản trị dữ liệu (sách/tác giả/thể loại/NXB/độc giả), import/export CSV và kiểm thử/tài liệu | Luồng transaction mượn/trả của A |
+| A | CSDL, migration, transaction mượn/trả, API `/api/thong-ke` | Giao diện dashboard và catalogue | (Minh)
+| B | Dashboard quản trị, biểu đồ/bộ lọc, hiển thị số liệu từ API | Controller/migration mượn-trả |(Thắng)
+| C | Trải nghiệm độc giả: tìm kiếm/lọc/phân trang, yêu cầu mượn và lịch sử | Dashboard quản trị, schema lõi |(Tuấn)
+| D | Quản trị dữ liệu (sách/tác giả/thể loại/NXB/độc giả), import/export CSV và kiểm thử/tài liệu | Luồng transaction mượn/trả của A |(Vũ)
 
 Giao kèo API: A công bố trước tuần 2 payload cho `GET /api/thong-ke/tong-quan` và `GET /api/thong-ke/phieu-chua-tra`; B chỉ dùng các endpoint này. D đặt endpoint import/export dưới `/api/sach`, không sửa endpoint của A. C chỉ gọi các endpoint mượn đã có/được A công bố.
 
