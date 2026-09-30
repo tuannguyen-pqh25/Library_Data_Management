@@ -4,8 +4,10 @@ const { DataTypes, Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class PhieuTra extends Model {}
   PhieuTra.init({
-    maPhieuTra: { type: DataTypes.INTEGER, primaryKey: true, allowNull: false, unique: true, autoIncrement: true },
-    maChiTietPM: { type: DataTypes.INTEGER, allowNull: false },
+    maPhieuTra: { type: DataTypes.INTEGER, primaryKey: true, allowNull: false, autoIncrement: true },
+    maChiTietPM: { type: DataTypes.INTEGER, primaryKey: true, allowNull: false },
+    maPhieuMuon: { type: DataTypes.INTEGER, allowNull: false },
+    maSach: { type: DataTypes.INTEGER, allowNull: false },
     ngayTraSach: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     tienPhat: { type: DataTypes.FLOAT, defaultValue: 0 },
   }, {
