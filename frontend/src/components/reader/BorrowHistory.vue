@@ -13,9 +13,9 @@
     <div class="row mb-4">
       <div class="col-md-6">
         <div class="input-group">
-          <input 
-            type="text" 
-            class="form-control" 
+          <input
+            type="text"
+            class="form-control"
             v-model="searchTerm"
             placeholder="Tìm kiếm theo tên sách, mã sách"
           >
@@ -29,31 +29,31 @@
     <!-- Tabs for different request status -->
     <ul class="nav nav-tabs mb-3">
       <li class="nav-item">
-        <a class="nav-link" :class="{ active: currentTab === 'all' }" 
+        <a class="nav-link" :class="{ active: currentTab === 'all' }"
            @click="currentTab = 'all'">
           Tất cả
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" :class="{ active: currentTab === 'pending' }" 
+        <a class="nav-link" :class="{ active: currentTab === 'pending' }"
            @click="currentTab = 'pending'">
           Chờ duyệt
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" :class="{ active: currentTab === 'approved' }" 
-           @click="currentTab = 'approved'">
-          Đã duyệt
+        <a class="nav-link" :class="{ active: currentTab === 'active' }"
+           @click="currentTab = 'active'">
+          Đang mượn
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" :class="{ active: currentTab === 'rejected' }" 
+        <a class="nav-link" :class="{ active: currentTab === 'rejected' }"
            @click="currentTab = 'rejected'">
           Bị từ chối
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" :class="{ active: currentTab === 'returned' }" 
+        <a class="nav-link" :class="{ active: currentTab === 'returned' }"
            @click="currentTab = 'returned'">
           Đã trả
         </a>
@@ -74,9 +74,9 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="request in filteredRequests" :key="request.maPhieuMuon">
+          <tr v-for="request in filteredRequests" :key="`${request.maPhieuMuon}:${request.maDocGia}`">
             <td>
-              <div v-for="ct in request.ChiTietPhieuMuons" :key="ct.maChiTietPM">
+              <div v-for="ct in request.ChiTietPhieuMuons" :key="`${ct.maChiTietPM}:${ct.maPhieuMuon}:${ct.maSach}`">
                 {{ ct.Sach?.tenSach || 'N/A' }}
                 <br>
                 <small class="text-muted">Mã sách: {{ ct.Sach?.maSach || 'N/A' }}</small>
@@ -87,8 +87,8 @@
               {{ request.ngayTra ? formatDate(request.ngayTra) : '-' }}
             </td>
             <td>
-              <span v-if="request.trangThai === 'Đã trả' && request.ChiTietPhieuMuons.some(ct => ct.PhieuTra)">
-                {{ request.ChiTietPhieuMuons.reduce((sum, ct) => sum + (ct.PhieuTra?.tienPhat || 0), 0) }} VND
+              <span v-if="request.trangThai === 'Đã trả' && hasReturns(request)">
+                {{ getTotalFine(request) }} VND
               </span>
               <span v-else>-</span>
             </td>
@@ -98,24 +98,24 @@
               </span>
             </td>
             <td>
-              <button 
-                v-if="['Đã duyệt', 'Đã trả'].includes(request.trangThai)"
+              <button
+                v-if="['Đang mượn', 'Đã trả'].includes(request.trangThai)"
                 class="btn btn-sm btn-primary me-2"
-                @click="downloadBorrowSlip(request.maPhieuMuon)"
+                @click="downloadBorrowSlip(request.maPhieuMuon, request.maDocGia || request.DocGia?.maDocGia)"
               >
                 <i class="fas fa-download"></i> Phiếu mượn
               </button>
-              <button 
-                v-if="request.trangThai === 'Đã trả' && request.ChiTietPhieuMuons.some(ct => ct.PhieuTra)"
+              <button
+                v-if="request.trangThai === 'Đã trả' && hasReturns(request)"
                 class="btn btn-sm btn-info me-2"
-                @click="downloadReturnSlip(request.ChiTietPhieuMuons.find(ct => ct.PhieuTra)?.PhieuTra?.maPhieuTra)"
+                @click="downloadReturnSlip(firstReturn(request)?.returnRow.maPhieuTra, firstReturn(request)?.detail.maChiTietPM)"
               >
                 <i class="fas fa-download"></i> Phiếu trả
               </button>
-              <button 
-                v-if="request.trangThai === 'Đã trả' && request.ChiTietPhieuMuons.some(ct => ct.PhieuTra && ct.PhieuTra.tienPhat > 0)"
+              <button
+                v-if="request.trangThai === 'Đã trả' && firstPenalizedReturn(request) !== null"
                 class="btn btn-sm btn-warning"
-                @click="downloadPenaltyForm(request.ChiTietPhieuMuons.find(ct => ct.PhieuTra)?.PhieuTra?.maPhieuTra)"
+                @click="downloadPenaltyForm(firstPenalizedReturn(request)?.returnRow.maPhieuTra, firstPenalizedReturn(request)?.detail.maChiTietPM)"
               >
                 <i class="fas fa-download"></i> Phiếu phạt
               </button>
@@ -155,7 +155,7 @@ export default {
       if (currentTab.value !== 'all') {
         const statusMap = {
           pending: 'Chờ duyệt',
-          approved: 'Đã duyệt',
+          active: 'Đang mượn',
           rejected: 'Từ chối',
           returned: 'Đã trả'
         };
@@ -177,6 +177,18 @@ export default {
       return results;
     });
 
+    const getReturns = (request) => request.ChiTietPhieuMuons.flatMap(detail =>
+      detail.PhieuTra.map(returnRow => ({ detail, returnRow }))
+    );
+    const hasReturns = (request) => getReturns(request).length > 0;
+    const firstReturn = (request) => getReturns(request)[0] || null;
+    const firstPenalizedReturn = (request) => getReturns(request).find(
+      ({ returnRow }) => Number(returnRow.tienPhat) > 0
+    ) || null;
+    const getTotalFine = (request) => getReturns(request).reduce(
+      (total, { returnRow }) => total + Number(returnRow.tienPhat || 0), 0
+    );
+
     const formatDate = (date) => {
       return date ? new Date(date).toLocaleDateString('vi-VN') : '-';
     };
@@ -184,7 +196,7 @@ export default {
     const getStatusBadgeClass = (status) => {
       const classes = {
         'Chờ duyệt': 'badge bg-warning',
-        'Đã duyệt': 'badge bg-success',
+        'Đang mượn': 'badge bg-success',
         'Từ chối': 'badge bg-danger',
         'Đã trả': 'badge bg-info'
       };
@@ -203,10 +215,10 @@ export default {
       }
     };
 
-    const downloadBorrowSlip = async (maPhieuMuon) => {
+    const downloadBorrowSlip = async (maPhieuMuon, maDocGia) => {
       try {
         loading.value = true;
-        const response = await api.get(`/muonsach/export/borrow/${maPhieuMuon}`, { responseType: 'blob' });
+        const response = await api.get(`/muonsach/export/borrow/${encodeURIComponent(maPhieuMuon)}/${encodeURIComponent(maDocGia)}`, { responseType: 'blob' });
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
@@ -222,10 +234,10 @@ export default {
       }
     };
 
-    const downloadReturnSlip = async (maPhieuTra) => {
+    const downloadReturnSlip = async (maPhieuTra, maChiTietPM) => {
       try {
         loading.value = true;
-        const response = await api.get(`/muonsach/export/return/${maPhieuTra}`, { responseType: 'blob' });
+        const response = await api.get(`/muonsach/export/return/${encodeURIComponent(maPhieuTra)}/${encodeURIComponent(maChiTietPM)}`, { responseType: 'blob' });
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
@@ -241,10 +253,10 @@ export default {
       }
     };
 
-    const downloadPenaltyForm = async (maPhieuTra) => {
+    const downloadPenaltyForm = async (maPhieuTra, maChiTietPM) => {
       try {
         loading.value = true;
-        const response = await api.get(`/muonsach/export/penalty/${maPhieuTra}`, { responseType: 'blob' });
+        const response = await api.get(`/muonsach/export/penalty/${encodeURIComponent(maPhieuTra)}/${encodeURIComponent(maChiTietPM)}`, { responseType: 'blob' });
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
@@ -278,6 +290,10 @@ export default {
       error,
       searchTerm,
       formatDate,
+      hasReturns,
+      firstReturn,
+      firstPenalizedReturn,
+      getTotalFine,
       getStatusBadgeClass,
       clearError,
       getColspan,

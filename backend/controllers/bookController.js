@@ -4,6 +4,15 @@ const { sequelize, Sach, TacGia, NhaXuatBan, TheLoai } = require('../models');
 const fs = require('fs');
 const path = require('path');
 
+const bookKey = (params) => ({
+  maSach: Number(params.maSach),
+  maTacGia: Number(params.maTacGia),
+  maTheLoai: Number(params.maTheLoai),
+});
+
+const validBookKey = ({ maSach, maTacGia, maTheLoai }) =>
+  [maSach, maTacGia, maTheLoai].every((value) => Number.isInteger(value) && value > 0);
+
 const getAllBooks = async (req, res) => {
   try {
     logger.info('Fetching all books');
@@ -75,9 +84,10 @@ const createBook = async (req, res) => {
 
 const updateBook = async (req, res) => {
   try {
-    const { id } = req.params;
+    const key = bookKey(req.params);
+    if (!validBookKey(key)) return res.status(400).json({ message: 'Khóa sách không hợp lệ' });
     const { maTacGia, maNXB, maTheLoai, ...rest } = req.body;
-    logger.info('Updating book', { id, data: req.body });
+    logger.info('Updating book', { ...key, data: req.body });
     const [results] = await sequelize.query(
       'CALL sp_validate_book_foreign_keys(:maTacGia, :maNXB, :maTheLoai, @isValid)',
       {
@@ -102,15 +112,13 @@ const updateBook = async (req, res) => {
       nguonGoc: rest.nguonGoc,
       imagePath: req.file ? `uploads/${req.file.filename}` : rest.imagePath,
     };
-    const [updated] = await Sach.update(bookData, {
-      where: { maSach: id },
-      returning: true,
-    });
+    const newKey = { maSach: key.maSach, maTacGia: Number(maTacGia), maTheLoai: Number(maTheLoai) };
+    const [updated] = await Sach.update(bookData, { where: key });
     if (updated === 0) {
-      logger.warn('Book not found', { id });
+      logger.warn('Book not found', key);
       return res.status(404).json({ message: 'Không tìm thấy sách' });
     }
-    const book = await Sach.findByPk(id, {
+    const book = await Sach.findOne({ where: newKey,
       include: [
         { model: TacGia, as: 'TacGia' },
         { model: NhaXuatBan, as: 'NhaXuatBan' },
@@ -127,23 +135,24 @@ const updateBook = async (req, res) => {
 
 const deleteBook = async (req, res) => {
   try {
-    const { id } = req.params;
-    logger.info('Checking book quantity', { id });
-    const [results] = await sequelize.query(
-      'SELECT fn_kiem_tra_so_luong_sach(:maSach) as soLuongHienCo',
+    const key = bookKey(req.params);
+    if (!validBookKey(key)) return res.status(400).json({ message: 'Khóa sách không hợp lệ' });
+    logger.info('Checking book quantity', key);
+    const results = await sequelize.query(
+      'SELECT fn_kiem_tra_so_luong_sach(:maSach, :maTacGia, :maTheLoai) as soLuongHienCo',
       {
-        replacements: { maSach: parseInt(id) },
+        replacements: key,
         type: sequelize.QueryTypes.SELECT,
       }
     );
     const soLuongHienCo = results[0]?.soLuongHienCo || 0;
     if (soLuongHienCo > 0) {
-      logger.warn('Cannot delete book due to existing stock', { id, soLuongHienCo });
+      logger.warn('Cannot delete book due to existing stock', { ...key, soLuongHienCo });
       return res.status(400).json({ message: 'Không thể xóa sách vì còn sách trong kho' });
     }
-    const book = await Sach.findByPk(id);
+    const book = await Sach.findOne({ where: key });
     if (!book) {
-      logger.warn('Book not found', { id });
+      logger.warn('Book not found', key);
       return res.status(404).json({ message: 'Không tìm thấy sách' });
     }
     if (book.imagePath) {
@@ -156,8 +165,8 @@ const deleteBook = async (req, res) => {
         }
       });
     }
-    await Sach.destroy({ where: { maSach: id } });
-    logger.info('Book deleted successfully', { id });
+    await Sach.destroy({ where: key });
+    logger.info('Book deleted successfully', key);
     res.json({ message: 'Xóa sách thành công' });
   } catch (error) {
     logger.error('Delete book error', { error: error.message, stack: error.stack });
@@ -167,9 +176,10 @@ const deleteBook = async (req, res) => {
 
 const getBookById = async (req, res) => {
   try {
-    const { id } = req.params;
-    logger.info('Fetching book by ID', { id });
-    const book = await Sach.findByPk(id, {
+    const key = bookKey(req.params);
+    if (!validBookKey(key)) return res.status(400).json({ message: 'Khóa sách không hợp lệ' });
+    logger.info('Fetching book by composite key', key);
+    const book = await Sach.findOne({ where: key,
       include: [
         { model: TacGia, as: 'TacGia' },
         { model: NhaXuatBan, as: 'NhaXuatBan' },
@@ -177,11 +187,16 @@ const getBookById = async (req, res) => {
       ],
     });
     if (!book) {
-      logger.warn('Book not found', { id });
+      logger.warn('Book not found', key);
       return res.status(404).json({ message: 'Không tìm thấy sách' });
     }
-    logger.info('Book fetched', { book: book.toJSON() });
-    res.json(book);
+    const inventoryRows = await sequelize.query(
+      'SELECT fn_kiem_tra_so_luong_sach(:maSach, :maTacGia, :maTheLoai) AS soLuongHienCo',
+      { replacements: key, type: sequelize.QueryTypes.SELECT }
+    );
+    const response = { ...book.toJSON(), soLuongHienCo: inventoryRows[0]?.soLuongHienCo ?? book.soLuongHienCo };
+    logger.info('Book fetched', { book: response });
+    res.json(response);
   } catch (error) {
     logger.error('Get book by ID error', { error: error.message, stack: error.stack });
     res.status(500).json({ message: error.message });

@@ -36,11 +36,8 @@ export const validateReaderForm = (reader) => {
   // Kiểm tra mã độc giả
   if (!reader.maDocGia) errors.maDocGia = 'Mã độc giả là bắt buộc';
 
-  // Kiểm tra họ lót
-  if (!reader.hoLot) errors.hoLot = 'Họ lót là bắt buộc';
-
-  // Kiểm tra tên
-  if (!reader.ten) errors.ten = 'Tên là bắt buộc';
+  // Kiểm tra họ tên
+  if (!reader.fullName?.trim()) errors.fullName = 'Họ và tên là bắt buộc';
 
   // Kiểm tra email
   if (!reader.email) {

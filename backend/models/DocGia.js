@@ -8,11 +8,7 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true, 
       autoIncrement: true 
     },
-    hoLot: { 
-      type: DataTypes.STRING, 
-      allowNull: false 
-    },
-    ten: { 
+    fullName: {
       type: DataTypes.STRING, 
       allowNull: false 
     },

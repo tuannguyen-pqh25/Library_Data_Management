@@ -20,7 +20,7 @@
           <div class="modal-body">
             <p>Bạn muốn mượn các sách sau?</p>
             <ul>
-              <li v-for="item in borrowCart" :key="item.maSach">
+              <li v-for="item in borrowCart" :key="`${item.maSach}:${item.maTacGia}:${item.maTheLoai}`">
                 {{ item.tenSach }} - Số lượng: 
                 <input 
                   type="number" 
@@ -68,7 +68,7 @@
 
     <!-- Danh sách sách -->
     <div class="row row-cols-1 row-cols-md-3 g-4">
-      <div class="col" v-for="book in books" :key="book.maSach">
+      <div class="col" v-for="book in books" :key="`${book.maSach}:${book.maTacGia}:${book.maTheLoai}`">
         <div class="card h-100">
           <div class="card-img-top" style="height: 200px; overflow: hidden;">
             <img :src="`${API_URL}/${book.imagePath || 'Uploads/default-book.jpg'}`" style="width: 100%; height: 100%; object-fit: cover;" alt="Book cover">
@@ -101,9 +101,9 @@
             <button 
               class="btn btn-primary"
               @click="addToBorrowCart(book)"
-              :disabled="book.soLuongHienCo === 0 || loading || isBookInCart(book.maSach)"
+              :disabled="book.soLuongHienCo === 0 || loading || isBookInCart(book)"
             >
-              {{ isBookInCart(book.maSach) ? 'Đã thêm' : 'Thêm vào giỏ mượn' }}
+              {{ isBookInCart(book) ? 'Đã thêm' : 'Thêm vào giỏ mượn' }}
             </button>
           </div>
         </div>
@@ -178,12 +178,16 @@ export default {
       }
     };
 
-    const isBookInCart = (bookId) => {
-      return borrowCart.value.some(item => item.maSach === bookId);
+    const isBookInCart = (book) => {
+      return borrowCart.value.some(item =>
+        item.maSach === book.maSach &&
+        item.maTacGia === book.maTacGia &&
+        item.maTheLoai === book.maTheLoai
+      );
     };
 
     const addToBorrowCart = (book) => {
-      if (!isBookInCart(book.maSach)) {
+      if (!isBookInCart(book)) {
         borrowCart.value.push({
           ...book,
           soLuongSachMuon: 1
@@ -214,6 +218,8 @@ export default {
         loading.value = true;
         const chiTiet = borrowCart.value.map(item => ({
           maSach: item.maSach,
+          maTacGia: item.maTacGia,
+          maTheLoai: item.maTheLoai,
           soLuongSachMuon: item.soLuongSachMuon
         }));
         await store.dispatch('borrow/createBorrowRequest', { chiTiet });

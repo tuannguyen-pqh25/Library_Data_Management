@@ -41,10 +41,12 @@ module.exports = (sequelize, DataTypes) => {
     },
     maTacGia: {
       type: DataTypes.INTEGER,
+      primaryKey: true,
       allowNull: false,
     },
     maTheLoai: {
       type: DataTypes.INTEGER,
+      primaryKey: true,
       allowNull: false,
     },
   }, {

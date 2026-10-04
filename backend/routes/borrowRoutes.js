@@ -14,15 +14,15 @@ const {
 
 // Routes cho admin
 router.get('/admin/requests', auth, adminAuth, getAllBorrowRequests);
-router.put('/admin/requests/:maPhieuMuon', auth, adminAuth, updateBorrowRequest);
+router.put('/admin/requests/:maPhieuMuon/:maDocGia', auth, adminAuth, updateBorrowRequest);
 
 // Routes cho độc giả
 router.get('/history', auth, getReaderBorrowHistory);
 router.post('/request', auth, createBorrowRequest);
 
 // Routes mới cho xuất phiếu
-router.get('/export/borrow/:maPhieuMuon', auth, exportBorrowSlip); // Xuất phiếu mượn
-router.get('/export/return/:maPhieuTra', auth, exportReturnSlip); // Xuất phiếu trả
-router.get('/export/penalty/:maPhieuTra', auth, exportPenaltyForm); // Xuất form phạt
+router.get('/export/borrow/:maPhieuMuon/:maDocGia', auth, exportBorrowSlip);
+router.get('/export/return/:maPhieuTra/:maChiTietPM', auth, exportReturnSlip);
+router.get('/export/penalty/:maPhieuTra/:maChiTietPM', auth, exportPenaltyForm);
 
 module.exports = router;

@@ -11,6 +11,8 @@
     "dev": "nodemon server.js",
     "seed-admin": "node scripts/createAdmin.js",
     "demo:setup": "sequelize-cli db:migrate && npm run seed-admin && node seeders/demo-data.js"
+    "seed-data": "node scripts/seed-data.js",
+    "test": "node --test"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

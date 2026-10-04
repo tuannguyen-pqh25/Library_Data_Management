@@ -13,11 +13,11 @@ const {
 
 // Routes công khai
 router.get('/', getAllBooks);
-router.get('/:id', getBookById);
+router.get('/:maSach/:maTacGia/:maTheLoai', getBookById);
 
 // Routes yêu cầu quyền admin
 router.post('/', auth, adminAuth,upload.single('image'), createBook);
-router.put('/:id', auth,upload.single('image'), adminAuth, updateBook);
-router.delete('/:id', auth, adminAuth, deleteBook);
+router.put('/:maSach/:maTacGia/:maTheLoai', auth, adminAuth, upload.single('image'), updateBook);
+router.delete('/:maSach/:maTacGia/:maTheLoai', auth, adminAuth, deleteBook);
 
 module.exports = router;
