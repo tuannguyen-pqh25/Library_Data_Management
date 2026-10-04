@@ -155,6 +155,12 @@ npm run dev
 
 Ứng dụng sẽ tự động mở trong trình duyệt của bạn (thường là http://localhost:5173).
 
+### 9. Tạo dữ liệu demo
+Mở một Terminal mới, chuyển đến thư mục backend
+```bash
+cd ../backend
+npm run demo:setup
+```
 ## Hoàn tất
 
 Bạn đã cài đặt và chạy thành công dự án Library Management System!
