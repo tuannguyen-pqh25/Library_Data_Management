@@ -15,32 +15,16 @@
 
         <form @submit.prevent="handleSubmit" novalidate>
           <div class="mb-3">
-            <label class="form-label">Họ <span class="text-danger">*</span></label>
-            <input 
-              type="text" 
+            <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
+            <input
+              type="text"
               class="form-control"
-              :class="{ 'is-invalid': errors.hoLot }"
-              v-model="formData.hoLot" 
+              :class="{ 'is-invalid': errors.fullName }"
+              v-model="formData.fullName"
               required
-              @input="validateField('hoLot')"
+              @input="validateField('fullName')"
             >
-            <div class="invalid-feedback" v-if="errors.hoLot">
-              {{ errors.hoLot }}
-            </div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Tên <span class="text-danger">*</span></label>
-            <input 
-              type="text" 
-              class="form-control"
-              :class="{ 'is-invalid': errors.ten }"
-              v-model="formData.ten" 
-              required
-              @input="validateField('ten')"
-            >
-            <div class="invalid-feedback" v-if="errors.ten">
-              {{ errors.ten }}
-            </div>
+            <div class="invalid-feedback" v-if="errors.fullName">{{ errors.fullName }}</div>
           </div>
           <div class="mb-3">
             <label class="form-label">Ngày sinh <span class="text-danger">*</span></label>
@@ -188,8 +172,7 @@ export default {
     const store = useStore();
     const router = useRouter();
     const formData = ref({
-      hoLot: '',
-      ten: '',
+      fullName: '',
       ngaySinh: '',
       phai: 'Nam',
       diaChi: '',
@@ -206,20 +189,9 @@ export default {
     const validateField = (field) => {
       const newErrors = { ...errors.value };
 
-      if (field === 'hoLot') {
-        if (!formData.value.hoLot) {
-          newErrors.hoLot = 'Họ là bắt buộc';
-        } else {
-          delete newErrors.hoLot;
-        }
-      }
-
-      if (field === 'ten') {
-        if (!formData.value.ten) {
-          newErrors.ten = 'Tên là bắt buộc';
-        } else {
-          delete newErrors.ten;
-        }
+      if (field === 'fullName') {
+        if (!formData.value.fullName.trim()) newErrors.fullName = 'Họ và tên là bắt buộc';
+        else delete newErrors.fullName;
       }
 
       if (field === 'ngaySinh') {
@@ -298,12 +270,7 @@ export default {
 
     const validateForm = () => {
       const newErrors = {};
-      if (!formData.value.hoLot) {
-        newErrors.hoLot = 'Họ là bắt buộc';
-      }
-      if (!formData.value.ten) {
-        newErrors.ten = 'Tên là bắt buộc';
-      }
+      if (!formData.value.fullName.trim()) newErrors.fullName = 'Họ và tên là bắt buộc';
       if (!formData.value.ngaySinh) {
         newErrors.ngaySinh = 'Ngày sinh là bắt buộc';
       }
@@ -344,10 +311,8 @@ export default {
         return;
       }
 
-      // Gộp họ + tên và đổi key cho phù hợp backend
       const payload = {
-        hoLot: formData.value.hoLot.trim(),
-        ten: formData.value.ten.trim(),
+        fullName: formData.value.fullName.trim(),
         ngaySinh: formData.value.ngaySinh,
         phai: formData.value.phai,
         diaChi: formData.value.diaChi,

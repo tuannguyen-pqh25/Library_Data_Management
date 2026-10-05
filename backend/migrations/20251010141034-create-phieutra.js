@@ -11,10 +11,10 @@ module.exports = {
       maChiTietPM: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        references: { model: 'ChiTietPhieuMuon', key: 'maChiTietPM' },
-        onUpdate: 'CASCADE',
-        onDelete: 'CASCADE'
+        primaryKey: true
       },
+      maPhieuMuon: { type: Sequelize.INTEGER, allowNull: false },
+      maSach: { type: Sequelize.INTEGER, allowNull: false },
       ngayTraSach: {
         allowNull: false,
         type: Sequelize.DATE,
@@ -33,6 +33,14 @@ module.exports = {
         allowNull: false,
         type: Sequelize.DATE
       }
+    });
+    await queryInterface.addConstraint('PhieuTra', {
+      fields: ['maChiTietPM', 'maPhieuMuon', 'maSach'],
+      type: 'foreign key',
+      name: 'fk_phieutra_chitietphieumuon',
+      references: { table: 'ChiTietPhieuMuon', fields: ['maChiTietPM', 'maPhieuMuon', 'maSach'] },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
     });
   },
   async down(queryInterface, Sequelize) {

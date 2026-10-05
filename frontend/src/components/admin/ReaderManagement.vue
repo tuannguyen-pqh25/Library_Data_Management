@@ -47,7 +47,7 @@
         <tbody>
           <tr v-for="reader in readers" :key="reader.maDocGia">
             <td>{{ reader.maDocGia }}</td>
-            <td>{{ reader.hoLot }} {{ reader.ten }}</td>
+            <td>{{ reader.fullName }}</td>
             <td>{{ reader.email }}</td>
             <td>{{ reader.dienThoai }}</td>
             <td>{{ formatDate(reader.ngaySinh) }}</td>
@@ -71,7 +71,7 @@
             <button type="button" class="btn-close" @click="closeConfirmModal"></button>
           </div>
           <div class="modal-body">
-            <p>Bạn có chắc muốn xóa độc giả "{{ selectedReader?.hoLot }} {{ selectedReader?.ten }}" không?</p>
+            <p>Bạn có chắc muốn xóa độc giả "{{ selectedReader?.fullName }}" không?</p>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="closeConfirmModal">Hủy</button>
@@ -108,7 +108,7 @@ export default {
       const search = searchTerm.value.toLowerCase();
       return readers.value.filter(reader => 
         String(reader.maDocGia).includes(search) ||
-        `${reader.hoLot} ${reader.ten}`.toLowerCase().includes(search) ||
+        (reader.fullName || '').toLowerCase().includes(search) ||
         reader.email.toLowerCase().includes(search) ||
         reader.dienThoai.toLowerCase().includes(search)
       );

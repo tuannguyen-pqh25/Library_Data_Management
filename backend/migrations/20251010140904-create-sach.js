@@ -3,8 +3,8 @@ module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('Sach', {
       maSach: { allowNull: false, autoIncrement: true, primaryKey: true, type: Sequelize.INTEGER },
-      maTacGia: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'TacGia', key: 'maTacGia' },  onDelete: 'CASCADE', onUpdate: 'CASCADE'},
-      maTheLoai: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'TheLoai', key: 'maTheLoai' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'},
+      maTacGia: { type: Sequelize.INTEGER, allowNull: false, primaryKey: true, references: { model: 'TacGia', key: 'maTacGia' },  onDelete: 'CASCADE', onUpdate: 'CASCADE'},
+      maTheLoai: { type: Sequelize.INTEGER, allowNull: false, primaryKey: true, references: { model: 'TheLoai', key: 'maTheLoai' }, onDelete: 'CASCADE', onUpdate: 'CASCADE'},
       tenSach: { allowNull: false, type: Sequelize.STRING },
       namXuatBan: { allowNull: false, type: Sequelize.INTEGER },
       maNXB: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'NhaXuatBan', key: 'maNXB' },  onDelete: 'CASCADE', onUpdate: 'CASCADE'},

@@ -108,7 +108,6 @@ async function seedDemoData() {
       maNXB: publishers.nxbCTU.maNXB,
       maTacGia: authors.nguyenNhatAnh.maTacGia,
       maTheLoai: categories.xaHoi.maTheLoai,
-      imagePath: 'uploads/761_cho_toi_xin_mot_ve_di_tuoi_tho.jpg',
     },
     {
       tenSach: 'Khám phá khoa học',
@@ -207,7 +206,7 @@ async function seedDemoData() {
     await findOrCreate(
       Sach,
       { tenSach: book.tenSach },
-      { imagePath: null, ...book }
+      { ...book, imagePath: null }
     );
   }
 
@@ -217,7 +216,8 @@ async function seedDemoData() {
     DocGia,
     { email: DEMO_READER_EMAIL },
     {
-      fullName: 'Nguyễn Văn An',
+      hoLot: 'Nguyễn Văn',
+      ten: 'An',
       ngaySinh: '2000-01-01',
       phai: 'Nam',
       diaChi: 'Cần Thơ',

@@ -86,7 +86,7 @@ const updateProfile = async (req, res) => {
     let allowedUpdates;
 
     if (userType === 'reader') {
-      allowedUpdates = ['hoLot', 'ten', 'ngaySinh', 'phai', 'diaChi', 'dienThoai', 'email'];
+      allowedUpdates = ['fullName', 'ngaySinh', 'phai', 'diaChi', 'dienThoai', 'email'];
     } else if (userType === 'staff') {
       allowedUpdates = ['hoTenNV', 'diaChi', 'soDienThoai'];
     } else {
@@ -128,11 +128,8 @@ const updateProfile = async (req, res) => {
     if (req.body.phai && !['Nam', 'Nữ', 'Khác'].includes(req.body.phai)) {
       errors.phai = 'Giới tính không hợp lệ';
     }
-    if (req.body.hoLot && !req.body.hoLot.trim()) {
-      errors.hoLot = 'Họ lót không được để trống';
-    }
-    if (req.body.ten && !req.body.ten.trim()) {
-      errors.ten = 'Tên không được để trống';
+    if (req.body.fullName !== undefined && (typeof req.body.fullName !== 'string' || !req.body.fullName.trim())) {
+      errors.fullName = 'Họ tên không được để trống';
     }
     if (req.body.hoTenNV && !req.body.hoTenNV.trim()) {
       errors.hoTenNV = 'Họ tên nhân viên không được để trống';
@@ -143,7 +140,7 @@ const updateProfile = async (req, res) => {
       return res.status(400).json({ error: 'Dữ liệu không hợp lệ', errors });
     }
 
-    updates.forEach(update => (user[update] = req.body[update]));
+    updates.forEach(update => (user[update] = update === 'fullName' ? req.body[update].trim() : req.body[update]));
     await user.save();
 
     const userResponse = { ...user.toJSON(), password: undefined, otp: undefined, otpExpiry: undefined };

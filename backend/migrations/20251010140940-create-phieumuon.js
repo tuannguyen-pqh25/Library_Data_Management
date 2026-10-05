@@ -11,6 +11,7 @@ module.exports = {
       maDocGia: {
         type: Sequelize.INTEGER,
         allowNull: false,
+        primaryKey: true,
         references: { model: 'DocGia', key: 'maDocGia' },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
@@ -25,7 +26,7 @@ module.exports = {
         type: Sequelize.DATE
       },
       trangThai: {
-        type: Sequelize.ENUM('Chờ duyệt', 'Đã duyệt', 'Đã trả', 'Từ chối'), 
+        type: Sequelize.ENUM('Chờ duyệt', 'Đang mượn', 'Đã trả', 'Từ chối'),
         defaultValue: 'Chờ duyệt'
       },
       createdAt: {
