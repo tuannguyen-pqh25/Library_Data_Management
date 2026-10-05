@@ -111,11 +111,22 @@ GRANT ALL PRIVILEGES ON library_db.* TO 'librarymanagement'@'127.0.0.1';
 FLUSH PRIVILEGES;
 ```
 
-### 6. Khởi tạo Bảng và Dữ liệu Mặc định
+### 6. Khởi tạo Bảng và Dữ liệu
 
-Sử dụng Sequelize-CLI để chạy các migrations (tạo bảng, func, procedure) và thêm dữ liệu người dùng Admin mặc định.
+Tùy theo mục đích sử dụng, bạn hãy chọn 1 trong 2 cách sau:
 
-**Lưu ý:** Chạy các lệnh này từ thư mục backend.
+**Cách 1: Khởi tạo nhanh kèm Dữ liệu Demo (Khuyên dùng cho Test/Dev)**
+Lệnh này sẽ tự động tạo cấu trúc CSDL, tạo tài khoản Admin và nạp sẵn một số sách/độc giả mẫu để bạn dễ dàng test tính năng.
+
+```bash
+# Trở lại thư mục backend
+cd ../backend
+
+npm run demo:setup
+```
+
+**Cách 2: Khởi tạo CSDL Trắng (Dành cho Deploy thực tế)**
+Chỉ tạo cấu trúc CSDL và 1 tài khoản Admin duy nhất (không có dữ liệu mẫu).
 
 ```bash
 # Trở lại thư mục backend
@@ -155,12 +166,7 @@ npm run dev
 
 Ứng dụng sẽ tự động mở trong trình duyệt của bạn (thường là http://localhost:5173).
 
-### 9. Tạo dữ liệu demo
-Mở một Terminal mới, chuyển đến thư mục backend
-```bash
-cd ../backend
-npm run demo:setup
-```
+
 ## Hoàn tất
 
 Bạn đã cài đặt và chạy thành công dự án Library Management System!

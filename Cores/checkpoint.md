@@ -9,6 +9,63 @@
 - Yêu cầu của lượt 2026-09-30 là **cập nhật ngữ cảnh trong tài liệu**, không phải đã hoàn tất redesign hoặc sửa lỗi nghiệp vụ. Các mục kỹ thuật bên dưới vẫn là việc cần làm cho đến khi có bằng chứng kiểm thử mới.
 - `checkpoint.md` là nhật ký liên tục: **chỉ sửa/bổ sung file này, không xóa hay tạo lại**. Mỗi lần kết thúc một việc đáng kể, ghi thay đổi, kết quả kiểm tra, việc còn lại và ngày xác nhận.
 
+## Cập nhật tiến độ tổng hợp (05/10/2026)
+
+**Đánh giá tổng quan:** Các nhánh của A, C, D đã bắt đầu hội tụ tại `main`. Xung đột CSDL và giao diện đã được giải quyết thành công thông qua quá trình merge.
+
+- **Người A (Minh - Thiết kế CSDL, Migration, Trigger, API Thống kê):**
+  - Đã tái cấu trúc lại một số bảng quan trọng (VD: Gộp `hoLot` và `ten` thành cột `fullName` duy nhất trong bảng `DocGia`).
+  - Đã bổ sung các khóa ngoại, thêm các cột cần thiết (`maPhieuMuon`, `maSach`) vào bảng `PhieuTra` và viết Trigger xử lý nghiệp vụ mượn/trả (`trg_tinh_tien_phat`).
+  - **Trạng thái:** Hoàn thành tốt phần Core CSDL. Đã gộp code thành công vào `main`.
+
+- **Người B (Thắng - Dashboard Quản trị & Biểu đồ):**
+  - Đang phát triển giao diện Dashboard.
+  - **Trạng thái:** Chờ hoàn thiện để tích hợp API thống kê từ A.
+
+- **Người C (Tuấn - Trải nghiệm Độc giả & Frontend):**
+  - Đã thiết kế lại toàn bộ UI khu vực Độc giả (BookList, Drawer Giỏ mượn, PublisherList).
+  - Tích hợp bộ lọc sách và lưu giỏ mượn vào Local Storage.
+  - Đã giải quyết xong xung đột (conflict) mã nguồn với A và fix bug MySQL \`fn_kiem_tra_so_luong_sach\`.
+  - **Trạng thái:** Đã fix xong UI và hoàn thành gộp nhánh. Sẵn sàng tạo Pull Request.
+
+- **Người D (Vũ - Quản lý dữ liệu, Import/Export, Kiểm thử):**
+  - Đã cập nhật thành công kịch bản test nâng cao `scripts/seed-data.js` để khớp với cột `fullName`.
+  - **Trạng thái:** Các dữ liệu giả lập (seeders) đều chạy trơn tru với cấu trúc DB mới.
+
+## Cập nhật 2026-10-05 — Giao diện Độc giả (Thành viên C)
+
+**Phạm vi:** Chỉ frontend phần độc giả. Không đổi API, schema, store, hay bất kỳ component admin nào.
+
+### File đã thay đổi
+| File | Thay đổi |
+|---|---|
+| `frontend/src/components/reader/BookList.vue` | Viết lại hoàn toàn — thiết kế mới, bộ lọc, modal xem chi tiết sách. Đã sửa lỗi hiển thị số lượng và fix lỗi giỏ hàng bị reset khi chuyển trang (lưu local storage). Dọn dẹp conflict git. |
+| `frontend/src/views/ReaderDashboard.vue` | Viết lại hoàn toàn — navbar sticky, responsive mobile menu, footer tối |
+| `frontend/src/components/reader/PublisherList.vue` | Nâng cấp UI đồng bộ với BookList (card layout, khoảng cách lề, font chữ). |
+| `frontend/src/components/reader/AuthorList.vue` | Nâng cấp UI đồng bộ với BookList (card layout, khoảng cách lề, font chữ). |
+| `frontend/src/components/reader/CategoryList.vue` | Nâng cấp UI đồng bộ với BookList (card layout, khoảng cách lề, font chữ). |
+| `frontend/src/components/reader/BorrowHistory.vue`| Nâng cấp UI đồng bộ với thiết kế mới (Bảng dữ liệu phẳng, tab hiện đại, nút tải phiếu dạng icon nhỏ gọn). |
+
+### Nghiệp vụ giỏ mượn đã kiểm tra
+- **Giữ giỏ hàng khi chuyển trang:** Sử dụng `localStorage` để lưu state `borrowCart`, tránh reset giỏ hàng làm ảnh hưởng UX.
+- **Không thêm trùng sách:** nút "Thêm vào giỏ" bị disable và đổi thành "Đã thêm" ngay sau khi sách đã có trong giỏ.
+- **Số lượng nguyên dương, không vượt tồn:** `validateQuantity()` clamp về `[1, soLuongHienCo]`; nút `±` không cho vượt biên; `isValidCart` block nút gửi khi có item không hợp lệ.
+- **Thông báo trạng thái "Chờ duyệt":** sau khi gửi, toast hiện rõ trạng thái Chờ duyệt. Drawer cũng có note nhắc trước khi bấm gửi.
+
+### Thay đổi UI
+- Font: Playfair Display (tiêu đề) + Outfit (body), lấy cảm hứng design system CT449.
+- Giỏ mượn là **side drawer** trượt từ phải, thay vì modal giữa màn hình.
+- Book grid dùng CSS Grid auto-fill, ảnh bìa với overlay stock badge (tỉ lệ chuẩn 3:4).
+- Bộ lọc: Có thêm filter theo thể loại nằm cạnh ô tìm kiếm ở BookList.
+- Modal xem chi tiết sách (Book Detail): Bấm vào ảnh hoặc tiêu đề sách để xem full ảnh và thông tin chi tiết. (Đã bỏ hiển thị "Tổng quyển" dư thừa).
+- Các trang Tác giả, Nhà xuất bản, Thể loại đã được bo góc, thêm padding/margin để chữ không bị dính sát lề, áp dụng font và màu sắc mới đồng nhất.
+- Navbar sticky, avatar chữ cái, nút logout icon, hamburger menu responsive.
+- Footer tối `#0f172a`, đã xóa thông tin cá nhân/mã số sinh viên của source cũ.
+
+### Cập nhật bổ sung (Gộp nhánh & Fix Bug)\n- **Gộp nhánh main:** Đã merge thành công nhánh main vào C-Tuấn, giải quyết toàn bộ 8 file xung đột (giữ giao diện mới của C, nhận DB models mới của A).\n- **Fix Bug SQL:** Sửa lỗi hàm n_kiem_tra_so_luong_sach trong CSDL bị dư tham số gây crash khi xóa sách. Cập nhật file ookController.js để đọc kết quả destructuring chính xác.\n\n### Rủi ro còn lại
+- `VITE_API_IMAGE_URL` phải được cấu hình đúng trong `frontend/.env` để ảnh hiển thị.
+- `BorrowHistory.vue` chưa được cập nhật UI (ngoài phạm vi lần này).
+
 ## Bản đồ mã nguồn và hiện trạng UI (đã đọc mã ngày 2026-09-30)
 
 | Khu vực | File chính | Ghi nhận |
@@ -76,6 +133,8 @@
 | `ECONNREFUSED 127.0.0.1:3307` | `config/config.json` gán cứng port 3307, MySQL mới cài dùng port 3306 | Sửa port trong `backend/config/config.json` về `3306` |
 | `SUPER privilege... log_bin_trust_function_creators` | User `librarymanagement` không có quyền SUPER để tạo function/trigger | Chạy `SET GLOBAL log_bin_trust_function_creators = 1;` bằng tài khoản root trong MySQL CLI |
 | `Cannot find module './logger'` (winston) | Thư viện winston bị cài thiếu/hỏng file nội bộ | Chạy `npm install winston` trong thư mục `backend` |
+| `Unknown column 'maPhieuMuon' in 'NEW'` | Cấu trúc bảng `PhieuTra` cũ chưa có cột này do chạy đè migration | Dùng `npx sequelize-cli db:drop` và `db:create` để cài lại CSDL sạch |
+| `notNull Violation: DocGia.fullName cannot be null` | Người D quên update `hoLot`/`ten` thành `fullName` trong `demo-data.js` | Đã tự động sửa lại file `seeders/demo-data.js` để dùng cột `fullName` |
 
 ---
 
