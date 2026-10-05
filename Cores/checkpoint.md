@@ -23,8 +23,12 @@
   - **Trạng thái:** Hoàn thành tốt phần Core CSDL. Đã gộp code thành công vào `main`.
 
 - **Người B (Thắng - Dashboard Quản trị & Biểu đồ):**
-  - Đang phát triển giao diện Dashboard.
-  - **Trạng thái:** Chờ hoàn thiện để tích hợp API thống kê từ A.
+  - **Giai đoạn 1 đã hoàn thành:** cập nhật `frontend/src/components/admin/AdminHomePage.vue` với giao diện dashboard Bootstrap responsive, ba chỉ số bắt buộc (sách mượn tháng này, độc giả đã mượn năm nay, phiếu chưa trả), biểu đồ lượt mượn sáu tháng và bảng phiếu chưa trả.
+  - Thêm `frontend/src/services/dashboardReportService.js` làm service/fixture độc lập; mặc định hiển thị dữ liệu minh họa và hỗ trợ xem trạng thái rỗng/lỗi. Dashboard có loading, error kèm nút thử lại, empty state.
+  
+  - **Trạng thái:** Giai đoạn 1 hoàn thành với fixture. Chờ A bàn giao API và payload thống nhất ở Giai đoạn 2 trước khi tích hợp dữ liệu thật; không sửa backend trong phần việc của B, Sẵn sàng tạo Pull Request.
+
+
 
 - **Người C (Tuấn - Trải nghiệm Độc giả & Frontend):**
   - Đã thiết kế lại toàn bộ UI khu vực Độc giả (BookList, Drawer Giỏ mượn, PublisherList).
