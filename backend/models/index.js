@@ -30,21 +30,9 @@ const PhieuMuon = require('./PhieuMuon')(sequelize, DataTypes);
 const ChiTietPhieuMuon = require('./ChiTietPhieuMuon')(sequelize, DataTypes);
 const PhieuTra = require('./PhieuTra')(sequelize, DataTypes);
 
-// Associations
-Sach.belongsTo(TacGia, { foreignKey: 'maTacGia', as: 'TacGia' });
-TacGia.hasMany(Sach, { foreignKey: 'maTacGia', as: 'Sachs' });
-Sach.belongsTo(TheLoai, { foreignKey: 'maTheLoai', as: 'TheLoai' });
-TheLoai.hasMany(Sach, { foreignKey: 'maTheLoai', as: 'Sachs' });
-Sach.belongsTo(NhaXuatBan, { foreignKey: 'maNXB', as: 'NhaXuatBan' });
-NhaXuatBan.hasMany(Sach, { foreignKey: 'maNXB', as: 'Sachs' });
-PhieuMuon.belongsTo(DocGia, { foreignKey: 'maDocGia', as: 'DocGia' });
-DocGia.hasMany(PhieuMuon, { foreignKey: 'maDocGia', as: 'PhieuMuons' });
-ChiTietPhieuMuon.belongsTo(PhieuMuon, { foreignKey: 'maPhieuMuon', as: 'PhieuMuon' });
-PhieuMuon.hasMany(ChiTietPhieuMuon, { foreignKey: 'maPhieuMuon', as: 'ChiTietPhieuMuons' });
-ChiTietPhieuMuon.belongsTo(Sach, { foreignKey: 'maSach', as: 'Sach' });
-Sach.hasMany(ChiTietPhieuMuon, { foreignKey: 'maSach', as: 'ChiTietPhieuMuons' });
-PhieuTra.belongsTo(ChiTietPhieuMuon, { foreignKey: 'maChiTietPM', as: 'ChiTietPhieuMuon' });
-ChiTietPhieuMuon.hasOne(PhieuTra, { foreignKey: 'maChiTietPM', as: 'PhieuTra' });
+// Composite paths use the explicit predicates in compositeRelations.js.
+const { registerAssociations } = require('./compositeRelations');
+registerAssociations({ Sach, TacGia, TheLoai, NhaXuatBan, PhieuMuon, DocGia });
 
 // Debugging
 console.log('NhanVien.findOne:', typeof NhanVien.findOne);

@@ -1,131 +1,119 @@
 <template>
-  <div class="borrow-history">
+  <div class="list-page">
     <LoadingSpinner :show="loading" />
 
-    <h2>Lịch sử mượn sách</h2>
-
-    <!-- Error Alert -->
-    <div v-if="error" class="alert alert-danger alert-dismissible fade show" role="alert">
-      {{ error }}
-      <button type="button" class="btn-close" @click="clearError"></button>
+    <div class="page-header">
+      <h2 class="page-title">Lịch sử mượn sách</h2>
+      <p class="page-sub">Theo dõi và quản lý các yêu cầu mượn sách của bạn</p>
     </div>
 
-    <div class="row mb-4">
-      <div class="col-md-6">
-        <div class="input-group">
-          <input 
-            type="text" 
-            class="form-control" 
-            v-model="searchTerm"
-            placeholder="Tìm kiếm theo tên sách, mã sách"
-          >
-          <span class="input-group-text">
-            <i class="fas fa-search"></i>
-          </span>
-        </div>
+
+
+    <!-- Error Alert -->
+    <div v-if="error" class="error-alert">
+      <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+      <button @click="clearError" class="error-alert__close">×</button>
+    </div>
+
+    <div class="toolbar">
+      <!-- Search -->
+      <div class="search-wrap">
+        <i class="fas fa-search search-icon"></i>
+        <input
+          type="text"
+          class="search-input"
+          v-model="searchTerm"
+          placeholder="Tìm kiếm theo tên sách, mã sách..."
+        >
+        <button v-if="searchTerm" class="search-clear" @click="searchTerm = ''"><i class="fas fa-times"></i></button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="custom-tabs">
+        <button class="tab-item" :class="{ active: currentTab === 'all' }" @click="currentTab = 'all'">Tất cả</button>
+        <button class="tab-item" :class="{ active: currentTab === 'pending' }" @click="currentTab = 'pending'">Chờ duyệt</button>
+        <button class="tab-item" :class="{ active: currentTab === 'active' }" @click="currentTab = 'active'">Đang mượn</button>
+        <button class="tab-item" :class="{ active: currentTab === 'rejected' }" @click="currentTab = 'rejected'">Bị từ chối</button>
+        <button class="tab-item" :class="{ active: currentTab === 'returned' }" @click="currentTab = 'returned'">Đã trả</button>
       </div>
     </div>
 
-    <!-- Tabs for different request status -->
-    <ul class="nav nav-tabs mb-3">
-      <li class="nav-item">
-        <a class="nav-link" :class="{ active: currentTab === 'all' }" 
-           @click="currentTab = 'all'">
-          Tất cả
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" :class="{ active: currentTab === 'pending' }" 
-           @click="currentTab = 'pending'">
-          Chờ duyệt
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" :class="{ active: currentTab === 'approved' }" 
-           @click="currentTab = 'approved'">
-          Đã duyệt
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" :class="{ active: currentTab === 'rejected' }" 
-           @click="currentTab = 'rejected'">
-          Bị từ chối
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" :class="{ active: currentTab === 'returned' }" 
-           @click="currentTab = 'returned'">
-          Đã trả
-        </a>
-      </li>
-    </ul>
-
     <!-- Danh sách yêu cầu mượn sách -->
-    <div class="table-responsive">
-      <table class="table table-striped">
-        <thead>
-          <tr>
-            <th>Sách</th>
-            <th>Ngày mượn</th>
-            <th>Ngày trả</th>
-            <th>Tiền phạt</th>
-            <th>Trạng thái</th>
-            <th>Thao tác</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="request in filteredRequests" :key="request.maPhieuMuon">
-            <td>
-              <div v-for="ct in request.ChiTietPhieuMuons" :key="ct.maChiTietPM">
-                {{ ct.Sach?.tenSach || 'N/A' }}
-                <br>
-                <small class="text-muted">Mã sách: {{ ct.Sach?.maSach || 'N/A' }}</small>
-              </div>
-            </td>
-            <td>{{ formatDate(request.ngayMuon) }}</td>
-            <td>
-              {{ request.ngayTra ? formatDate(request.ngayTra) : '-' }}
-            </td>
-            <td>
-              <span v-if="request.trangThai === 'Đã trả' && request.ChiTietPhieuMuons.some(ct => ct.PhieuTra)">
-                {{ request.ChiTietPhieuMuons.reduce((sum, ct) => sum + (ct.PhieuTra?.tienPhat || 0), 0) }} VND
-              </span>
-              <span v-else>-</span>
-            </td>
-            <td>
-              <span :class="getStatusBadgeClass(request.trangThai)">
-                {{ request.trangThai }}
-              </span>
-            </td>
-            <td>
-              <button 
-                v-if="['Đã duyệt', 'Đã trả'].includes(request.trangThai)"
-                class="btn btn-sm btn-primary me-2"
-                @click="downloadBorrowSlip(request.maPhieuMuon)"
-              >
-                <i class="fas fa-download"></i> Phiếu mượn
-              </button>
-              <button 
-                v-if="request.trangThai === 'Đã trả' && request.ChiTietPhieuMuons.some(ct => ct.PhieuTra)"
-                class="btn btn-sm btn-info me-2"
-                @click="downloadReturnSlip(request.ChiTietPhieuMuons.find(ct => ct.PhieuTra)?.PhieuTra?.maPhieuTra)"
-              >
-                <i class="fas fa-download"></i> Phiếu trả
-              </button>
-              <button 
-                v-if="request.trangThai === 'Đã trả' && request.ChiTietPhieuMuons.some(ct => ct.PhieuTra && ct.PhieuTra.tienPhat > 0)"
-                class="btn btn-sm btn-warning"
-                @click="downloadPenaltyForm(request.ChiTietPhieuMuons.find(ct => ct.PhieuTra)?.PhieuTra?.maPhieuTra)"
-              >
-                <i class="fas fa-download"></i> Phiếu phạt
-              </button>
-            </td>
-          </tr>
-          <tr v-if="filteredRequests.length === 0">
-            <td :colspan="getColspan">Không có dữ liệu</td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="table-container">
+      <div class="table-responsive">
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th>Sách</th>
+              <th>Ngày mượn</th>
+              <th>Ngày trả</th>
+              <th>Tiền phạt</th>
+              <th>Trạng thái</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="request in filteredRequests" :key="`${request.maPhieuMuon}:${request.maDocGia}`">
+              <td>
+                <div class="book-info-cell" v-for="ct in request.ChiTietPhieuMuons" :key="`${ct.maChiTietPM}:${ct.maPhieuMuon}:${ct.maSach}`">
+                  <div class="fw-bold text-dark">{{ ct.Sach?.tenSach || 'N/A' }}</div>
+                  <div class="text-sm text-muted">Mã sách: {{ ct.Sach?.maSach || 'N/A' }}</div>
+                </div>
+              </td>
+              <td>{{ formatDate(request.ngayMuon) }}</td>
+              <td>
+                {{ request.ngayTra ? formatDate(request.ngayTra) : '—' }}
+              </td>
+              <td>
+                <span v-if="request.trangThai === 'Đã trả' && hasReturns(request) && getTotalFine(request) > 0" class="text-danger fw-bold">
+                  {{ formatCurrency(getTotalFine(request)) }}
+                </span>
+                <span v-else>—</span>
+              </td>
+              <td>
+                <span class="status-badge" :class="getStatusBadgeClass(request.trangThai)">
+                  {{ request.trangThai }}
+                </span>
+              </td>
+              <td class="action-cell">
+                <button
+                  v-if="['Đang mượn', 'Đã trả'].includes(request.trangThai)"
+                  class="action-btn action-btn--primary"
+                  title="Phiếu mượn"
+                  @click="downloadBorrowSlip(request.maPhieuMuon, request.maDocGia || request.DocGia?.maDocGia)"
+                >
+                  <i class="fas fa-file-download"></i>
+                </button>
+                <button
+                  v-if="request.trangThai === 'Đã trả' && hasReturns(request)"
+                  class="action-btn action-btn--info"
+                  title="Phiếu trả"
+                  @click="downloadReturnSlip(firstReturn(request)?.returnRow.maPhieuTra, firstReturn(request)?.detail.maChiTietPM)"
+                >
+                  <i class="fas fa-file-invoice"></i>
+                </button>
+                <button
+                  v-if="request.trangThai === 'Đã trả' && firstPenalizedReturn(request) !== null"
+                  class="action-btn action-btn--warning"
+                  title="Phiếu phạt"
+                  @click="downloadPenaltyForm(firstPenalizedReturn(request)?.returnRow.maPhieuTra, firstPenalizedReturn(request)?.detail.maChiTietPM)"
+                >
+                  <i class="fas fa-exclamation-triangle"></i>
+                </button>
+              </td>
+            </tr>
+            <tr v-if="filteredRequests.length === 0">
+              <td colspan="6">
+                <div class="empty-state">
+                  <i class="fas fa-inbox fa-3x mb-3 opacity-30"></i>
+                  <h5>Không có dữ liệu</h5>
+                  <p class="text-muted">Chưa có lịch sử mượn sách nào phù hợp.</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </template>
@@ -177,8 +165,26 @@ export default {
       return results;
     });
 
+    const getReturns = (request) => request.ChiTietPhieuMuons.flatMap(detail =>
+      detail.PhieuTra.map(returnRow => ({ detail, returnRow }))
+    );
+    const hasReturns = (request) => getReturns(request).length > 0;
+    const firstReturn = (request) => getReturns(request)[0] || null;
+    const firstPenalizedReturn = (request) => getReturns(request).find(
+      ({ returnRow }) => Number(returnRow.tienPhat) > 0
+    ) || null;
+    const getTotalFine = (request) => getReturns(request).reduce(
+      (total, { returnRow }) => total + Number(returnRow.tienPhat || 0), 0
+    );
+
+    const formatCurrency = (value) => {
+      return new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND'
+      }).format(value);
+    };
     const formatDate = (date) => {
-      return date ? new Date(date).toLocaleDateString('vi-VN') : '-';
+      return date ? new Date(date).toLocaleDateString('vi-VN') : '—';
     };
 
     const getStatusBadgeClass = (status) => {
@@ -188,7 +194,7 @@ export default {
         'Từ chối': 'badge bg-danger',
         'Đã trả': 'badge bg-info'
       };
-      return classes[status] || 'badge bg-secondary';
+      return classes[status] || 'badge-secondary';
     };
 
     const fetchHistory = async () => {
@@ -265,10 +271,6 @@ export default {
       store.commit('borrow/CLEAR_ERROR');
     };
 
-    const getColspan = computed(() => {
-      return 6; // Cột: Sách, Ngày mượn, Ngày trả, Tiền phạt, Trạng thái, Thao tác
-    });
-
     onMounted(fetchHistory);
 
     return {
@@ -278,9 +280,13 @@ export default {
       error,
       searchTerm,
       formatDate,
+      formatCurrency,
+      hasReturns,
+      firstReturn,
+      firstPenalizedReturn,
+      getTotalFine,
       getStatusBadgeClass,
       clearError,
-      getColspan,
       downloadBorrowSlip,
       downloadReturnSlip,
       downloadPenaltyForm
@@ -290,23 +296,89 @@ export default {
 </script>
 
 <style scoped>
-.nav-link {
-  cursor: pointer;
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+/* ── Shared Variables ────────────────────────────────────── */
+.list-page {
+  --c-primary:    #2563eb;
+  --c-primary-dk: #1d4ed8;
+  --c-bg:         #f8fafc;
+  --c-surface:    #ffffff;
+  --c-border:     #e2e8f0;
+  --c-text:       #0f172a;
+  --c-muted:      #64748b;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'Outfit', system-ui, sans-serif;
+  --trans:        0.2s ease;
+  font-family: var(--font-body);
+  color: var(--c-text);
+  min-height: 100vh;
+  padding: 2rem 1.5rem 4rem;
+  background: var(--c-bg);
 }
-.badge {
-  font-size: 0.9em;
+
+.page-header { margin-bottom: 2rem; }
+.page-title { font-family: var(--font-display); font-size: 1.9rem; font-weight: 700; margin: 0 0 0.2rem; }
+.page-sub { color: var(--c-muted); font-size: 0.95rem; margin: 0; }
+
+/* ── Error Alert ─────────────────────────────────────────── */
+.error-alert { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 0.8rem 1.2rem; border-radius: 12px; display: flex; align-items: center; margin-bottom: 1.5rem; }
+.error-alert__close { margin-left: auto; background: none; border: none; cursor: pointer; color: #991b1b; }
+
+/* ── Toolbar (Search + Tabs) ─────────────────────────────── */
+.toolbar { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; }
+@media (min-width: 768px) {
+  .toolbar { flex-direction: row; justify-content: space-between; align-items: flex-end; }
 }
-.input-group {
-  max-width: 400px;
-}
-.input-group-text {
-  background-color: white;
-  border-left: none;
-}
-.form-control:focus + .input-group-text {
-  border-color: #86b7fe;
-}
-.form-control {
-  border-right: none;
-}
+
+.search-wrap { position: relative; width: 100%; max-width: 400px; }
+.search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--c-muted); }
+.search-input { width: 100%; padding: 0.75rem 2.5rem; border: 1.5px solid var(--c-border); border-radius: 10px; background: var(--c-surface); outline: none; font-family: var(--font-body); transition: all var(--trans); }
+.search-input:focus { border-color: var(--c-primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+.search-clear { position: absolute; right: 0.8rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--c-muted); cursor: pointer; }
+
+.custom-tabs { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem; }
+.custom-tabs::-webkit-scrollbar { display: none; }
+.tab-item { padding: 0.6rem 1.2rem; border: none; background: var(--c-surface); border-radius: 20px; font-family: var(--font-body); font-weight: 500; color: var(--c-muted); cursor: pointer; white-space: nowrap; transition: all var(--trans); border: 1px solid var(--c-border); }
+.tab-item:hover { background: #f1f5f9; color: var(--c-text); }
+.tab-item.active { background: var(--c-text); color: white; border-color: var(--c-text); }
+
+/* ── Table ───────────────────────────────────────────────── */
+.table-container { background: var(--c-surface); border-radius: 16px; border: 1px solid var(--c-border); overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+.table-responsive { overflow-x: auto; }
+.custom-table { width: 100%; border-collapse: collapse; min-width: 800px; }
+.custom-table th, .custom-table td { padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--c-border); text-align: left; vertical-align: middle; }
+.custom-table th { background: #f8fafc; color: var(--c-muted); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.custom-table tbody tr { transition: background var(--trans); }
+.custom-table tbody tr:hover { background: #f8fafc; }
+
+.book-info-cell { margin-bottom: 0.5rem; }
+.book-info-cell:last-child { margin-bottom: 0; }
+.text-sm { font-size: 0.85rem; }
+.fw-bold { font-weight: 600; }
+.text-muted { color: var(--c-muted); }
+.text-dark { color: var(--c-text); }
+.text-danger { color: #dc2626; }
+
+/* ── Badges ──────────────────────────────────────────────── */
+.status-badge { padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; display: inline-block; }
+.badge-warning { background: #fef3c7; color: #b45309; }
+.badge-success { background: #dcfce7; color: #15803d; }
+.badge-danger { background: #fee2e2; color: #b91c1c; }
+.badge-info { background: #e0f2fe; color: #0369a1; }
+.badge-secondary { background: #f1f5f9; color: #475569; }
+
+/* ── Actions ─────────────────────────────────────────────── */
+.action-cell { display: flex; gap: 0.5rem; }
+.action-btn { width: 36px; height: 36px; border-radius: 8px; border: none; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all var(--trans); color: white; }
+.action-btn--primary { background: var(--c-primary); }
+.action-btn--primary:hover { background: var(--c-primary-dk); }
+.action-btn--info { background: #0ea5e9; }
+.action-btn--info:hover { background: #0284c7; }
+.action-btn--warning { background: #f59e0b; }
+.action-btn--warning:hover { background: #d97706; }
+
+/* ── Empty State ─────────────────────────────────────────── */
+.empty-state { text-align: center; padding: 3rem 1rem; color: var(--c-muted); }
+.empty-state h5 { font-family: var(--font-display); font-weight: 600; color: var(--c-text); margin-bottom: 0.5rem; }
 </style>

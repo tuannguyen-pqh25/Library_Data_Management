@@ -11,17 +11,16 @@ module.exports = {
       maPhieuMuon: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        references: { model: 'PhieuMuon', key: 'maPhieuMuon' },
-        onUpdate: 'CASCADE',
-        onDelete: 'CASCADE'
+        primaryKey: true
       },
       maSach: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        references: { model: 'Sach', key: 'maSach' },
-        onUpdate: 'CASCADE',
-        onDelete: 'CASCADE'
+        primaryKey: true
       },
+      maDocGia: { type: Sequelize.INTEGER, allowNull: false },
+      maTacGia: { type: Sequelize.INTEGER, allowNull: false },
+      maTheLoai: { type: Sequelize.INTEGER, allowNull: false },
       soLuongSachMuon: {
         allowNull: false,
         type: Sequelize.INTEGER,
@@ -35,6 +34,22 @@ module.exports = {
         allowNull: false,
         type: Sequelize.DATE
       }
+    });
+    await queryInterface.addConstraint('ChiTietPhieuMuon', {
+      fields: ['maPhieuMuon', 'maDocGia'],
+      type: 'foreign key',
+      name: 'fk_chitietphieumuon_phieumuon',
+      references: { table: 'PhieuMuon', fields: ['maPhieuMuon', 'maDocGia'] },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
+    });
+    await queryInterface.addConstraint('ChiTietPhieuMuon', {
+      fields: ['maSach', 'maTacGia', 'maTheLoai'],
+      type: 'foreign key',
+      name: 'fk_chitietphieumuon_sach',
+      references: { table: 'Sach', fields: ['maSach', 'maTacGia', 'maTheLoai'] },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
     });
   },
   async down(queryInterface, Sequelize) {

@@ -13,31 +13,17 @@
     <div v-else class="profile-details">
       <form @submit.prevent="handleUpdateProfile" class="needs-validation" novalidate>
         <div class="mb-3">
-          <label for="hoLot" class="form-label">Họ lót <span class="text-danger">*</span></label>
+          <label for="fullName" class="form-label">Họ và tên <span class="text-danger">*</span></label>
           <input
             type="text"
             class="form-control"
-            id="hoLot"
-            v-model="userProfile.hoLot"
-            :class="{ 'is-invalid': errors.hoLot }"
+            id="fullName"
+            v-model="userProfile.fullName"
+            :class="{ 'is-invalid': errors.fullName }"
             required
-            @input="validateField('hoLot')"
+            @input="validateField('fullName')"
           >
-          <div class="invalid-feedback" v-if="errors.hoLot">{{ errors.hoLot }}</div>
-        </div>
-
-        <div class="mb-3">
-          <label for="ten" class="form-label">Tên <span class="text-danger">*</span></label>
-          <input
-            type="text"
-            class="form-control"
-            id="ten"
-            v-model="userProfile.ten"
-            :class="{ 'is-invalid': errors.ten }"
-            required
-            @input="validateField('ten')"
-          >
-          <div class="invalid-feedback" v-if="errors.ten">{{ errors.ten }}</div>
+          <div class="invalid-feedback" v-if="errors.fullName">{{ errors.fullName }}</div>
         </div>
 
         <div class="mb-3">
@@ -141,8 +127,7 @@ export default {
     const store = useStore();
     const router = useRouter();
     const userProfile = ref({
-      hoLot: '',
-      ten: '',
+      fullName: '',
       ngaySinh: '',
       phai: 'Nam',
       diaChi: '',
@@ -165,19 +150,9 @@ export default {
       const currentDate = new Date();
       const inputDate = new Date(userProfile.value.ngaySinh);
 
-      if (field === 'hoLot') {
-        if (!userProfile.value.hoLot.trim()) {
-          newErrors.hoLot = 'Họ lót là bắt buộc';
-        } else {
-          delete newErrors.hoLot;
-        }
-      }
-      if (field === 'ten') {
-        if (!userProfile.value.ten.trim()) {
-          newErrors.ten = 'Tên là bắt buộc';
-        } else {
-          delete newErrors.ten;
-        }
+      if (field === 'fullName') {
+        if (!userProfile.value.fullName?.trim()) newErrors.fullName = 'Họ và tên là bắt buộc';
+        else delete newErrors.fullName;
       }
       if (field === 'ngaySinh' && userProfile.value.ngaySinh) {
         if (isNaN(inputDate) || inputDate > currentDate) {
@@ -216,8 +191,7 @@ export default {
       const currentDate = new Date();
       const inputDate = new Date(userProfile.value.ngaySinh);
 
-      if (!userProfile.value.hoLot.trim()) newErrors.hoLot = 'Họ lót là bắt buộc';
-      if (!userProfile.value.ten.trim()) newErrors.ten = 'Tên là bắt buộc';
+      if (!userProfile.value.fullName?.trim()) newErrors.fullName = 'Họ và tên là bắt buộc';
       if (userProfile.value.ngaySinh && (isNaN(inputDate) || inputDate > currentDate)) {
         newErrors.ngaySinh = 'Ngày sinh không hợp lệ hoặc không được trong tương lai';
       }
@@ -266,7 +240,7 @@ export default {
       try {
         loading.value = true;
         error.value = null;
-        const allowedFields = ['hoLot', 'ten', 'ngaySinh', 'phai', 'diaChi', 'dienThoai', 'email'];
+        const allowedFields = ['fullName', 'ngaySinh', 'phai', 'diaChi', 'dienThoai', 'email'];
         const updateData = Object.fromEntries(
           Object.entries(userProfile.value).filter(([key]) => allowedFields.includes(key))
         );

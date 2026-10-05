@@ -129,7 +129,7 @@ const deleteBook = async (req, res) => {
   try {
     const { id } = req.params;
     logger.info('Checking book quantity', { id });
-    const [results] = await sequelize.query(
+    const results = await sequelize.query(
       'SELECT fn_kiem_tra_so_luong_sach(:maSach) as soLuongHienCo',
       {
         replacements: { maSach: parseInt(id) },

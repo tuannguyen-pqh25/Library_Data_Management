@@ -1,6 +1,43 @@
 # Hướng dẫn bước tiếp theo cho nhóm 4 người
 
+## Hướng dẫn Commit và Pull Request (Cập nhật 05/10/2026)
+Khi tạo Pull Request gộp nhánh `C-Tuấn` vào `main`, bạn nên sử dụng nội dung sau để chốt:
+
+**Tiêu đề PR:** `feat(ui): Hoàn thiện giao diện Độc giả & Fix xung đột CSDL`
+
+**Nội dung PR:**
+- Thay đổi UI toàn diện cho khu vực Độc giả (BookList, Dashboard, Modal, Drawer Giỏ mượn).
+- Tích hợp bộ lọc sách và lưu trạng thái giỏ mượn vào Local Storage để tránh mất dữ liệu.
+- Fix lỗi crash khi xóa sách (cập nhật hàm SQL `fn_kiem_tra_so_luong_sach` 1 tham số).
+- Đã resolve hoàn toàn conflict với bản cập nhật models (cột `fullName`) của A.
+
+### Prompt gợi ý cho phiên làm việc tiếp theo:
+```text
+Bạn hãy đọc lại các file trong thư mục Cores để nắm ngữ cảnh hiện tại. Nhóm vừa giải quyết xong phần giao diện Độc giả và đồng bộ CSDL (merge main). 
+Nhiệm vụ tiếp theo của chúng ta là hoàn thiện UI cho trang Lịch sử mượn trả (BorrowHistory.vue) và tiến hành test luồng tạo phiếu mượn từ Frontend xuống Backend. Hãy giúp tôi bắt đầu đánh giá và làm chức năng BorrowHistory.vue.
+```
+
+---
+
 Tài liệu này là kịch bản thực thi nối tiếp, không phải danh sách việc làm một lần. Mỗi giai đoạn có đầu ra nhìn thấy được, điều kiện qua cổng và prompt sẵn dùng. Chỉ bắt đầu giai đoạn sau khi trưởng nhóm xác nhận giai đoạn trước đạt.
+
+## Việc ưu tiên cho phiên kế tiếp — làm mới giao diện mã nguồn có sẵn
+
+Người dùng hiện muốn sửa/tùy biến dự án của bạn mình và cải thiện giao diện. Đây là nhánh việc frontend có thể thực hiện song song với việc rà soát backend, miễn là không đổi hợp đồng API hoặc logic mượn/trả. Đọc `Cores/checkpoint.md` trước: các trạng thái chạy, migration và tài khoản ở đó là ghi chép trước đây, chưa được kiểm tra lại ngày 2026-09-30. Kế hoạch bốn giai đoạn dưới đây vẫn giữ để xử lý nghiệp vụ và tiêu chí môn học; không coi mốc thời gian là tiến độ đã đạt.
+
+**Điểm bắt đầu:** kiểm tra giao diện thực tế tại `/`, `/login`, `/reader`, `/admin` nếu môi trường chạy được; lập danh sách vấn đề có ảnh hoặc mô tả cụ thể. Nếu thiếu DB hoặc không đăng nhập được, vẫn có thể cải thiện shell, trang khách và các component độc lập, đồng thời ghi rõ màn hình nào chưa xem được. Kiểm tra nội dung mang tên/thông tin chủ source cũ để người dùng quyết định thay bằng nội dung nào. Chọn hướng thiết kế phù hợp một thư viện học thuật, thống nhất màu, chữ, khoảng cách và cách dùng card/bảng/form. Bắt đầu từ các file `frontend/src/App.vue`, `frontend/src/views/*`, `frontend/src/components/reader/*`, `frontend/src/components/admin/*`; xem thực tế trước khi thay.
+
+**Đầu ra cần có:** giao diện đã sửa trực tiếp trong repo, ảnh hoặc mô tả trước/sau ở desktop và mobile, `npm run build` tại `frontend` chạy thành công, và ghi rõ các luồng đã/ chưa thể kiểm tra. Cập nhật `Cores/checkpoint.md` với tiến độ thật. Chỉ cập nhật README nếu hướng dẫn sử dụng hoặc tên hiển thị đã thay đổi.
+
+### Prompt sẵn dùng cho phiên triển khai giao diện
+
+```text
+Bạn đang làm việc trên LibraryManagement, một dự án có sẵn của bạn tôi. Hãy đọc Cores/checkpoint.md, Cores/Tieuchiduan.md, Cores/Chienluoc.md và Cores/next_step_guide.md trước khi sửa. Tôi muốn tùy biến và hoàn thiện giao diện vì giao diện hiện tại chưa đẹp/phù hợp.
+
+Hãy kiểm tra mã frontend và, nếu chạy được, xem giao diện thực tế của các tuyến /, /login, /reader, /admin ở desktop và mobile. Nêu ngắn gọn những vấn đề cụ thể; chọn một hướng thiết kế thống nhất, phù hợp hệ thống thư viện học thuật; triển khai trực tiếp vào mã hiện có. Ưu tiên bố cục, màu/chữ, khoảng cách, điều hướng, nút, form, bảng/card, trạng thái tải/rỗng/lỗi và responsive. Kiểm tra các tên, liên hệ hoặc định danh từ source cũ; nếu chưa biết nội dung thay thế, dùng nội dung trung tính và ghi rõ chỗ cần tôi chốt.
+
+Giữ nguyên API, phân quyền và hành vi nghiệp vụ khi làm UI; không viết lại ứng dụng chỉ để đổi hình thức. Không coi ghi chép môi trường cũ là trạng thái chạy hiện tại. Sau khi sửa, chạy npm run build trong frontend, kiểm tra trực quan các màn hình có thể truy cập, báo cáo thay đổi/kết quả/giới hạn, rồi cập nhật Cores/checkpoint.md (chỉ sửa file hiện có). Nếu cần tôi chọn nhận diện cụ thể, hãy hỏi ngắn gọn nhưng vẫn tiến hành các phần không phụ thuộc câu trả lời.
+```
 
 ## 0. Quy ước làm việc chung
 
@@ -27,13 +64,14 @@ Một việc chỉ được coi là xong khi có đủ: mã nguồn, cách kiể
 Bạn đang làm việc trong workspace LibraryManagement tại D:\Project\CT467\LibraryManagement.
 Stack: Node.js v26 / Express / Sequelize 6 / MySQL 8.0.46 (port 3306) + Vue 3 / Vite / Vuex.
 Yêu cầu môn học: Cores/Tieuchiduan.md | Chiến lược: Cores/Chienluoc.md | Hướng dẫn: Cores/next_step_guide.md | Trạng thái hiện tại: Cores/checkpoint.md.
+Đây là mã nguồn có sẵn của bạn người dùng; mục tiêu là sửa, tùy biến và hoàn thiện, trong đó cải thiện giao diện là yêu cầu hiện tại. Chỉ áp dụng phân công A/B/C/D khi thực sự làm việc theo nhóm.
 
-Môi trường đã xác nhận:
-- Backend chạy ở http://localhost:5000 (npm run dev trong thư mục backend)
-- Frontend chạy ở http://localhost:5173 (npm run dev trong thư mục frontend)
-- Database: library_db, user: librarymanagement/librarymanagement, host: 127.0.0.1:3306
+Ghi chép môi trường từ 2026-09-28 (cần xác minh lại trước khi dùng):
+- Backend từng chạy ở http://localhost:5000 (npm run dev trong thư mục backend)
+- Frontend từng chạy ở http://localhost:5173 (npm run dev trong thư mục frontend)
+- Database từng được cấu hình: library_db, host: 127.0.0.1:3306; xem file cấu hình cục bộ để chạy
 - sequelize-cli đọc cấu hình từ backend/config/config.json (KHÔNG phải .env)
-- Migration và seed-admin đã chạy xong. Tài khoản admin: tên "Admin", mật khẩu "admin123"
+- Migration và seed-admin được ghi là đã chạy ở lần trước; xác minh lại môi trường hiện tại
 
 Quy tắc bắt buộc:
 1) Đọc Cores/checkpoint.md và các file liên quan trước khi sửa. Giữ nguyên thay đổi không liên quan.

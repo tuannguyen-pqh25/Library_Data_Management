@@ -11,6 +11,7 @@ const nhanVienRoutes = require('./routes/staffRoutes');
 const docGiaRoutes = require('./routes/userRoutes');
 const tacGiaRoutes = require('./routes/authorRoutes');
 const theLoaiRoutes = require('./routes/categoryRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/api/nhanvien', nhanVienRoutes);
 app.use('/api/docgia', docGiaRoutes);
 app.use('/api/tacgia', tacGiaRoutes);
 app.use('/api/theloai', theLoaiRoutes);
+app.use('/api/reports', reportRoutes);
 
 // static (dist)
 app.use(express.static('dist'));
@@ -41,14 +43,14 @@ app.get('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-// ✅ Kết nối MySQL và tự động sync models
-sequelize.sync({ alter: true })  // alter: true sẽ cập nhật bảng nếu có thay đổi cấu trúc
+// Migrations own schema changes; application startup only verifies connectivity.
+sequelize.authenticate()
   .then(() => {
-    console.log('✅ Kết nối MySQL thành công & các bảng đã được đồng bộ!');
+    console.log('✅ Kết nối MySQL thành công!');
     app.listen(PORT, () => {
       console.log(`🚀 Server đang chạy tại cổng ${PORT}`);
     });
   })
   .catch(err => {
-    console.error('❌ Lỗi khi kết nối hoặc sync Sequelize:', err);
+    console.error('❌ Lỗi kết nối MySQL:', err);
   });
