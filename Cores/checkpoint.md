@@ -9,20 +9,28 @@
 - Yêu cầu của lượt 2026-09-30 là **cập nhật ngữ cảnh trong tài liệu**, không phải đã hoàn tất redesign hoặc sửa lỗi nghiệp vụ. Các mục kỹ thuật bên dưới vẫn là việc cần làm cho đến khi có bằng chứng kiểm thử mới.
 - `checkpoint.md` là nhật ký liên tục: **chỉ sửa/bổ sung file này, không xóa hay tạo lại**. Mỗi lần kết thúc một việc đáng kể, ghi thay đổi, kết quả kiểm tra, việc còn lại và ngày xác nhận.
 
-## Cập nhật tiến độ 2026-10-05 (Kiểm tra Người A và Người D)
+## Cập nhật tiến độ tổng hợp (05/10/2026)
 
-**Đánh giá tổng quan:** Hai bạn A và D đã push code thay đổi cấu trúc CSDL và các tính năng tương ứng. Tuy nhiên, trong quá trình làm việc độc lập đã xảy ra một chút "vênh" nhỏ về việc đồng bộ dữ liệu mẫu, cụ thể:
+**Đánh giá tổng quan:** Các nhánh của A, C, D đã bắt đầu hội tụ tại `main`. Xung đột CSDL và giao diện đã được giải quyết thành công thông qua quá trình merge.
 
-- **Người A (Thiết kế CSDL, Migration, Trigger, API Thống kê):**
+- **Người A (Minh - Thiết kế CSDL, Migration, Trigger, API Thống kê):**
   - Đã tái cấu trúc lại một số bảng quan trọng (VD: Gộp `hoLot` và `ten` thành cột `fullName` duy nhất trong bảng `DocGia`).
   - Đã bổ sung các khóa ngoại, thêm các cột cần thiết (`maPhieuMuon`, `maSach`) vào bảng `PhieuTra` và viết Trigger xử lý nghiệp vụ mượn/trả (`trg_tinh_tien_phat`).
-  - **Trạng thái:** Hoàn thành tốt phần Core.
+  - **Trạng thái:** Hoàn thành tốt phần Core CSDL. Đã gộp code thành công vào `main`.
 
-- **Người D (Quản lý dữ liệu, Import/Export, Dữ liệu giả lập):**
-  - Đã cập nhật thành công kịch bản test nâng cao `scripts/seed-data.js` để khớp với cột `fullName` mới của Người A.
-  - Đã viết xong các file seeders cho Tác Giả, Sách, Thể Loại.
-  - **Lỗi nhỏ phát sinh:** Bạn D quên cập nhật file dữ liệu cơ bản `seeders/demo-data.js`, dẫn đến việc nó vẫn cố nhét `hoLot` và `ten` vào CSDL, gây ra lỗi `DocGia.fullName cannot be null` mà chúng ta vừa gặp.
-  - **Trạng thái:** Đã fix xong lỗi bất đồng bộ. File `seeders/demo-data.js` hiện đã chạy trơn tru với cột `fullName`.
+- **Người B (Thắng - Dashboard Quản trị & Biểu đồ):**
+  - Đang phát triển giao diện Dashboard.
+  - **Trạng thái:** Chờ hoàn thiện để tích hợp API thống kê từ A.
+
+- **Người C (Tuấn - Trải nghiệm Độc giả & Frontend):**
+  - Đã thiết kế lại toàn bộ UI khu vực Độc giả (BookList, Drawer Giỏ mượn, PublisherList).
+  - Tích hợp bộ lọc sách và lưu giỏ mượn vào Local Storage.
+  - Đã giải quyết xong xung đột (conflict) mã nguồn với A và fix bug MySQL \`fn_kiem_tra_so_luong_sach\`.
+  - **Trạng thái:** Đã fix xong UI và hoàn thành gộp nhánh. Sẵn sàng tạo Pull Request.
+
+- **Người D (Vũ - Quản lý dữ liệu, Import/Export, Kiểm thử):**
+  - Đã cập nhật thành công kịch bản test nâng cao `scripts/seed-data.js` để khớp với cột `fullName`.
+  - **Trạng thái:** Các dữ liệu giả lập (seeders) đều chạy trơn tru với cấu trúc DB mới.
 
 ## Cập nhật 2026-10-05 — Giao diện Độc giả (Thành viên C)
 
@@ -54,7 +62,7 @@
 - Navbar sticky, avatar chữ cái, nút logout icon, hamburger menu responsive.
 - Footer tối `#0f172a`, đã xóa thông tin cá nhân/mã số sinh viên của source cũ.
 
-### Rủi ro còn lại
+### Cập nhật bổ sung (Gộp nhánh & Fix Bug)\n- **Gộp nhánh main:** Đã merge thành công nhánh main vào C-Tuấn, giải quyết toàn bộ 8 file xung đột (giữ giao diện mới của C, nhận DB models mới của A).\n- **Fix Bug SQL:** Sửa lỗi hàm n_kiem_tra_so_luong_sach trong CSDL bị dư tham số gây crash khi xóa sách. Cập nhật file ookController.js để đọc kết quả destructuring chính xác.\n\n### Rủi ro còn lại
 - `VITE_API_IMAGE_URL` phải được cấu hình đúng trong `frontend/.env` để ảnh hiển thị.
 - `BorrowHistory.vue` chưa được cập nhật UI (ngoài phạm vi lần này).
 
