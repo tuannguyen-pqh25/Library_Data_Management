@@ -39,6 +39,7 @@
 - **Người D (Vũ - Quản lý dữ liệu, Import/Export, Kiểm thử):**
   - Đã cập nhật thành công kịch bản test nâng cao `scripts/seed-data.js` để khớp với cột `fullName`.
   - **Trạng thái:** Các dữ liệu giả lập (seeders) đều chạy trơn tru với cấu trúc DB mới.
+  - Tạo dữ liệu demo hoàn chỉnh trong file `backend\seeders\demo-data.js` và uploads các ảnh bìa sách trong thư muc `backend/uploads`
 
 ## Cập nhật 2026-10-05 — Giao diện Độc giả (Thành viên C)
 
