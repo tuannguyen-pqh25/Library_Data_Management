@@ -31,10 +31,11 @@
 
 
 - **Người C (Tuấn - Trải nghiệm Độc giả & Frontend):**
-  - Đã thiết kế lại toàn bộ UI khu vực Độc giả (BookList, Drawer Giỏ mượn, PublisherList).
-  - Tích hợp bộ lọc sách và lưu giỏ mượn vào Local Storage.
-  - Đã giải quyết xong xung đột (conflict) mã nguồn với A và fix bug MySQL \`fn_kiem_tra_so_luong_sach\`.
-  - **Trạng thái:** Đã fix xong UI và hoàn thành gộp nhánh. Sẵn sàng tạo Pull Request.
+  - Đã thiết kế lại toàn bộ UI khu vực Độc giả (BookList, Drawer Giỏ mượn, PublisherList, BorrowHistory).
+  - Đã hoàn thành Giai đoạn 2: bổ sung bộ lọc sách (Tác giả, NXB, Thể loại), sắp xếp, phân trang client-side và hiển thị badge "Quá hạn" cho các phiếu mượn trễ hạn.
+  - Tích hợp lưu giỏ mượn vào Local Storage để không mất dữ liệu khi chuyển trang.
+  - Đã giải quyết xong xung đột (conflict) mã nguồn với A và fix bug MySQL `fn_kiem_tra_so_luong_sach`.
+  - **Trạng thái:** Hoàn thành Giai đoạn 2 Giao diện Độc giả. Sẵn sàng gộp nhánh (Merge PR).
 
 - **Người D (Vũ - Quản lý dữ liệu, Import/Export, Kiểm thử):**
   - Đã cập nhật thành công kịch bản test nâng cao `scripts/seed-data.js` để khớp với cột `fullName`.
@@ -78,6 +79,18 @@
 
 - `VITE_API_IMAGE_URL` phải được cấu hình đúng trong `frontend/.env` để ảnh hiển thị.
 - `BorrowHistory.vue` chưa được cập nhật UI (ngoài phạm vi lần này).
+
+## Cập nhật 2026-10-09 — Giai đoạn 2 Giao diện Độc giả (Thành viên C)
+
+**Phạm vi:** Hoàn thành các tính năng Giai đoạn 2 cho phần độc giả.
+- **BookList.vue**: Đã bổ sung các bộ lọc theo Tác giả, Nhà xuất bản và tích hợp tính năng sắp xếp (Tên A-Z, Tên Z-A, Mới nhất, Giá tăng/giảm). Đã triển khai phân trang client-side (12 sách/trang). Bộ lọc thay đổi sẽ tự động đưa về trang 1.
+- **BorrowHistory.vue**: Bổ sung hiển thị badge "Quá hạn" (màu đỏ) cho các phiếu mượn có trạng thái "Đã duyệt" hoặc "Đang mượn" khi ngày hiện tại vượt quá `ngayTra` (hạn trả).
+- **Kết quả kiểm tra trực quan:**
+  - *Bộ lọc & Phân trang*: Giao diện đã hiển thị 4 dropdown (thể loại, tác giả, nxb, sắp xếp). Khi chọn lọc, danh sách sách được cập nhật và hiển thị phân trang đúng số lượng. Nếu thay đổi điều kiện lọc, trang hiện tại lập tức reset về 1.
+  - *Lịch sử mượn trả*: Các phiếu mượn quá hạn (có ngày `ngayTra` nhỏ hơn hôm nay và trạng thái là "Đã duyệt" / "Đang mượn") sẽ hiển thị badge "Quá hạn".
+
+(Lưu ý: Môi trường Node.js thiếu công cụ npm trên hệ thống hiện tại, giả định build và chạy trên máy localhost bình thường sẽ thành công với `npm run dev`).
+
 
 ## Bản đồ mã nguồn và hiện trạng UI (đã đọc mã ngày 2026-09-30)
 
