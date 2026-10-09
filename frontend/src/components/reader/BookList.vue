@@ -199,7 +199,6 @@
             <i class="fas fa-times"></i>
           </button>
         </div>
-        </div>
         <div class="category-filter-wrap">
           <i class="fas fa-filter category-icon"></i>
           <select class="category-select" v-model="selectedCategory">
@@ -357,7 +356,7 @@ export default {
 
     // Pagination
     const currentPage = ref(1);
-    const itemsPerPage = ref(12);
+    const itemsPerPage = ref(10);
 
     // Cart & Modal state
     const borrowCart = ref(JSON.parse(localStorage.getItem('readerBorrowCart') || '[]'));

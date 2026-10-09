@@ -28,14 +28,14 @@
     </div>
 
     <div v-else class="card-grid">
-      <div v-for="author in authors" :key="author._id" class="info-card">
+      <div v-for="author in authors" :key="author.maTacGia" class="info-card">
         <div class="info-card__body">
           <h5 class="info-card__title">{{ author.tenTacGia }}</h5>
           <p class="info-card__code">Mã tác giả: {{ author.maTacGia }}</p>
           <div class="info-card__meta">
             <div class="meta-row">
               <i class="fas fa-book"></i>
-              <span>Đã xuất bản: <strong>{{ getAuthorBookCount(author._id) }}</strong> sách</span>
+              <span>Đã xuất bản: <strong>{{ getAuthorBookCount(author.maTacGia) }}</strong> sách</span>
             </div>
           </div>
         </div>
@@ -122,12 +122,12 @@ export default {
     const authorBooks = computed(() => {
       if (!selectedAuthor.value) return [];
       return allBooks.value.filter(book => 
-        book.maTacGia?._id === selectedAuthor.value._id
+        book.maTacGia === selectedAuthor.value.maTacGia
       );
     });
 
     const getAuthorBookCount = (authorId) => {
-      return allBooks.value.filter(book => book.maTacGia?._id === authorId).length;
+      return allBooks.value.filter(book => book.maTacGia === authorId).length;
     };
 
     const formatCurrency = (value) => {

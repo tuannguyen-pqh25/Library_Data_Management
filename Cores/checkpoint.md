@@ -1,10 +1,6 @@
 # Checkpoint — Trạng thái dự án LibraryManagement
 
-<<<<<<< HEAD
-
-> # Cập nhật lần cuối: 2026-09-28 20 30 gi dai di
->
-> Cập nhật lần cuối: 2026-09-30 (rà soát tài liệu và mã nguồn; chưa thay đổi chức năng)
+> Cập nhật lần cuối: 2026-10-09 (Cập nhật giao diện Độc giả, fix bug BookList, AuthorList, PublisherList)
 
 ## Bối cảnh và quyết định hiện tại
 
@@ -86,10 +82,12 @@
 - **BookList.vue**: Đã bổ sung các bộ lọc theo Tác giả, Nhà xuất bản và tích hợp tính năng sắp xếp (Tên A-Z, Tên Z-A, Mới nhất, Giá tăng/giảm). Đã triển khai phân trang client-side (12 sách/trang). Bộ lọc thay đổi sẽ tự động đưa về trang 1.
 - **BorrowHistory.vue**: Bổ sung hiển thị badge "Quá hạn" (màu đỏ) cho các phiếu mượn có trạng thái "Đã duyệt" hoặc "Đang mượn" khi ngày hiện tại vượt quá `ngayTra` (hạn trả).
 - **Kết quả kiểm tra trực quan:**
-  - *Bộ lọc & Phân trang*: Giao diện đã hiển thị 4 dropdown (thể loại, tác giả, nxb, sắp xếp). Khi chọn lọc, danh sách sách được cập nhật và hiển thị phân trang đúng số lượng. Nếu thay đổi điều kiện lọc, trang hiện tại lập tức reset về 1.
+  - *Bộ lọc & Phân trang*: Giao diện đã hiển thị 4 dropdown (thể loại, tác giả, nxb, sắp xếp). Khi chọn lọc, danh sách sách được cập nhật và hiển thị phân trang đúng số lượng. Nếu thay đổi điều kiện lọc, trang hiện tại lập tức reset về 1. Phân trang đã được chỉnh sửa từ 12 về 10 cuốn/trang.
   - *Lịch sử mượn trả*: Các phiếu mượn quá hạn (có ngày `ngayTra` nhỏ hơn hôm nay và trạng thái là "Đã duyệt" / "Đang mượn") sẽ hiển thị badge "Quá hạn".
 
-(Lưu ý: Môi trường Node.js thiếu công cụ npm trên hệ thống hiện tại, giả định build và chạy trên máy localhost bình thường sẽ thành công với `npm run dev`).
+### Cập nhật bổ sung (Fix Bug Giao diện - Thành viên C) 09/10/2026
+- **BookList.vue**: Đã sửa lỗi `Invalid end tag` do dư thẻ `</div>` làm hỏng component. Sửa số lượng sách phân trang hiển thị từ 12 thành 10.
+- **PublisherList.vue & AuthorList.vue**: Sửa lỗi đếm số lượng sách sai của Tác giả và NXB. Nguyên nhân là dùng mã định danh `_id` của MongoDB (`book.maNXB?._id`) thay vì mã thực tế của CSDL MySQL hiện tại (`book.maNXB` và `book.maTacGia`). Đã cập nhật template và computed properties dùng đúng biến tham chiếu.
 
 
 ## Bản đồ mã nguồn và hiện trạng UI (đã đọc mã ngày 2026-09-30)
@@ -107,7 +105,7 @@
 
 **Chưa xác minh ở lượt này:** trạng thái tiến trình backend/frontend/MySQL, màn hình chạy thực tế, dữ liệu DB, tài khoản demo và các kết quả migration/seed cũ. Những mục “đã xác nhận” bên dưới là ghi chép ngày 2026-09-28, cần kiểm tra lại trước khi dựa vào chúng để sửa/chạy ứng dụng.
 
-> > > > > > > main
+
 
 ---
 
@@ -161,14 +159,9 @@
 | `ECONNREFUSED 127.0.0.1:3307`                        | `config/config.json` gán cứng port 3307, MySQL mới cài dùng port 3306 | Sửa port trong `backend/config/config.json` về `3306`                                      |
 | `SUPER privilege... log_bin_trust_function_creators` | User `librarymanagement` không có quyền SUPER để tạo function/trigger | Chạy `SET GLOBAL log_bin_trust_function_creators = 1;` bằng tài khoản root trong MySQL CLI |
 
-<<<<<<< HEAD
-| `Cannot find module './logger'` (winston) | Thư viện winston bị cài thiếu/hỏng file nội bộ | Chạy `npm install winston` trong thư mục `backend` |
-=======
 | `Cannot find module './logger'` (winston) | Thư viện winston bị cài thiếu/hỏng file nội bộ | Chạy `npm install winston` trong thư mục `backend` |
 | `Unknown column 'maPhieuMuon' in 'NEW'` | Cấu trúc bảng `PhieuTra` cũ chưa có cột này do chạy đè migration | Dùng `npx sequelize-cli db:drop` và `db:create` để cài lại CSDL sạch |
 | `notNull Violation: DocGia.fullName cannot be null` | Người D quên update `hoLot`/`ten` thành `fullName` trong `demo-data.js` | Đã tự động sửa lại file `seeders/demo-data.js` để dùng cột `fullName` |
-
-> > > > > > > main
 
 ---
 
@@ -185,13 +178,7 @@
 1. Theo yêu cầu hiện tại của người dùng, bắt đầu **cải thiện giao diện mã nguồn có sẵn** theo prompt ở đầu `next_step_guide.md`. Xem app nếu chạy được, chốt phong cách/nội dung hiển thị, sửa theo từng màn hình và kiểm tra build, responsive.
 2. Song song hoặc tiếp theo, xác minh lại môi trường và bắt đầu **Giai đoạn 1 — Khóa lỗi dữ liệu lõi** theo `next_step_guide.md`. Ghi nhận kết quả thật, không đánh dấu hoàn thành chỉ dựa trên kế hoạch.
 
-<<<<<<< HEAD
 Các vấn đề nghiệp vụ cần ưu tiên sửa ngay (theo `Chienluoc.md`):
-
-=======
-Các vấn đề nghiệp vụ chưa có bằng chứng đã sửa (theo `Chienluoc.md`):
-
-> > > > > > > main
 
 1. **[Ưu tiên cao - A]** Sửa lỗi tồn kho bị cập nhật 2 lần (trigger + controller cùng tăng/giảm).
 2. **[Ưu tiên cao - A]** State machine trạng thái phiếu mượn: `Chờ duyệt → Đã duyệt/Từ chối → Đã trả`.
