@@ -1,20 +1,20 @@
 # Hướng dẫn bước tiếp theo cho nhóm 4 người
 
-## Hướng dẫn Commit và Pull Request (Cập nhật 05/10/2026)
-Khi tạo Pull Request gộp nhánh `C-Tuấn` vào `main`, bạn nên sử dụng nội dung sau để chốt:
+## Hướng dẫn Commit và Pull Request (Cập nhật 09/10/2026)
+Khi tạo Pull Request gộp nhánh `C-Tuấn` (Giai đoạn 2 UI Độc giả) vào `main`, bạn nên sử dụng nội dung sau để chốt:
 
-**Tiêu đề PR:** `feat(ui): Hoàn thiện giao diện Độc giả & Fix xung đột CSDL`
+**Tiêu đề PR:** `fix(ui): Hoàn thiện lỗi giao diện và logic phân trang, đếm sách`
 
 **Nội dung PR:**
-- Thay đổi UI toàn diện cho khu vực Độc giả (BookList, Dashboard, Modal, Drawer Giỏ mượn).
-- Tích hợp bộ lọc sách và lưu trạng thái giỏ mượn vào Local Storage để tránh mất dữ liệu.
-- Fix lỗi crash khi xóa sách (cập nhật hàm SQL `fn_kiem_tra_so_luong_sach` 1 tham số).
-- Đã resolve hoàn toàn conflict với bản cập nhật models (cột `fullName`) của A.
+- **BookList.vue:** Sửa lỗi `Invalid end tag` do dư thẻ `</div>` khiến component bị lỗi hiển thị.
+- **BookList.vue:** Điều chỉnh cấu hình phân trang từ 12 sách/trang về 10 sách/trang.
+- **AuthorList.vue & PublisherList.vue:** Sửa lỗi đếm sai số lượng sách của từng tác giả/nhà xuất bản do tham chiếu nhầm ID của MongoDB (`_id`) thay vì khóa chính của MySQL (`maTacGia`, `maNXB`).
 
 ### Prompt gợi ý cho phiên làm việc tiếp theo:
 ```text
-Bạn hãy đọc lại các file trong thư mục Cores để nắm ngữ cảnh hiện tại. Nhóm vừa giải quyết xong phần giao diện Độc giả và đồng bộ CSDL (merge main). 
-Nhiệm vụ tiếp theo của chúng ta là hoàn thiện UI cho trang Lịch sử mượn trả (BorrowHistory.vue) và tiến hành test luồng tạo phiếu mượn từ Frontend xuống Backend. Hãy giúp tôi bắt đầu đánh giá và làm chức năng BorrowHistory.vue.
+Bạn hãy đọc lại các file trong thư mục Cores để nắm ngữ cảnh hiện tại. Nhánh của thành viên C vừa được merge vào main, hoàn thiện toàn bộ Giai đoạn 2 cho Giao diện Độc giả (bộ lọc, phân trang 10 sách, lịch sử mượn, fix bug hiển thị số lượng sách). 
+
+Nhiệm vụ tiếp theo của chúng ta là bắt đầu công việc của thành viên D trong Giai đoạn 2: bổ sung tính năng Import/Export CSV danh mục sách cho Admin. Hãy giúp tôi thiết kế luồng Import/Export sách và viết mã cho tính năng này. Nhớ chú ý các yêu cầu về validate từng dòng và định dạng CSV (UTF-8 BOM).
 ```
 
 ---

@@ -208,6 +208,34 @@
             </option>
           </select>
         </div>
+        <div class="category-filter-wrap">
+          <i class="fas fa-user category-icon"></i>
+          <select class="category-select" v-model="selectedAuthor">
+            <option value="">Tất cả tác giả</option>
+            <option v-for="author in authors" :key="author.maTacGia" :value="author.maTacGia">
+              {{ author.tenTacGia }}
+            </option>
+          </select>
+        </div>
+        <div class="category-filter-wrap">
+          <i class="fas fa-building category-icon"></i>
+          <select class="category-select" v-model="selectedPublisher">
+            <option value="">Tất cả NXB</option>
+            <option v-for="pub in publishers" :key="pub.maNXB" :value="pub.maNXB">
+              {{ pub.tenNXB }}
+            </option>
+          </select>
+        </div>
+        <div class="category-filter-wrap">
+          <i class="fas fa-sort category-icon"></i>
+          <select class="category-select" v-model="sortOption">
+            <option value="name_asc">Tên A-Z</option>
+            <option value="name_desc">Tên Z-A</option>
+            <option value="newest">Mới nhất</option>
+            <option value="price_asc">Giá tăng dần</option>
+            <option value="price_desc">Giá giảm dần</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -216,7 +244,7 @@
       <i class="fas fa-book-open fa-3x mb-3 opacity-30"></i>
       <h5>Không tìm thấy sách</h5>
       <p class="text-muted">Thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc.</p>
-      <button v-if="searchTerm || selectedCategory" class="btn-outline-secondary-custom mt-2" @click="clearFilters">Xóa bộ lọc</button>
+      <button v-if="searchTerm || selectedCategory || selectedAuthor || selectedPublisher" class="btn-outline-secondary-custom mt-2" @click="clearFilters">Xóa bộ lọc</button>
     </div>
 
     <!-- Book Grid -->
@@ -289,6 +317,17 @@
         </div>
       </div>
     </div>
+
+    <!-- Pagination -->
+    <div v-if="totalPages > 1" class="pagination-wrap mt-5 d-flex justify-content-center align-items-center gap-2">
+      <button class="btn-outline-secondary-custom" :disabled="currentPage === 1" @click="currentPage--">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <span class="fw-medium mx-3">Trang {{ currentPage }} / {{ totalPages }}</span>
+      <button class="btn-outline-secondary-custom" :disabled="currentPage === totalPages" @click="currentPage++">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
   </div>
 </template>
 
@@ -311,6 +350,13 @@ export default {
     // Filters
     const searchTerm = ref('');
     const selectedCategory = ref('');
+    const selectedAuthor = ref('');
+    const selectedPublisher = ref('');
+    const sortOption = ref('name_asc');
+
+    // Pagination
+    const currentPage = ref(1);
+    const itemsPerPage = ref(10);
 
     // Cart & Modal state
     const borrowCart = ref(JSON.parse(localStorage.getItem('readerBorrowCart') || '[]'));
@@ -340,13 +386,21 @@ export default {
     };
 
     const categories = computed(() => store.getters['category/allCategories'] || []);
+    const authors = computed(() => store.getters['author/allAuthors'] || []);
+    const publishers = computed(() => store.getters['publisher/allPublishers'] || []);
     const allBooks = computed(() => store.getters['book/allBooks'] || []);
     
-    const books = computed(() => {
-      let result = allBooks.value;
+    const filteredAndSortedBooks = computed(() => {
+      let result = [...allBooks.value];
 
       if (selectedCategory.value) {
         result = result.filter(b => b.maTheLoai === selectedCategory.value);
+      }
+      if (selectedAuthor.value) {
+        result = result.filter(b => b.maTacGia === selectedAuthor.value);
+      }
+      if (selectedPublisher.value) {
+        result = result.filter(b => b.maNXB === selectedPublisher.value);
       }
 
       if (searchTerm.value) {
@@ -360,12 +414,46 @@ export default {
         );
       }
 
+      switch (sortOption.value) {
+        case 'name_asc':
+          result.sort((a, b) => a.tenSach.localeCompare(b.tenSach));
+          break;
+        case 'name_desc':
+          result.sort((a, b) => b.tenSach.localeCompare(a.tenSach));
+          break;
+        case 'newest':
+          result.sort((a, b) => (b.namXuatBan || 0) - (a.namXuatBan || 0));
+          break;
+        case 'price_asc':
+          result.sort((a, b) => (a.donGia || 0) - (b.donGia || 0));
+          break;
+        case 'price_desc':
+          result.sort((a, b) => (b.donGia || 0) - (a.donGia || 0));
+          break;
+      }
+
       return result;
+    });
+
+    const totalPages = computed(() => Math.ceil(filteredAndSortedBooks.value.length / itemsPerPage.value) || 1);
+    
+    const books = computed(() => {
+      const start = (currentPage.value - 1) * itemsPerPage.value;
+      return filteredAndSortedBooks.value.slice(start, start + itemsPerPage.value);
+    });
+
+    // Reset pagination when filters change
+    watch([searchTerm, selectedCategory, selectedAuthor, selectedPublisher, sortOption], () => {
+      currentPage.value = 1;
     });
 
     const clearFilters = () => {
       searchTerm.value = '';
       selectedCategory.value = '';
+      selectedAuthor.value = '';
+      selectedPublisher.value = '';
+      sortOption.value = 'name_asc';
+      currentPage.value = 1;
     };
 
     // --- Cart validation ---
@@ -458,7 +546,8 @@ export default {
     onMounted(fetchData);
 
     return {
-      books, categories, loading, error, searchTerm, selectedCategory, clearFilters,
+      books, categories, authors, publishers, loading, error, searchTerm, selectedCategory, selectedAuthor, selectedPublisher, sortOption, clearFilters,
+      currentPage, totalPages, itemsPerPage,
       borrowCart, showConfirmModal, selectedBook,
       toastMsg, showToast,
       getImageUrl, onImgError,

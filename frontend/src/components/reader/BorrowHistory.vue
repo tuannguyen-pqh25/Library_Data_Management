@@ -63,6 +63,9 @@
               <td>{{ formatDate(request.ngayMuon) }}</td>
               <td>
                 {{ request.ngayTra ? formatDate(request.ngayTra) : '—' }}
+                <span v-if="(request.trangThai === 'Đã duyệt' || request.trangThai === 'Đang mượn') && new Date(request.ngayTra) < new Date()" class="badge bg-danger ms-2">
+                  <i class="fas fa-exclamation-circle me-1"></i> Quá hạn
+                </span>
               </td>
               <td>
                 <span v-if="request.trangThai === 'Đã trả' && hasReturns(request) && getTotalFine(request) > 0" class="text-danger fw-bold">
