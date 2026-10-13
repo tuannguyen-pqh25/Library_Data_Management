@@ -5,7 +5,7 @@ HK1-N m 2026-2027
 2. Tác giả (Mã tác giả, Tên tác giả)
 3. Thể loại (Mã thể loại, Tên thể loại)
 4. Độc giả (Mã độc giả, Tên độc giả, Ngày sinh, Số điện thoại)
-5. Phiếu mượn (Mã phiếu mượn, Mã độc giả, Ngày mượn, Ngày trả, Trạng thái “Đang mượn, Đã trả")
+5. Phiếu mượn (Mã phiếu mượn, Mã độc giả, Ngày mượn, Ngày trả, Trạng thái “Đang mượn, Đã trả )
 6. Chi tiết phiếu mượn (Mã chi tiết PM, Mã phiếu mượn, Mã sách, Số lượng sách mượn)
 7. Phiếu trả (Mã phiếu trả, Mã chi tiết PM, Ngày trả sách, Tiền phạt nếu trả sách muộn)
 
