@@ -169,6 +169,7 @@
 </template>
 
 <script>
+import '@/assets/admin-management.css';
 import { ref, computed, onMounted, getCurrentInstance } from 'vue';
 import { useStore } from 'vuex';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
@@ -431,9 +432,6 @@ export default {
 </script>
 
 <style scoped>
-.nav-link {
-  cursor: pointer;
-}
 .badge {
   font-size: 0.9em;
 }
@@ -445,18 +443,5 @@ export default {
 }
 .text-success {
   color: #198754 !important;
-}
-.input-group {
-  max-width: 500px;
-}
-.input-group-text {
-  background-color: white;
-  border-left: none;
-}
-.form-control:focus + .input-group-text {
-  border-color: #86b7fe;
-}
-.form-control {
-  border-right: none;
 }
 </style>

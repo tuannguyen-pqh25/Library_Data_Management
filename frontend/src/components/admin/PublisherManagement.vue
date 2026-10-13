@@ -165,6 +165,7 @@
 </template>
 
 <script>
+import '@/assets/admin-management.css';
 import { ref, onMounted, computed } from 'vue';
 import { useStore } from 'vuex';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
@@ -393,22 +394,3 @@ export default {
   }
 };
 </script>
-
-<style scoped>
-.modal {
-  background-color: rgba(0, 0, 0, 0.5);
-}
-.input-group {
-  max-width: 400px;
-}
-.input-group-text {
-  background-color: white;
-  border-left: none;
-}
-.form-control:focus + .input-group-text {
-  border-color: #86b7fe;
-}
-.form-control {
-  border-right: none;
-}
-</style>
