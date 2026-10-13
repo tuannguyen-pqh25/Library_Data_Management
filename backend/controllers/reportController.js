@@ -1,11 +1,23 @@
 const { sequelize } = require('../models');
 const logger = require('../src/logger');
+const { QueryTypes } = require('sequelize');
 
 const procedureRows = async (name) => {
   const result = await sequelize.query(`CALL ${name}()`);
-  let rows = result[0];
-  while (Array.isArray(rows) && rows.length === 1 && Array.isArray(rows[0])) rows = rows[0];
-  return Array.isArray(rows) ? rows : [];
+  let rows = result;
+  while (Array.isArray(rows) && rows.length && Array.isArray(rows[0])) rows = rows[0];
+  if (!Array.isArray(rows) || (rows.length && rows.some((row) => !row || typeof row !== 'object' || Array.isArray(row)))) {
+    throw new Error(`Unexpected result shape from ${name}`);
+  }
+  return rows;
+};
+
+const procedureNumber = (rows, field, name) => {
+  const row = rows[0];
+  if (!row || !Object.hasOwn(row, field)) throw new Error(`Unexpected result shape from ${name}`);
+  const value = Number(row[field] ?? 0);
+  if (!Number.isFinite(value)) throw new Error(`Invalid numeric result from ${name}`);
+  return value;
 };
 
 const getUnreturnedLoans = async (req, res) => {
@@ -33,4 +45,78 @@ const getStatistics = async (req, res) => {
   }
 };
 
-module.exports = { getUnreturnedLoans, getStatistics };
+const getDashboardSummary = async (req, res) => {
+  try {
+    const [books, readers, unreturned] = await Promise.all([
+      procedureRows('sp_thong_ke_sach_muon_thang'),
+      procedureRows('sp_thong_ke_doc_gia_muon_sach_nam'),
+      sequelize.query(
+        "SELECT COUNT(*) AS phieuChuaTra FROM PhieuMuon WHERE trangThai = 'Đang mượn'",
+        { type: QueryTypes.SELECT },
+      ),
+    ]);
+    const counts = unreturned[0];
+    if (!counts || !Object.hasOwn(counts, 'phieuChuaTra')) throw new Error('Unexpected unreturned-loan count result');
+    const phieuChuaTra = Number(counts.phieuChuaTra);
+    if (!Number.isFinite(phieuChuaTra)) throw new Error('Invalid unreturned-loan count result');
+    res.json({
+      sachMuonThang: procedureNumber(books, 'tongSachMuonThang', 'sp_thong_ke_sach_muon_thang'),
+      docGiaMuonNam: procedureNumber(readers, 'tongDocGiaMuonSachNam', 'sp_thong_ke_doc_gia_muon_sach_nam'),
+      phieuChuaTra,
+    });
+  } catch (error) {
+    logger.error('Failed to load dashboard summary', { error: error.message });
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const getDetailedUnreturnedLoans = async (req, res) => {
+  try {
+    const rows = await sequelize.query(`
+      SELECT pm.maPhieuMuon, pm.maDocGia, dg.fullName, pm.ngayMuon, pm.ngayTra, pm.trangThai,
+             ct.maChiTietPM, ct.maPhieuMuon, ct.maDocGia, ct.maSach, ct.maTacGia, ct.maTheLoai,
+             s.tenSach, ct.soLuongSachMuon
+      FROM PhieuMuon pm
+      JOIN DocGia dg ON dg.maDocGia = pm.maDocGia
+      JOIN ChiTietPhieuMuon ct ON ct.maPhieuMuon = pm.maPhieuMuon AND ct.maDocGia = pm.maDocGia
+      JOIN Sach s ON s.maSach = ct.maSach AND s.maTacGia = ct.maTacGia AND s.maTheLoai = ct.maTheLoai
+      WHERE pm.trangThai = 'Đang mượn'
+      ORDER BY pm.ngayTra ASC, pm.maPhieuMuon ASC, ct.maChiTietPM ASC
+    `, { type: QueryTypes.SELECT });
+    if (!Array.isArray(rows)) throw new Error('Unexpected detailed unreturned-loan result');
+
+    const loans = new Map();
+    for (const row of rows) {
+      const key = `${row.maPhieuMuon}:${row.maDocGia}`;
+      let loan = loans.get(key);
+      if (!loan) {
+        loan = {
+          maPhieuMuon: row.maPhieuMuon,
+          maDocGia: row.maDocGia,
+          fullName: row.fullName,
+          ngayMuon: row.ngayMuon,
+          ngayTra: row.ngayTra,
+          trangThai: row.trangThai,
+          chiTiet: [],
+        };
+        loans.set(key, loan);
+      }
+      loan.chiTiet.push({
+        maChiTietPM: row.maChiTietPM,
+        maPhieuMuon: row.maPhieuMuon,
+        maDocGia: row.maDocGia,
+        maSach: row.maSach,
+        maTacGia: row.maTacGia,
+        maTheLoai: row.maTheLoai,
+        tenSach: row.tenSach,
+        soLuongSachMuon: row.soLuongSachMuon,
+      });
+    }
+    res.json([...loans.values()]);
+  } catch (error) {
+    logger.error('Failed to load detailed unreturned loans', { error: error.message });
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { getUnreturnedLoans, getStatistics, getDashboardSummary, getDetailedUnreturnedLoans };
