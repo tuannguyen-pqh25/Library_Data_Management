@@ -21,10 +21,10 @@
 - **Người B (Thắng - Dashboard Quản trị & Biểu đồ):**
   - **Giai đoạn 1 đã hoàn thành:** cập nhật `frontend/src/components/admin/AdminHomePage.vue` với giao diện dashboard Bootstrap responsive, ba chỉ số bắt buộc (sách mượn tháng này, độc giả đã mượn năm nay, phiếu chưa trả), biểu đồ lượt mượn sáu tháng và bảng phiếu chưa trả.
   - Thêm `frontend/src/services/dashboardReportService.js` làm service/fixture độc lập; mặc định hiển thị dữ liệu minh họa và hỗ trợ xem trạng thái rỗng/lỗi. Dashboard có loading, error kèm nút thử lại, empty state.
-  
   - **Trạng thái:** Giai đoạn 1 hoàn thành với fixture. Chờ A bàn giao API và payload thống nhất ở Giai đoạn 2 trước khi tích hợp dữ liệu thật; không sửa backend trong phần việc của B, Sẵn sàng tạo Pull Request.
-
-
+  - Giai đoạn 2:
+    Đã kết nối dashboard quản trị với API tổng quan và API danh sách phiếu chưa trả. Dashboard hiển thị ba chỉ số bắt buộc, thông tin độc giả/sách và hạn trả, bộ lọc phiếu quá hạn cùng badge số ngày trễ; giữ các trạng thái tải, lỗi và rỗng. Biểu đồ dùng số liệu mượn của tháng hiện tại từ API. API chưa cung cấp lịch sử nhiều tháng nên hiện chưa thể so sánh xu hướng.
+  * trạng thái đã hoàn thành giai đoạn 2:
 
 - **Người C (Tuấn - Trải nghiệm Độc giả & Frontend):**
   - Đã thiết kế lại toàn bộ UI khu vực Độc giả (BookList, Drawer Giỏ mượn, PublisherList, BorrowHistory).
@@ -79,16 +79,17 @@
 ## Cập nhật 2026-10-09 — Giai đoạn 2 Giao diện Độc giả (Thành viên C)
 
 **Phạm vi:** Hoàn thành các tính năng Giai đoạn 2 cho phần độc giả.
+
 - **BookList.vue**: Đã bổ sung các bộ lọc theo Tác giả, Nhà xuất bản và tích hợp tính năng sắp xếp (Tên A-Z, Tên Z-A, Mới nhất, Giá tăng/giảm). Đã triển khai phân trang client-side (12 sách/trang). Bộ lọc thay đổi sẽ tự động đưa về trang 1.
 - **BorrowHistory.vue**: Bổ sung hiển thị badge "Quá hạn" (màu đỏ) cho các phiếu mượn có trạng thái "Đã duyệt" hoặc "Đang mượn" khi ngày hiện tại vượt quá `ngayTra` (hạn trả).
 - **Kết quả kiểm tra trực quan:**
-  - *Bộ lọc & Phân trang*: Giao diện đã hiển thị 4 dropdown (thể loại, tác giả, nxb, sắp xếp). Khi chọn lọc, danh sách sách được cập nhật và hiển thị phân trang đúng số lượng. Nếu thay đổi điều kiện lọc, trang hiện tại lập tức reset về 1. Phân trang đã được chỉnh sửa từ 12 về 10 cuốn/trang.
-  - *Lịch sử mượn trả*: Các phiếu mượn quá hạn (có ngày `ngayTra` nhỏ hơn hôm nay và trạng thái là "Đã duyệt" / "Đang mượn") sẽ hiển thị badge "Quá hạn".
+  - _Bộ lọc & Phân trang_: Giao diện đã hiển thị 4 dropdown (thể loại, tác giả, nxb, sắp xếp). Khi chọn lọc, danh sách sách được cập nhật và hiển thị phân trang đúng số lượng. Nếu thay đổi điều kiện lọc, trang hiện tại lập tức reset về 1. Phân trang đã được chỉnh sửa từ 12 về 10 cuốn/trang.
+  - _Lịch sử mượn trả_: Các phiếu mượn quá hạn (có ngày `ngayTra` nhỏ hơn hôm nay và trạng thái là "Đã duyệt" / "Đang mượn") sẽ hiển thị badge "Quá hạn".
 
 ### Cập nhật bổ sung (Fix Bug Giao diện - Thành viên C) 09/10/2026
+
 - **BookList.vue**: Đã sửa lỗi `Invalid end tag` do dư thẻ `</div>` làm hỏng component. Sửa số lượng sách phân trang hiển thị từ 12 thành 10.
 - **PublisherList.vue & AuthorList.vue**: Sửa lỗi đếm số lượng sách sai của Tác giả và NXB. Nguyên nhân là dùng mã định danh `_id` của MongoDB (`book.maNXB?._id`) thay vì mã thực tế của CSDL MySQL hiện tại (`book.maNXB` và `book.maTacGia`). Đã cập nhật template và computed properties dùng đúng biến tham chiếu.
-
 
 ## Bản đồ mã nguồn và hiện trạng UI (đã đọc mã ngày 2026-09-30)
 
@@ -104,8 +105,6 @@
 **Hướng cải thiện giao diện:** bắt đầu từ shell chung, trang khách/đăng nhập, catalogue độc giả và dashboard quản trị; tạo màu, chữ, khoảng cách, nút, form, bảng và trạng thái tải/rỗng/lỗi thống nhất. Giữ luồng đăng nhập, phân quyền, API và nghiệp vụ khi chỉ làm giao diện. Ưu tiên responsive, tương phản chữ và điều hướng rõ ràng. Ghi nhận bằng ảnh trước/sau và `npm run build`.
 
 **Chưa xác minh ở lượt này:** trạng thái tiến trình backend/frontend/MySQL, màn hình chạy thực tế, dữ liệu DB, tài khoản demo và các kết quả migration/seed cũ. Những mục “đã xác nhận” bên dưới là ghi chép ngày 2026-09-28, cần kiểm tra lại trước khi dựa vào chúng để sửa/chạy ứng dụng.
-
-
 
 ---
 

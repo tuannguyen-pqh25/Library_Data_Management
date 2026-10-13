@@ -1,65 +1,63 @@
-// Giai đoạn 1 dùng dữ liệu minh họa; thay implementation này bằng API ở giai đoạn 2.
-const demoReport = {
-  statistics: {
-    tongSachMuonThang: 248,
-    tongDocGiaMuonSachNam: 136,
-    phieuChuaTra: 18
-  },
-  monthlyLoans: [
-    { label: 'Thg 5', value: 154 },
-    { label: 'Thg 6', value: 182 },
-    { label: 'Thg 7', value: 171 },
-    { label: 'Thg 8', value: 209 },
-    { label: 'Thg 9', value: 221 },
-    { label: 'Thg 10', value: 248 }
-  ],
-  unreturnedLoans: [
-    {
-      maPhieuMuon: 1024,
-      maDocGia: 24,
-      fullName: 'Nguyễn Hải Linh',
-      ngayMuon: '2026-09-24',
-      ngayTra: '2026-10-01'
-    },
-    {
-      maPhieuMuon: 1081,
-      maDocGia: 81,
-      fullName: 'Phạm Minh Tú',
-      ngayMuon: '2026-09-26',
-      ngayTra: '2026-10-03'
-    },
-    {
-      maPhieuMuon: 1115,
-      maDocGia: 115,
-      fullName: 'Trần Ngọc Mai',
-      ngayMuon: '2026-09-28',
-      ngayTra: '2026-10-07'
-    }
-  ]
+import api from '@/services/api';
+
+const normalizeMonthlyLoans = (value) => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => ({
+      label: String(item.label ?? item.thang ?? item.month ?? ''),
+      value: Number(item.value ?? item.soLuong ?? item.tongSachMuon),
+    }))
+    .filter((item) => item.label && Number.isFinite(item.value) && item.value >= 0);
 };
 
-const cloneReport = (report) => ({
-  statistics: { ...report.statistics },
-  monthlyLoans: report.monthlyLoans.map((month) => ({ ...month })),
-  unreturnedLoans: report.unreturnedLoans.map((loan) => ({ ...loan }))
-});
+const normalizeLoans = (value) => {
+  if (!Array.isArray(value)) {
+    throw new Error('API danh sách phiếu chưa trả trả về dữ liệu không hợp lệ.');
+  }
 
-// Chọn trạng thái demo qua ?dashboardState=empty hoặc ?dashboardState=error.
-const getDemoState = () => new URLSearchParams(window.location.search).get('dashboardState');
+  return value.map((loan) => ({
+    ...loan,
+    chiTiet: Array.isArray(loan.chiTiet) ? loan.chiTiet : [],
+  }));
+};
+
+const normalizeCount = (value, field) => {
+  const count = Number(value);
+  if (!Number.isFinite(count) || count < 0) {
+    throw new Error(`API tổng quan trả về chỉ số ${field} không hợp lệ.`);
+  }
+  return count;
+};
 
 export default {
   async getDashboardReport() {
-    // Giữ cùng giao diện bất đồng bộ như service API để thay nguồn dữ liệu dễ dàng.
-    await new Promise((resolve) => setTimeout(resolve, 250));
-    const state = getDemoState();
-    if (state === 'error') throw new Error('Không thể tải số liệu demo. Hãy thử tải lại.');
-    if (state === 'empty') {
-      return {
-        statistics: { tongSachMuonThang: 0, tongDocGiaMuonSachNam: 0, phieuChuaTra: 0 },
-        monthlyLoans: [],
-        unreturnedLoans: []
-      };
+    const [summaryResponse, loansResponse] = await Promise.all([
+      api.get('/thong-ke/tong-quan'),
+      api.get('/thong-ke/phieu-chua-tra'),
+    ]);
+
+    const summary = summaryResponse.data;
+    if (!summary || typeof summary !== 'object') {
+      throw new Error('API tổng quan trả về dữ liệu không hợp lệ.');
     }
-    return cloneReport(demoReport);
-  }
+
+    const booksBorrowedThisMonth = normalizeCount(summary.sachMuonThang, 'sachMuonThang');
+    const monthlyLoans = normalizeMonthlyLoans(summary.monthlyLoans);
+    if (monthlyLoans.length === 0) {
+      const now = new Date();
+      monthlyLoans.push({ label: `Thg ${now.getMonth() + 1}`, value: booksBorrowedThisMonth });
+    }
+
+    return {
+      statistics: {
+        tongSachMuonThang: booksBorrowedThisMonth,
+        tongDocGiaMuonSachNam: normalizeCount(summary.docGiaMuonNam, 'docGiaMuonNam'),
+        phieuChuaTra: normalizeCount(summary.phieuChuaTra, 'phieuChuaTra'),
+      },
+      unreturnedLoans: normalizeLoans(loansResponse.data),
+      // Hợp đồng hiện tại có tổng tháng này nhưng chưa có lịch sử nhiều tháng.
+      monthlyLoans,
+    };
+  },
 };
