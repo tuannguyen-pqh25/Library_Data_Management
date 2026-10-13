@@ -123,57 +123,45 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">Nhà xuất bản <span class="text-danger">*</span></label>
-                <select 
-                  class="form-select"
-                  :class="{ 'is-invalid': errors.maNXB }"
+                <label class="form-label" for="book-publisher">Nhà xuất bản <span class="text-danger">*</span></label>
+                <AdminSelect
+                  id="book-publisher"
                   v-model="bookForm.maNXB"
-                  required
+                  :options="publisherOptions"
+                  :invalid="!!errors.maNXB"
+                  placeholder="Chọn nhà xuất bản"
                   @change="validateField('maNXB')"
-                >
-                  <option value="">Chọn nhà xuất bản</option>
-                  <option v-for="publisher in publishers" :key="publisher.maNXB" :value="publisher.maNXB">
-                    {{ publisher.tenNXB }}
-                  </option>
-                </select>
+                />
                 <div class="invalid-feedback" v-if="errors.maNXB">
                   {{ errors.maNXB }}
                 </div>
               </div>
 
               <div class="mb-3">
-                <label class="form-label">Tác giả <span class="text-danger">*</span></label>
-                <select 
-                  class="form-select"
-                  :class="{ 'is-invalid': errors.maTacGia }"
+                <label class="form-label" for="book-author">Tác giả <span class="text-danger">*</span></label>
+                <AdminSelect
+                  id="book-author"
                   v-model="bookForm.maTacGia"
-                  required
+                  :options="authorOptions"
+                  :invalid="!!errors.maTacGia"
+                  placeholder="Chọn tác giả"
                   @change="validateField('maTacGia')"
-                >
-                  <option value="">Chọn tác giả</option>
-                  <option v-for="author in authors" :key="author.maTacGia" :value="author.maTacGia">
-                    {{ author.tenTacGia }}
-                  </option>
-                </select>
+                />
                 <div class="invalid-feedback" v-if="errors.maTacGia">
                   {{ errors.maTacGia }}
                 </div>
               </div>
 
               <div class="mb-3">
-                <label class="form-label">Thể loại <span class="text-danger">*</span></label>
-                <select 
-                  class="form-select"
-                  :class="{ 'is-invalid': errors.maTheLoai }"
+                <label class="form-label" for="book-category">Thể loại <span class="text-danger">*</span></label>
+                <AdminSelect
+                  id="book-category"
                   v-model="bookForm.maTheLoai"
-                  required
+                  :options="categoryOptions"
+                  :invalid="!!errors.maTheLoai"
+                  placeholder="Chọn thể loại"
                   @change="validateField('maTheLoai')"
-                >
-                  <option value="">Chọn thể loại</option>
-                  <option v-for="category in categories" :key="category.maTheLoai" :value="category.maTheLoai">
-                    {{ category.tenTheLoai }}
-                  </option>
-                </select>
+                />
                 <div class="invalid-feedback" v-if="errors.maTheLoai">
                   {{ errors.maTheLoai }}
                 </div>
@@ -291,15 +279,17 @@
 </template>
 
 <script>
+import '@/assets/admin-management.css';
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
+import AdminSelect from '@/components/admin/AdminSelect.vue';
 import { showError, showSuccess } from '@/utils/notifications';
 import api from '@/services/api';
 
 export default {
   name: 'BookManagement',
-  components: { LoadingSpinner },
+  components: { LoadingSpinner, AdminSelect },
   
   setup() {
     const store = useStore();
@@ -330,6 +320,18 @@ export default {
     const publishers = computed(() => store.getters['publisher/allPublishers']);
     const authors = computed(() => store.getters['author/allAuthors']);
     const categories = computed(() => store.getters['category/allCategories']); // Assuming category store exists
+    const publisherOptions = computed(() => publishers.value.map(publisher => ({
+      value: publisher.maNXB,
+      label: publisher.tenNXB
+    })));
+    const authorOptions = computed(() => authors.value.map(author => ({
+      value: author.maTacGia,
+      label: author.tenTacGia
+    })));
+    const categoryOptions = computed(() => categories.value.map(category => ({
+      value: category.maTheLoai,
+      label: category.tenTheLoai
+    })));
 
     const filteredBooks = computed(() => {
       if (!searchTerm.value) return books.value;
@@ -674,6 +676,9 @@ export default {
       publishers,
       authors,
       categories,
+      publisherOptions,
+      authorOptions,
+      categoryOptions,
       searchTerm,
       filteredBooks,
       closeModal,
@@ -693,24 +698,6 @@ export default {
 </script>
 
 <style scoped>
-.modal {
-  background-color: rgba(0, 0, 0, 0.5);
-}
-.form-label {
-  font-weight: 500;
-}
-.text-danger {
-  font-weight: bold;
-  background-color: rgba(255, 0, 0, 0.1);
-}
-.text-warning {
-  background-color: rgba(255, 193, 7, 0.1);
-}
-.text-success {
-  color: #198754 !important;
-}
-.text-muted {
-  font-size: 0.85em;
-  font-style: italic;
-}
+.badge { font-size: 0.9em; }
+.text-muted { font-size: 0.85em; font-style: italic; }
 </style>

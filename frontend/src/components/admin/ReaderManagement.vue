@@ -87,6 +87,7 @@
 </template>
 
 <script>
+import '@/assets/admin-management.css';
 import { ref, onMounted, computed } from 'vue';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
 import { showError } from '@/utils/notifications';
@@ -186,9 +187,3 @@ export default {
   }
 };
 </script>
-
-<style scoped>
-.table {
-  margin-top: 1rem;
-}
-</style>
