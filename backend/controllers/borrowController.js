@@ -5,7 +5,8 @@ const { sequelize, PhieuMuon, ChiTietPhieuMuon, PhieuTra, Sach, DocGia } = requi
 
 const getDetails = async (loan, transaction) => {
   const details = await ChiTietPhieuMuon.findAll({
-    where: { maPhieuMuon: loan.maPhieuMuon, maDocGia: loan.maDocGia }, transaction,
+    where: { maPhieuMuon: loan.maPhieuMuon, maDocGia: loan.maDocGia },
+    order: [['maSach', 'ASC'], ['maTacGia', 'ASC'], ['maTheLoai', 'ASC']], transaction,
   });
   for (const detail of details) {
     detail.setDataValue('Sach', await Sach.findOne({ where: {
@@ -88,6 +89,21 @@ const createBorrowRequest = async (req, res) => {
       return res.status(400).json({ message: 'Danh sách sách mượn không hợp lệ' });
     }
 
+    const normalizedDetails = [];
+    const seenBooks = new Set();
+    for (const item of chiTiet) {
+      const key = { maSach: Number(item.maSach), maTacGia: Number(item.maTacGia), maTheLoai: Number(item.maTheLoai) };
+      const quantity = item.soLuongSachMuon === undefined ? 1 : Number(item.soLuongSachMuon);
+      if (Object.values(key).some((value) => !Number.isInteger(value) || value <= 0) || !Number.isInteger(quantity) || quantity <= 0) {
+        return res.status(400).json({ message: 'Khóa sách hoặc số lượng không hợp lệ' });
+      }
+      const inventoryKey = `${key.maSach}:${key.maTacGia}:${key.maTheLoai}`;
+      if (seenBooks.has(inventoryKey)) return res.status(400).json({ message: 'Không được yêu cầu trùng sách trong cùng phiếu' });
+      seenBooks.add(inventoryKey);
+      normalizedDetails.push({ ...key, soLuongSachMuon: quantity });
+    }
+
+    normalizedDetails.sort((a, b) => a.maSach - b.maSach || a.maTacGia - b.maTacGia || a.maTheLoai - b.maTheLoai);
     const ngayMuon = new Date();
     const ngayTra = new Date(ngayMuon);
     ngayTra.setDate(ngayMuon.getDate() + 14);
@@ -97,22 +113,10 @@ const createBorrowRequest = async (req, res) => {
     let phieuMuon;
     try {
       phieuMuon = await PhieuMuon.create({ maDocGia: req.user.maDocGia, ngayMuon, ngayTra, trangThai: 'Chờ duyệt' }, { transaction });
-      const reserved = new Map();
-      for (const item of chiTiet) {
-        const key = { maSach: Number(item.maSach), maTacGia: Number(item.maTacGia), maTheLoai: Number(item.maTheLoai) };
-        const quantity = Number(item.soLuongSachMuon || 1);
-        if (Object.values(key).some((value) => !Number.isInteger(value) || value <= 0) || !Number.isInteger(quantity) || quantity <= 0) {
-          throw Object.assign(new Error('Khóa sách hoặc số lượng không hợp lệ'), { statusCode: 400 });
-        }
-        const book = await Sach.findOne({ where: key, transaction, lock: transaction.LOCK.UPDATE });
-        if (!book) throw Object.assign(new Error(`Sách ${key.maSach} không tồn tại`), { statusCode: 404 });
-        const inventoryKey = `${key.maSach}:${key.maTacGia}:${key.maTheLoai}`;
-        const nextReservation = (reserved.get(inventoryKey) || 0) + quantity;
-        if (book.soLuongHienCo < nextReservation) throw Object.assign(new Error(`Sách ${book.tenSach} không đủ số lượng`), { statusCode: 400 });
-        reserved.set(inventoryKey, nextReservation);
+      for (const detail of normalizedDetails) {
         await ChiTietPhieuMuon.create({
           maPhieuMuon: phieuMuon.maPhieuMuon, maDocGia: phieuMuon.maDocGia,
-          ...key, soLuongSachMuon: quantity,
+          ...detail,
         }, { transaction });
       }
       await transaction.commit();
@@ -161,25 +165,42 @@ const updateBorrowRequest = async (req, res) => {
       return res.status(400).json({ message: 'Chuyển trạng thái không hợp lệ' });
     }
     const details = await getDetails(request, transaction);
-    request.trangThai = trangThai;
-    if (trangThai === 'Đã trả') {
+    if (trangThai === 'Đang mượn' || trangThai === 'Đã trả') {
+      const booksByKey = new Map();
       for (const ct of details) {
-        const returnKey = { maChiTietPM: ct.maChiTietPM, maPhieuMuon: ct.maPhieuMuon, maSach: ct.maSach };
-        const existingPhieuTra = await PhieuTra.findOne({ where: returnKey, transaction });
-        if (existingPhieuTra) {
-          logger.warn('PhieuTra already exists for ChiTietPhieuMuon', { maChiTietPM: ct.maChiTietPM });
-          continue;
+        const key = { maSach: ct.maSach, maTacGia: ct.maTacGia, maTheLoai: ct.maTheLoai };
+        const inventoryKey = `${key.maSach}:${key.maTacGia}:${key.maTheLoai}`;
+        if (!booksByKey.has(inventoryKey)) {
+          const book = await Sach.findOne({ where: key, transaction, lock: transaction.LOCK.UPDATE });
+          if (!book) throw Object.assign(new Error(`Sách ${ct.maSach} không tồn tại`), { statusCode: 404 });
+          booksByKey.set(inventoryKey, { book, quantity: 0 });
         }
-        await PhieuTra.create({ ...returnKey, ngayTraSach: new Date() }, { transaction });
+        const entry = booksByKey.get(inventoryKey);
+        entry.quantity += ct.soLuongSachMuon;
+        if (trangThai === 'Đang mượn' && entry.book.soLuongHienCo < entry.quantity) {
+          throw Object.assign(new Error(`Sách ${entry.book.tenSach} không đủ số lượng`), { statusCode: 400 });
+        }
       }
-    } else if (trangThai === 'Từ chối') {
-      for (const ct of details) {
-        const book = await Sach.findOne({ where: { maSach: ct.maSach, maTacGia: ct.maTacGia, maTheLoai: ct.maTheLoai }, transaction, lock: transaction.LOCK.UPDATE });
-        if (!book) throw new Error(`Sách ${ct.maSach} không tồn tại`);
-        book.soLuongHienCo += ct.soLuongSachMuon;
-        await book.save({ transaction });
+
+      if (trangThai === 'Đang mượn') {
+        for (const { book, quantity } of booksByKey.values()) {
+          book.soLuongHienCo -= quantity;
+          await book.save({ transaction });
+        }
+      } else {
+        for (const ct of details) {
+          const returnKey = { maChiTietPM: ct.maChiTietPM, maPhieuMuon: ct.maPhieuMuon, maSach: ct.maSach };
+          const existingPhieuTra = await PhieuTra.findOne({ where: returnKey, transaction });
+          if (existingPhieuTra) throw Object.assign(new Error('Chi tiết phiếu mượn đã được trả'), { statusCode: 400 });
+          await PhieuTra.create({ ...returnKey, ngayTraSach: new Date() }, { transaction });
+        }
+        for (const { book, quantity } of booksByKey.values()) {
+          book.soLuongHienCo += quantity;
+          await book.save({ transaction });
+        }
       }
     }
+    request.trangThai = trangThai;
     await request.save({ transaction });
     await transaction.commit();
     logger.info('Borrow request updated successfully', { maPhieuMuon, trangThai });
@@ -187,7 +208,7 @@ const updateBorrowRequest = async (req, res) => {
   } catch (error) {
     logger.error('Error updating borrow request', { maPhieuMuon: req.params.maPhieuMuon, message: error.message, stack: error.stack });
     if (transaction && !transaction.finished) await transaction.rollback();
-    res.status(400).json({ message: error.message });
+    res.status(error.statusCode || 400).json({ message: error.message });
   }
 };
 
