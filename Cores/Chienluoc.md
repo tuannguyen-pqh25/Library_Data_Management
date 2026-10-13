@@ -17,15 +17,15 @@ Nguyên tắc phối hợp:
 - Mỗi thành viên sở hữu một nhóm route, component và migration riêng; không sửa trực tiếp phần của người khác.
 - Mọi thay đổi cấu trúc CSDL là migration mới; không sửa migration đã chạy và không dùng `sequelize.sync({ alter: true })` ở môi trường nộp bài.
 - Pull request phải có ca kiểm thử tối thiểu cho chức năng thay đổi và dữ liệu mẫu để demo.
-- Trạng thái lưu trong enum hiện hành: `Chờ duyệt`, `Đang mượn`, `Đã trả`, `Từ chối`. Trong tài liệu kế hoạch, `Đã duyệt` nghĩa là phiếu đã được duyệt và tương ứng với `Đang mượn`; code, DB và API tiếp tục dùng `Đang mượn`.
+- Trạng thái chuẩn dùng xuyên suốt: `Chờ duyệt`, `Đã duyệt`, `Đã trả`, `Từ chối`. Không dùng thêm biến thể như `Đang mượn` nếu chưa định nghĩa ánh xạ rõ ràng.
 
 ## Các việc bắt buộc trước khi bổ sung
 
-1. Luồng tồn kho được giao cho transaction ở backend khi chuyển `Chờ duyệt → Đang mượn` và `Đang mượn → Đã trả`; migration mới gỡ trigger tăng/giảm tồn. Xác nhận trạng thái triển khai và MySQL runtime trong `checkpoint.md` trước khi coi là nghiệm thu.
-2. Đã áp dụng state machine: `Chờ duyệt → Đang mượn | Từ chối`; `Đang mượn → Đã trả`. Trạng thái lặp và chuyển thẳng sang đã trả bị từ chối.
-3. Procedure “phiếu mượn chưa trả” lọc `Đang mượn`, đúng với enum hiện tại; đã kiểm tra bằng MySQL integration.
-4. Procedure năm dùng `COUNT(DISTINCT maDocGia)` theo năm mượn và loại phiếu chờ/từ chối; đã kiểm tra bằng MySQL integration.
-5. Hai API admin `/api/thong-ke/tong-quan` và `/api/thong-ke/phieu-chua-tra` đã được triển khai. B cần tích hợp dashboard với API thay vì tự tính từ dữ liệu frontend.
+1. Sửa luồng tồn kho: hiện trigger giảm tồn khi tạo `ChiTietPhieuMuon`, nhưng controller lại giảm lần nữa khi duyệt; khi trả, trigger và controller lại cùng tăng. Một yêu cầu có thể làm tồn kho sai gấp đôi. Chọn **một** nơi chịu trách nhiệm: khuyến nghị transaction ở service/controller khi chuyển `Chờ duyệt → Đã duyệt` và `Đã duyệt → Đã trả`; bỏ hai trigger tăng/giảm tồn.
+2. Bảo đảm chuyển trạng thái hợp lệ, không được duyệt/trả/từ chối lặp hay chuyển thẳng từ `Chờ duyệt` sang `Đã trả`.
+3. Sửa procedure “phiếu mượn chưa trả” để lọc `Đã duyệt` (hoặc trạng thái chuẩn được chốt), thay vì `Dang muon` không tồn tại trong ENUM hiện tại.
+4. Sửa thống kê năm thành `COUNT(DISTINCT maDocGia)` theo năm mượn. Procedure hiện tại đếm số lượng sách và lọc trạng thái không tồn tại, nên không đáp ứng yêu cầu.
+5. Bổ sung API thống kê; dashboard phải gọi API/procedure thay vì suy diễn từ danh sách đã tải. Có số liệu cho: sách mượn trong tháng, độc giả mượn trong năm và phiếu chưa trả.
 
 ## Phân công độc lập
 

@@ -33,7 +33,6 @@ app.use('/api/docgia', docGiaRoutes);
 app.use('/api/tacgia', tacGiaRoutes);
 app.use('/api/theloai', theLoaiRoutes);
 app.use('/api/reports', reportRoutes);
-app.use('/api/thong-ke', reportRoutes);
 
 // static (dist)
 app.use(express.static('dist'));
