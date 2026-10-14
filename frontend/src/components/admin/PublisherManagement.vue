@@ -5,7 +5,7 @@
     <!-- Header section -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h2>Quản lý nhà xuất bản</h2>
-      <button class="btn btn-primary" @click="showAddModal = true">
+      <button class="btn btn-primary" @click="openAddModal">
         <i class="fas fa-plus"></i> Thêm nhà xuất bản mới
       </button>
     </div>
@@ -124,7 +124,7 @@
                 <button
                   type="submit"
                   class="btn btn-primary"
-                  :disabled="loading || Object.keys(errors).length > 0"
+                  :disabled="loading"
                 >
                   {{ loading ? 'Đang xử lý...' : (editingPublisher ? 'Cập nhật' : 'Thêm mới') }}
                 </button>
@@ -145,6 +145,16 @@
           </div>
           <div class="modal-body">
             <p>Bạn có chắc chắn muốn xóa nhà xuất bản "<strong>{{ selectedPublisher?.tenNXB }}</strong>" không?</p>
+            <div v-if="selectedPublisherBooks.length" class="alert alert-warning mb-0">
+              <p class="mb-2">
+                Nhà xuất bản này đang có {{ selectedPublisherBooks.length }} sách liên kết. Không thể xóa cho đến khi chuyển các sách sang nhà xuất bản khác:
+              </p>
+              <ul class="mb-0">
+                <li v-for="book in selectedPublisherBooks" :key="`${book.maSach}:${book.maTacGia}:${book.maTheLoai}`">
+                  {{ book.tenSach }} (mã {{ book.maSach }})
+                </li>
+              </ul>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="closeDeleteModal">Hủy</button>
@@ -152,9 +162,9 @@
               type="button"
               class="btn btn-danger"
               @click="handleDelete"
-              :disabled="loading"
+              :disabled="loading || selectedPublisherBooks.length > 0"
             >
-              {{ loading ? 'Đang xử lý...' : 'Xóa' }}
+              {{ loading ? 'Đang xử lý...' : (selectedPublisherBooks.length ? 'Không thể xóa' : 'Xóa') }}
             </button>
           </div>
         </div>
@@ -192,6 +202,11 @@ export default {
     const loading = computed(() => store.getters['publisher/isLoading']);
     const error = computed(() => store.getters['publisher/error']);
     const allBooks = computed(() => store.getters['book/allBooks']);
+    const selectedPublisherBooks = computed(() => {
+      const publisherId = Number(selectedPublisher.value?.maNXB);
+      if (!publisherId) return [];
+      return allBooks.value.filter((book) => Number(book.maNXB) === publisherId);
+    });
 
     const filteredPublishers = computed(() => {
       if (!searchTerm.value.trim()) return publishers.value;
@@ -203,22 +218,22 @@ export default {
     });
 
     const getPublisherBookCount = (publisherId) => {
-      return allBooks.value.filter(book => book.maNXB === publisherId).length;
+      return allBooks.value.filter(book => Number(book.maNXB) === Number(publisherId)).length;
     };
 
     const validateField = (field) => {
       const newErrors = { ...errors.value };
       if (field === 'tenNXB') {
-        if (!publisherForm.value.tenNXB) {
+        if (!publisherForm.value.tenNXB?.trim()) {
           newErrors.tenNXB = 'Tên nhà xuất bản là bắt buộc';
         } else {
           delete newErrors.tenNXB;
         }
       }
       if (field === 'diaChi') {
-        if (!publisherForm.value.diaChi) {
+        if (!publisherForm.value.diaChi?.trim()) {
           newErrors.diaChi = 'Địa chỉ là bắt buộc';
-        } else if (publisherForm.value.diaChi.length < 5) {
+        } else if (publisherForm.value.diaChi.trim().length < 5) {
           newErrors.diaChi = 'Địa chỉ phải có ít nhất 5 ký tự';
         } else {
           delete newErrors.diaChi;
@@ -228,17 +243,10 @@ export default {
     };
 
     const validateForm = () => {
-      const newErrors = {};
-      if (!publisherForm.value.tenNXB) {
-        newErrors.tenNXB = 'Tên nhà xuất bản là bắt buộc';
-      }
-      if (!publisherForm.value.diaChi) {
-        newErrors.diaChi = 'Địa chỉ là bắt buộc';
-      } else if (publisherForm.value.diaChi.length < 5) {
-        newErrors.diaChi = 'Địa chỉ phải có ít nhất 5 ký tự';
-      }
-      errors.value = newErrors;
-      return Object.keys(newErrors).length === 0;
+      errors.value = {};
+      validateField('tenNXB');
+      validateField('diaChi');
+      return Object.keys(errors.value).length === 0;
     };
 
     const fetchData = async () => {
@@ -270,6 +278,11 @@ export default {
       errors.value = {};
     };
 
+    const openAddModal = () => {
+      closeModal();
+      showAddModal.value = true;
+    };
+
     const closeDeleteModal = () => {
       showDeleteModal.value = false;
       selectedPublisher.value = null;
@@ -283,6 +296,7 @@ export default {
       }
       editingPublisher.value = publisher;
       publisherForm.value = { ...publisher };
+      errors.value = {};
       showAddModal.value = true;
     };
 
@@ -330,7 +344,10 @@ export default {
           return;
         }
 
-        const publisherData = { ...publisherForm.value };
+        const publisherData = {
+          tenNXB: publisherForm.value.tenNXB.trim(),
+          diaChi: publisherForm.value.diaChi.trim(),
+        };
         if (!editingPublisher.value) {
           delete publisherData.maNXB; // Không gửi maNXB khi thêm mới
         }
@@ -361,7 +378,10 @@ export default {
           stack: err.stack,
           response: err.response?.data
         });
-        showError('Lỗi khi lưu nhà xuất bản: ' + (err.response?.data?.message || err.message));
+        if (err.response?.data?.errors) {
+          errors.value = { ...errors.value, ...err.response.data.errors };
+        }
+        showError(err.response?.data?.message || err.message || 'Lỗi khi lưu nhà xuất bản');
       }
     };
 
@@ -373,6 +393,7 @@ export default {
 
     return {
       showAddModal,
+      openAddModal,
       editingPublisher,
       publisherForm,
       errors,
@@ -387,6 +408,7 @@ export default {
       getPublisherBookCount,
       showDeleteModal,
       selectedPublisher,
+      selectedPublisherBooks,
       confirmDelete,
       closeDeleteModal,
       handleDelete

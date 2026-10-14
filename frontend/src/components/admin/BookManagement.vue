@@ -92,6 +92,9 @@
             <button type="button" class="btn-close" @click="closeModal"></button>
           </div>
           <div class="modal-body">
+            <p v-if="editingBook" class="text-muted">
+              Chỉ cần chỉnh sửa những trường muốn thay đổi; các thông tin còn lại sẽ được giữ nguyên.
+            </p>
             <form @submit.prevent="handleSubmit" novalidate>
               <div class="mb-3" v-if="editingBook">
                 <label class="form-label">Mã sách <span class="text-danger">*</span></label>
@@ -108,13 +111,13 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">Tên sách <span class="text-danger">*</span></label>
+                <label class="form-label">Tên sách <span v-if="!editingBook" class="text-danger">*</span></label>
                 <input 
                   type="text" 
                   class="form-control"
                   :class="{ 'is-invalid': errors.tenSach }"
                   v-model="bookForm.tenSach"
-                  required
+                  :required="!editingBook"
                   @input="validateField('tenSach')"
                 >
                 <div class="invalid-feedback" v-if="errors.tenSach">
@@ -123,7 +126,7 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label" for="book-publisher">Nhà xuất bản <span class="text-danger">*</span></label>
+                <label class="form-label" for="book-publisher">Nhà xuất bản <span v-if="!editingBook" class="text-danger">*</span></label>
                 <AdminSelect
                   id="book-publisher"
                   v-model="bookForm.maNXB"
@@ -138,7 +141,7 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label" for="book-author">Tác giả <span class="text-danger">*</span></label>
+                <label class="form-label" for="book-author">Tác giả <span v-if="!editingBook" class="text-danger">*</span></label>
                 <AdminSelect
                   id="book-author"
                   v-model="bookForm.maTacGia"
@@ -153,7 +156,7 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label" for="book-category">Thể loại <span class="text-danger">*</span></label>
+                <label class="form-label" for="book-category">Thể loại <span v-if="!editingBook" class="text-danger">*</span></label>
                 <AdminSelect
                   id="book-category"
                   v-model="bookForm.maTheLoai"
@@ -168,14 +171,14 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">Đơn giá <span class="text-danger">*</span></label>
+                <label class="form-label">Đơn giá <span v-if="!editingBook" class="text-danger">*</span></label>
                 <input 
                   type="number" 
                   class="form-control"
                   :class="{ 'is-invalid': errors.donGia }"
                   v-model.number="bookForm.donGia"
                   min="0"
-                  required
+                  :required="!editingBook"
                   @input="validateField('donGia')"
                 >
                 <div class="invalid-feedback" v-if="errors.donGia">
@@ -184,14 +187,14 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">Số lượng hiện có <span class="text-danger">*</span></label>
+                <label class="form-label">Số lượng hiện có <span v-if="!editingBook" class="text-danger">*</span></label>
                 <input 
                   type="number" 
                   class="form-control"
                   :class="{ 'is-invalid': errors.soLuongHienCo }"
                   v-model.number="bookForm.soLuongHienCo"
                   min="0"
-                  required
+                  :required="!editingBook"
                   @input="validateField('soLuongHienCo')"
                 >
                 <div class="invalid-feedback" v-if="errors.soLuongHienCo">
@@ -200,7 +203,7 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">Năm xuất bản <span class="text-danger">*</span></label>
+                <label class="form-label">Năm xuất bản <span v-if="!editingBook" class="text-danger">*</span></label>
                 <input 
                   type="number" 
                   class="form-control"
@@ -208,7 +211,7 @@
                   v-model.number="bookForm.namXuatBan"
                   min="1900"
                   :max="new Date().getFullYear()"
-                  required
+                  :required="!editingBook"
                   @input="validateField('namXuatBan')"
                 >
                 <div class="invalid-feedback" v-if="errors.namXuatBan">
@@ -217,13 +220,13 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">Nguồn gốc <span class="text-danger">*</span></label>
+                <label class="form-label">Nguồn gốc <span v-if="!editingBook" class="text-danger">*</span></label>
                 <input 
                   type="text" 
                   class="form-control"
                   :class="{ 'is-invalid': errors.nguonGoc }"
                   v-model="bookForm.nguonGoc"
-                  required
+                  :required="!editingBook"
                   @input="validateField('nguonGoc')"
                 >
                 <div class="invalid-feedback" v-if="errors.nguonGoc">
@@ -314,6 +317,24 @@ export default {
       nguonGoc: ''
     });
 
+    const getOriginalBookValues = () => ({
+      tenSach: editingBook.value.tenSach,
+      maNXB: editingBook.value.maNXB || editingBook.value.NhaXuatBan?.maNXB || '',
+      maTacGia: editingBook.value.maTacGia || editingBook.value.TacGia?.maTacGia || '',
+      maTheLoai: editingBook.value.maTheLoai || editingBook.value.TheLoai?.maTheLoai || '',
+      donGia: editingBook.value.donGia,
+      soLuongHienCo: editingBook.value.soLuongHienCo,
+      namXuatBan: editingBook.value.namXuatBan,
+      nguonGoc: editingBook.value.nguonGoc,
+    });
+
+    const getChangedBookFields = () => {
+      const originalValues = getOriginalBookValues();
+      return Object.keys(originalValues).filter((field) =>
+        String(bookForm.value[field] ?? '') !== String(originalValues[field] ?? '')
+      );
+    };
+
     const loading = computed(() => store.getters['book/isLoading']);
     const error = computed(() => store.getters['book/error']);
     const books = computed(() => store.getters['book/allBooks']);
@@ -335,7 +356,7 @@ export default {
 
     const filteredBooks = computed(() => {
       if (!searchTerm.value) return books.value;
-      const search = searchTerm.value.toLowerCase();
+      const search = searchTerm.value.trim().toLowerCase();
       return books.value.filter(book => 
         String(book.maSach).toLowerCase().includes(search) ||
         book.tenSach.toLowerCase().includes(search) ||
@@ -423,6 +444,11 @@ export default {
     };
 
     const validateForm = () => {
+      if (editingBook.value) {
+        getChangedBookFields().forEach(validateField);
+        return Object.keys(errors.value).length === 0;
+      }
+
       const newErrors = {};
       const currentYear = new Date().getFullYear();
 
@@ -513,6 +539,7 @@ export default {
 
     const editBook = (book) => {
       editingBook.value = book;
+      errors.value = {};
       bookForm.value = { 
         maSach: book.maSach,
         tenSach: book.tenSach,
@@ -530,6 +557,7 @@ export default {
     };
 
     const confirmDelete = (book) => {
+      store.commit('book/SET_ERROR', null);
       selectedBook.value = book;
       showDeleteModal.value = true;
     };
@@ -548,12 +576,15 @@ export default {
         showSuccess('Xóa sách thành công');
         console.log('Book deleted successfully');
       } catch (error) {
+        const errorMessage = error.response?.data?.message || error.message || 'Lỗi khi xóa sách';
+        store.commit('book/SET_ERROR', errorMessage);
+        showDeleteModal.value = false;
+        selectedBook.value = null;
         console.error('Error deleting book:', {
           message: error.message,
           stack: error.stack,
           response: error.response?.data
         });
-        showError(error.message || 'Lỗi khi xóa sách');
       }
     };
 
@@ -567,18 +598,29 @@ export default {
       try {
         const formData = new FormData();
         if (editingBook.value) {
-          formData.append('maSach', bookForm.value.maSach);
-        }
-        formData.append('tenSach', bookForm.value.tenSach);
-        formData.append('maNXB', bookForm.value.maNXB);
-        formData.append('maTacGia', bookForm.value.maTacGia);
-        formData.append('maTheLoai', bookForm.value.maTheLoai);
-        formData.append('donGia', bookForm.value.donGia);
-        formData.append('soQuyen', bookForm.value.soLuongHienCo);
-        formData.append('namXuatBan', bookForm.value.namXuatBan);
-        formData.append('nguonGoc', bookForm.value.nguonGoc);
-        if (imageFile.value) {
-          formData.append('image', imageFile.value);
+          const changedFields = getChangedBookFields();
+          if (changedFields.length === 0 && !imageFile.value) {
+            showError('Bạn chưa thay đổi thông tin nào');
+            return;
+          }
+          changedFields.forEach((field) => {
+            formData.append(field, bookForm.value[field]);
+          });
+          if (imageFile.value) {
+            formData.append('image', imageFile.value);
+          }
+        } else {
+          formData.append('tenSach', bookForm.value.tenSach);
+          formData.append('maNXB', bookForm.value.maNXB);
+          formData.append('maTacGia', bookForm.value.maTacGia);
+          formData.append('maTheLoai', bookForm.value.maTheLoai);
+          formData.append('donGia', bookForm.value.donGia);
+          formData.append('soQuyen', bookForm.value.soLuongHienCo);
+          formData.append('namXuatBan', bookForm.value.namXuatBan);
+          formData.append('nguonGoc', bookForm.value.nguonGoc);
+          if (imageFile.value) {
+            formData.append('image', imageFile.value);
+          }
         }
 
         console.log('Submitting book:', {
@@ -655,7 +697,6 @@ export default {
     };
 
     const searchBooks = () => {
-      searchTerm.value = searchTerm.value.trim();
       console.log('Searching books with term:', searchTerm.value);
     };
 

@@ -66,7 +66,7 @@ export default {
         const { maSach, maTacGia, maTheLoai } = identity;
         const path = [maSach, maTacGia, maTheLoai].map(encodeURIComponent).join('/');
         console.log(`Updating book ${path} with data:`, bookData);
-        const response = await api.put(`/sach/${path}`, bookData, {
+        const response = await api.patch(`/sach/${path}`, bookData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         console.log('Update book response:', response.data);
@@ -89,7 +89,7 @@ export default {
         const response = await api.delete(`/sach/${path}`);
         console.log('Delete book response:', response.data);
       } catch (error) {
-        const errorMessage = error.response?.data?.message || 'Xóa nhà xuất bản thất bại';
+        const errorMessage = error.response?.data?.message || 'Xóa sách thất bại';
         commit('SET_ERROR', errorMessage);
         console.error('Error in deleteBook:', {
           message: error.message,

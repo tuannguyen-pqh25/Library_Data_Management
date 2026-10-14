@@ -72,11 +72,35 @@
           </div>
           <div class="modal-body">
             <p>Bạn có chắc muốn xóa độc giả "{{ selectedReader?.fullName }}" không?</p>
+            <div v-if="checkingDeletion" class="alert alert-info mb-0">
+              Đang kiểm tra sách mượn và lịch sử mượn...
+            </div>
+            <div v-else-if="deleteCheckError" class="alert alert-danger mb-0">
+              {{ deleteCheckError }}
+            </div>
+            <div v-else-if="outstandingBooks.length" class="alert alert-warning">
+              <p class="mb-2">
+                Độc giả còn {{ outstandingBooks.length }} sách chưa trả. Không thể xóa cho đến khi hoàn tất trả sách:
+              </p>
+              <ul class="mb-0">
+                <li v-for="book in outstandingBooks" :key="`${book.maPhieuMuon}:${book.maSach}`">
+                  {{ book.tenSach || `Mã sách ${book.maSach}` }} (mượn {{ book.soLuongSachMuon }} quyển, phiếu {{ book.maPhieuMuon }})
+                </li>
+              </ul>
+            </div>
+            <div v-else-if="loanHistoryCount > 0" class="alert alert-warning mb-0">
+              Độc giả có lịch sử mượn sách. Không thể xóa để bảo toàn dữ liệu mượn/trả.
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="closeConfirmModal">Hủy</button>
-            <button type="button" class="btn btn-danger" @click="handleConfirmDelete" :disabled="loading">
-              {{ loading ? 'Đang xử lý...' : 'Xóa' }}
+            <button
+              type="button"
+              class="btn btn-danger"
+              @click="handleConfirmDelete"
+              :disabled="loading || checkingDeletion || Boolean(deleteCheckError) || outstandingBooks.length > 0 || loanHistoryCount > 0"
+            >
+              {{ loading ? 'Đang xử lý...' : (checkingDeletion ? 'Đang kiểm tra...' : (outstandingBooks.length || loanHistoryCount ? 'Không thể xóa' : 'Xóa')) }}
             </button>
           </div>
         </div>
@@ -90,7 +114,7 @@
 import '@/assets/admin-management.css';
 import { ref, onMounted, computed } from 'vue';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
-import { showError } from '@/utils/notifications';
+import { showError, showSuccess } from '@/utils/notifications';
 import api from '@/services/api';
 
 export default {
@@ -103,6 +127,10 @@ export default {
     const searchTerm = ref('');
     const selectedReader = ref(null);
     const showConfirmModal = ref(false);
+    const checkingDeletion = ref(false);
+    const deleteCheckError = ref('');
+    const outstandingBooks = ref([]);
+    const loanHistoryCount = ref(0);
 
     const filteredReaders = computed(() => {
       if (!searchTerm.value) return readers.value;
@@ -120,8 +148,8 @@ export default {
       try {
         const response = await api.get('/docgia');
         readers.value = response.data;
-      } catch (error) {
-        error.value = error.response?.data?.error || 'Lỗi khi lấy danh sách độc giả';
+      } catch (err) {
+        error.value = err.response?.data?.error || 'Lỗi khi lấy danh sách độc giả';
       } finally {
         loading.value = false;
       }
@@ -131,14 +159,30 @@ export default {
       return new Date(date).toLocaleDateString('vi-VN');
     };
 
-    const confirmDelete = (reader) => {
+    const confirmDelete = async (reader) => {
       selectedReader.value = reader;
+      outstandingBooks.value = [];
+      loanHistoryCount.value = 0;
+      deleteCheckError.value = '';
       showConfirmModal.value = true;
+      checkingDeletion.value = true;
+      try {
+        const response = await api.get(`/docgia/${reader.maDocGia}/deletion-check`);
+        outstandingBooks.value = response.data.books;
+        loanHistoryCount.value = response.data.loanHistoryCount;
+      } catch (err) {
+        deleteCheckError.value = err.response?.data?.error || 'Không thể kiểm tra điều kiện xóa độc giả';
+      } finally {
+        checkingDeletion.value = false;
+      }
     };
 
     const closeConfirmModal = () => {
       showConfirmModal.value = false;
       selectedReader.value = null;
+      outstandingBooks.value = [];
+      loanHistoryCount.value = 0;
+      deleteCheckError.value = '';
     };
 
     const handleConfirmDelete = async () => {
@@ -151,10 +195,11 @@ export default {
         }
         await api.delete(`/docgia/${maDocGia}`);
         await fetchReaders();
-        proxy.$toast.show('Xóa độc giả thành công', 'success');
+        showSuccess('Xóa độc giả thành công');
         closeConfirmModal();
-      } catch (error) {
-        error.value = error.response?.data?.error || 'Lỗi khi xóa độc giả';
+      } catch (err) {
+        error.value = err.response?.data?.error || 'Lỗi khi xóa độc giả';
+        showError(err);
       } finally {
         loading.value = false;
       }
@@ -178,6 +223,10 @@ export default {
       showConfirmModal,
       handleSearch,
       selectedReader,
+      checkingDeletion,
+      deleteCheckError,
+      outstandingBooks,
+      loanHistoryCount,
       confirmDelete,
       closeConfirmModal,
       handleConfirmDelete,

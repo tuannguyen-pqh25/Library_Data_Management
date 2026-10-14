@@ -25,7 +25,6 @@
             class="form-control"
             v-model="searchTerm"
             placeholder="Tìm kiếm tác giả theo tên hoặc mã tác giả"
-            @input="searchAuthors"
           >
           <span class="input-group-text">
             <i class="fas fa-search"></i>
@@ -127,7 +126,7 @@
                 <button
                   type="submit"
                   class="btn btn-primary"
-                  :disabled="loading || Object.keys(errors).length > 0"
+                  :disabled="loading"
                 >
                   {{ loading ? 'Đang xử lý...' : (editingAuthor ? 'Cập nhật' : 'Thêm mới') }}
                 </button>
@@ -149,6 +148,16 @@
           </div>
           <div class="modal-body">
             <p>Bạn có chắc chắn muốn xóa tác giả "<strong>{{ selectedAuthor?.tenTacGia }}</strong>" không?</p>
+            <div v-if="selectedAuthorBooks.length" class="alert alert-warning mb-0">
+              <p class="mb-2">
+                Tác giả này đang có {{ selectedAuthorBooks.length }} sách liên kết. Hãy chuyển sách sang tác giả khác trước khi xóa:
+              </p>
+              <ul class="mb-0">
+                <li v-for="book in selectedAuthorBooks" :key="`${book.maSach}:${book.maTacGia}:${book.maTheLoai}`">
+                  {{ book.tenSach }} (mã {{ book.maSach }})
+                </li>
+              </ul>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="closeDeleteModal">Hủy</button>
@@ -156,9 +165,9 @@
               type="button"
               class="btn btn-danger"
               @click="handleDelete"
-              :disabled="loading"
+              :disabled="loading || selectedAuthorBooks.length > 0"
             >
-              {{ loading ? 'Đang xử lý...' : 'Xóa' }}
+              {{ loading ? 'Đang xử lý...' : (selectedAuthorBooks.length ? 'Không thể xóa' : 'Xóa') }}
             </button>
           </div>
         </div>
@@ -197,6 +206,11 @@ export default {
     const loading = computed(() => store.getters['author/isLoading']);
     const error = computed(() => store.getters['author/error']);
     const allBooks = computed(() => store.getters['book/allBooks']);
+    const selectedAuthorBooks = computed(() => {
+      const authorId = Number(selectedAuthor.value?.maTacGia);
+      if (!authorId) return [];
+      return allBooks.value.filter((book) => Number(book.maTacGia) === authorId);
+    });
 
     const filteredAuthors = computed(() => {
       if (!searchTerm.value.trim()) return authors.value;
@@ -208,27 +222,29 @@ export default {
     });
 
     const getAuthorBookCount = (authorId) => {
-      return allBooks.value.filter(book => book.maTacGia === authorId).length;
+      return allBooks.value.filter(book => Number(book.maTacGia) === Number(authorId)).length;
     };
 
     const validateField = (field) => {
       const newErrors = { ...errors.value };
       if (field === 'tenTacGia') {
-        if (!AuthorForm.value.tenTacGia) {
+        if (!AuthorForm.value.tenTacGia?.trim()) {
           newErrors.tenTacGia = 'Tên tác giả là bắt buộc';
         } else {
           delete newErrors.tenTacGia;
         }
       }
       if (field === 'soDienThoai') {
-        if (AuthorForm.value.soDienThoai && !/^\d{10}$/.test(AuthorForm.value.soDienThoai)) {
+        const phone = AuthorForm.value.soDienThoai?.trim() || '';
+        if (phone && !/^\d{10}$/.test(phone)) {
           newErrors.soDienThoai = 'Số điện thoại phải là 10 chữ số';
         } else {
           delete newErrors.soDienThoai;
         }
       }
       if (field === 'diaChi') {
-        if (AuthorForm.value.diaChi && AuthorForm.value.diaChi.length < 5) {
+        const address = AuthorForm.value.diaChi?.trim() || '';
+        if (address && address.length < 5) {
           newErrors.diaChi = 'Địa chỉ phải có ít nhất 5 ký tự';
         } else {
           delete newErrors.diaChi;
@@ -238,18 +254,9 @@ export default {
     };
 
     const validateForm = () => {
-      const newErrors = {};
-      if (!AuthorForm.value.tenTacGia) {
-        newErrors.tenTacGia = 'Tên tác giả là bắt buộc';
-      }
-      if (AuthorForm.value.soDienThoai && !/^\d{10}$/.test(AuthorForm.value.soDienThoai)) {
-        newErrors.soDienThoai = 'Số điện thoại phải là 10 chữ số';
-      }
-      if (AuthorForm.value.diaChi && AuthorForm.value.diaChi.length < 5) {
-        newErrors.diaChi = 'Địa chỉ phải có ít nhất 5 ký tự';
-      }
-      errors.value = newErrors;
-      return Object.keys(newErrors).length === 0;
+      errors.value = {};
+      ['tenTacGia', 'soDienThoai', 'diaChi'].forEach(validateField);
+      return Object.keys(errors.value).length === 0;
     };
 
     const fetchData = async () => {
@@ -290,6 +297,7 @@ export default {
     const editAuthor = (author) => {
       editingAuthor.value = author;
       AuthorForm.value = { ...author };
+      errors.value = {};
       showAddModal.value = true;
     };
 
@@ -328,7 +336,14 @@ export default {
           return;
         }
 
-        const authorData = { ...AuthorForm.value };
+        const authorData = {
+          tenTacGia: AuthorForm.value.tenTacGia.trim(),
+          soDienThoai: AuthorForm.value.soDienThoai?.trim() || '',
+          diaChi: AuthorForm.value.diaChi?.trim() || '',
+        };
+        if (editingAuthor.value) {
+          authorData.maTacGia = AuthorForm.value.maTacGia;
+        }
         if (!editingAuthor.value) {
           delete authorData.maTacGia; // Không gửi maTacGia khi thêm mới
         }
@@ -354,13 +369,11 @@ export default {
           stack: err.stack,
           response: err.response?.data
         });
-        showError('Lỗi khi lưu tác giả: ' + (err.response?.data?.message || err.message));
+        if (err.response?.data?.errors) {
+          errors.value = { ...errors.value, ...err.response.data.errors };
+        }
+        showError(err.response?.data?.message || err.message || 'Lỗi khi lưu tác giả');
       }
-    };
-
-    const searchAuthors = () => {
-      searchTerm.value = searchTerm.value.trim();
-      console.log('Searching authors with term:', searchTerm.value);
     };
 
     const clearError = () => {
@@ -386,10 +399,10 @@ export default {
       getAuthorBookCount,
       showDeleteModal,
       selectedAuthor,
+      selectedAuthorBooks,
       confirmDelete,
       closeDeleteModal,
-      handleDelete,
-      searchAuthors
+      handleDelete
     };
   }
 };

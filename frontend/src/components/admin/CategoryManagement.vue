@@ -5,7 +5,7 @@
     <!-- Header section -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h2>Quản lý thể loại</h2>
-      <button class="btn btn-primary" @click="showAddModal = true">
+      <button class="btn btn-primary" @click="openAddModal">
         <i class="fas fa-plus"></i> Thêm thể loại mới
       </button>
     </div>
@@ -110,7 +110,7 @@
                 <button
                   type="submit"
                   class="btn btn-primary"
-                  :disabled="loading || Object.keys(errors).length > 0"
+                  :disabled="loading"
                 >
                   {{ loading ? 'Đang xử lý...' : (editingCategory ? 'Cập nhật' : 'Thêm mới') }}
                 </button>
@@ -131,6 +131,16 @@
           </div>
           <div class="modal-body">
             <p>Bạn có chắc chắn muốn xóa thể loại "<strong>{{ selectedCategory?.tenTheLoai }}</strong>" không?</p>
+            <div v-if="selectedCategoryBooks.length" class="alert alert-warning mb-0">
+              <p class="mb-2">
+                Thể loại này đang có {{ selectedCategoryBooks.length }} sách liên kết. Không thể xóa cho đến khi chuyển các sách sang thể loại khác:
+              </p>
+              <ul class="mb-0">
+                <li v-for="book in selectedCategoryBooks" :key="`${book.maSach}:${book.maTacGia}:${book.maTheLoai}`">
+                  {{ book.tenSach }} (mã {{ book.maSach }})
+                </li>
+              </ul>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="closeDeleteModal">Hủy</button>
@@ -138,9 +148,9 @@
               type="button"
               class="btn btn-danger"
               @click="handleDelete"
-              :disabled="loading"
+              :disabled="loading || selectedCategoryBooks.length > 0"
             >
-              {{ loading ? 'Đang xử lý...' : 'Xóa' }}
+              {{ loading ? 'Đang xử lý...' : (selectedCategoryBooks.length ? 'Không thể xóa' : 'Xóa') }}
             </button>
           </div>
         </div>
@@ -176,6 +186,12 @@ export default {
     const categories = computed(() => store.getters['category/allCategories'] || []);
     const loading = computed(() => store.getters['category/isLoading'] || false);
     const error = computed(() => store.getters['category/error']);
+    const allBooks = computed(() => store.getters['book/allBooks'] || []);
+    const selectedCategoryBooks = computed(() => {
+      const categoryId = Number(selectedCategory.value?.maTheLoai);
+      if (!categoryId) return [];
+      return allBooks.value.filter((book) => Number(book.maTheLoai) === categoryId);
+    });
 
     const filteredCategories = computed(() => {
       const cats = categories.value || [];
@@ -190,7 +206,7 @@ export default {
     const validateField = (field) => {
       const newErrors = { ...errors.value };
       if (field === 'tenTheLoai') {
-        if (!categoryForm.value.tenTheLoai) {
+        if (!categoryForm.value.tenTheLoai?.trim()) {
           newErrors.tenTheLoai = 'Tên thể loại là bắt buộc';
         } else {
           delete newErrors.tenTheLoai;
@@ -200,19 +216,19 @@ export default {
     };
 
     const validateForm = () => {
-      const newErrors = {};
-      if (!categoryForm.value.tenTheLoai) {
-        newErrors.tenTheLoai = 'Tên thể loại là bắt buộc';
-      }
-      errors.value = newErrors;
-      return Object.keys(newErrors).length === 0;
+      errors.value = {};
+      validateField('tenTheLoai');
+      return Object.keys(errors.value).length === 0;
     };
 
     const fetchData = async () => {
       try {
         console.log('Fetching categories...');
-        await store.dispatch('category/fetchCategories');
-        console.log('Categories fetched successfully:', store.getters['category/allCategories']);
+        await Promise.all([
+          store.dispatch('category/fetchCategories'),
+          store.dispatch('book/fetchBooks')
+        ]);
+        console.log('Categories and books fetched successfully');
       } catch (err) {
         console.error('Error fetching categories:', {
           message: err.message,
@@ -233,6 +249,11 @@ export default {
       errors.value = {};
     };
 
+    const openAddModal = () => {
+      closeModal();
+      showAddModal.value = true;
+    };
+
     const closeDeleteModal = () => {
       showDeleteModal.value = false;
       selectedCategory.value = null;
@@ -246,6 +267,7 @@ export default {
       }
       editingCategory.value = category;
       categoryForm.value = { ...category };
+      errors.value = {};
       showAddModal.value = true;
     };
 
@@ -293,7 +315,9 @@ export default {
           return;
         }
 
-        const categoryData = { ...categoryForm.value };
+        const categoryData = {
+          tenTheLoai: categoryForm.value.tenTheLoai.trim(),
+        };
         if (!editingCategory.value) {
           delete categoryData.maTheLoai; // Không gửi maTheLoai khi thêm mới
         }
@@ -324,7 +348,10 @@ export default {
           stack: err.stack,
           response: err.response?.data
         });
-        showError('Lỗi khi lưu thể loại: ' + (err.response?.data?.message || err.message));
+        if (err.response?.data?.errors) {
+          errors.value = { ...errors.value, ...err.response.data.errors };
+        }
+        showError(err.response?.data?.message || err.message || 'Lỗi khi lưu thể loại');
       }
     };
 
@@ -336,6 +363,7 @@ export default {
 
     return {
       showAddModal,
+      openAddModal,
       editingCategory,
       categoryForm,
       errors,
@@ -349,6 +377,7 @@ export default {
       clearError,
       showDeleteModal,
       selectedCategory,
+      selectedCategoryBooks,
       confirmDelete,
       closeDeleteModal,
       handleDelete

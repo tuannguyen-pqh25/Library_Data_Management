@@ -1,6 +1,6 @@
 # Checkpoint — Trạng thái dự án LibraryManagement
 
-> Cập nhật lần cuối: 2026-10-09 (Cập nhật giao diện Độc giả, fix bug BookList, AuthorList, PublisherList)
+> Cập nhật lần cuối: 2026-10-09 (Cập nhật giao diện admin, fix lỗi các chức năng quản lý phía admin)
 
 ## Bối cảnh và quyết định hiện tại
 
@@ -35,8 +35,11 @@
 
 - **Người D (Vũ - Quản lý dữ liệu, Import/Export, Kiểm thử):**
   - Đã cập nhật thành công kịch bản test nâng cao `scripts/seed-data.js` để khớp với cột `fullName`.
-  - **Trạng thái:** Các dữ liệu giả lập (seeders) đều chạy trơn tru với cấu trúc DB mới.
   - Tạo dữ liệu demo hoàn chỉnh trong file `backend\seeders\demo-data.js` và uploads các ảnh bìa sách trong thư muc `backend/uploads`
+  - **Trạng thái:** Các dữ liệu giả lập (seeders) đều chạy trơn tru với cấu trúc DB mới.
+  - Hoàn thiện giao diện phía Amin
+  - Chỉnh sửa các chức năng quản lý của Amin, thêm các ràng buộc khi xóa chi tiết trong file `Cores\Bao_cao_fix_chuc_nang.md`
+  - **Trạng thái:** Hoàn thành Giai đoạn 2
 
 ## Cập nhật 2026-10-05 — Giao diện Độc giả (Thành viên C)
 
