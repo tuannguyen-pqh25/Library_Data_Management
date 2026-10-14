@@ -1,7 +1,49 @@
 
-const { sequelize, DocGia, NhanVien, PhieuMuon } = require('../models');
+const { DocGia, NhanVien, PhieuMuon, ChiTietPhieuMuon, PhieuTra, Sach } = require('../models');
 const validator = require('validator');
 const logger = require('../src/logger');
+const { Op } = require('sequelize');
+
+const getOutstandingBooks = async (maDocGia) => {
+  const activeLoans = await PhieuMuon.findAll({
+    where: { maDocGia, trangThai: 'Đang mượn' },
+    attributes: ['maPhieuMuon'],
+  });
+  if (activeLoans.length === 0) return [];
+
+  const details = await ChiTietPhieuMuon.findAll({
+    where: {
+      maDocGia,
+      maPhieuMuon: { [Op.in]: activeLoans.map((loan) => loan.maPhieuMuon) },
+    },
+    attributes: ['maChiTietPM', 'maPhieuMuon', 'maSach', 'maTacGia', 'maTheLoai', 'soLuongSachMuon'],
+  });
+  if (details.length === 0) return [];
+
+  const returns = await PhieuTra.findAll({
+    where: { maChiTietPM: { [Op.in]: details.map((detail) => detail.maChiTietPM) } },
+    attributes: ['maChiTietPM'],
+  });
+  const returnedDetailIds = new Set(returns.map((record) => record.maChiTietPM));
+  const outstandingDetails = details.filter((detail) => !returnedDetailIds.has(detail.maChiTietPM));
+  if (outstandingDetails.length === 0) return [];
+
+  const books = await Sach.findAll({
+    where: { maSach: { [Op.in]: [...new Set(outstandingDetails.map((detail) => detail.maSach))] } },
+    attributes: ['maSach', 'maTacGia', 'maTheLoai', 'tenSach'],
+  });
+  const booksByKey = new Map(books.map((book) => [
+    `${book.maSach}:${book.maTacGia}:${book.maTheLoai}`,
+    book.tenSach,
+  ]));
+
+  return outstandingDetails.map((detail) => ({
+    maPhieuMuon: detail.maPhieuMuon,
+    maSach: detail.maSach,
+    tenSach: booksByKey.get(`${detail.maSach}:${detail.maTacGia}:${detail.maTheLoai}`) || null,
+    soLuongSachMuon: detail.soLuongSachMuon,
+  }));
+};
 
 const getAllReaders = async (req, res) => {
   try {
@@ -42,11 +84,38 @@ const getReaderById = async (req, res) => {
   }
 };
 
+const getReaderDeletionCheck = async (req, res) => {
+  try {
+    const maDocGia = Number(req.params.id);
+    if (!Number.isInteger(maDocGia) || maDocGia <= 0) {
+      return res.status(400).json({ error: 'Mã độc giả không hợp lệ' });
+    }
+
+    const reader = await DocGia.findByPk(maDocGia);
+    if (!reader) {
+      return res.status(404).json({ error: 'Không tìm thấy độc giả' });
+    }
+
+    const [books, loanHistoryCount] = await Promise.all([
+      getOutstandingBooks(maDocGia),
+      PhieuMuon.count({ where: { maDocGia } }),
+    ]);
+    res.json({ books, loanHistoryCount });
+  } catch (error) {
+    logger.error('Error checking reader deletion constraints', {
+      error: error.message,
+      maDocGia: req.params.id,
+      userId: req.user?.MSNV || req.user?.maDocGia,
+    });
+    res.status(500).json({ error: 'Lỗi khi kiểm tra điều kiện xóa độc giả' });
+  }
+};
+
 const deleteReader = async (req, res) => {
   try {
     logger.info('Attempting to delete reader', { maDocGia: req.params.maDocGia, userId: req.user?.MSNV || req.user?.maDocGia });
-    const maDocGia = parseInt(req.params.id, 10);
-    if (isNaN(maDocGia) || maDocGia <= 0) {
+    const maDocGia = Number(req.params.id);
+    if (!Number.isInteger(maDocGia) || maDocGia <= 0) {
       logger.warn('Invalid maDocGia in deleteReader', { maDocGia: req.params.maDocGia });
       return res.status(400).json({ error: 'Mã độc giả không hợp lệ' });
     }
@@ -57,11 +126,24 @@ const deleteReader = async (req, res) => {
       return res.status(403).json({ error: 'Không thể xóa tài khoản đang đăng nhập' });
     }
 
-    // Check for pending loans
-    const hasLoans = await PhieuMuon.count({ where: { maDocGia } });
-    if (hasLoans > 0) {
-      logger.warn('Reader has pending loans', { maDocGia, loanCount: hasLoans });
-      return res.status(400).json({ error: 'Không thể xóa độc giả vì có phiếu mượn chưa trả' });
+    const outstandingBooks = await getOutstandingBooks(maDocGia);
+    if (outstandingBooks.length > 0) {
+      logger.warn('Reader has outstanding borrowed books', {
+        maDocGia,
+        bookCount: outstandingBooks.length,
+      });
+      return res.status(409).json({
+        error: 'Không thể xóa độc giả vì còn sách chưa trả',
+        books: outstandingBooks,
+      });
+    }
+
+    const loanHistoryCount = await PhieuMuon.count({ where: { maDocGia } });
+    if (loanHistoryCount > 0) {
+      logger.warn('Reader has borrowing history that must be preserved', { maDocGia, loanHistoryCount });
+      return res.status(409).json({
+        error: 'Không thể xóa độc giả vì có lịch sử mượn sách cần được bảo toàn',
+      });
     }
 
     const deleted = await DocGia.destroy({ where: { maDocGia } });
@@ -180,4 +262,11 @@ const getProfile = async (req, res) => {
   }
 };
 
-module.exports = { getAllReaders, getReaderById, deleteReader, updateProfile, getProfile };
+module.exports = {
+  getAllReaders,
+  getReaderById,
+  getReaderDeletionCheck,
+  deleteReader,
+  updateProfile,
+  getProfile,
+};

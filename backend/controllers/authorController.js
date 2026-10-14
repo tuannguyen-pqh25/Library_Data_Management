@@ -1,6 +1,27 @@
 // backend/controllers/authorController.js
 const logger = require('../src/logger');
-const { sequelize, TacGia, Sach } = require('../models'); // Import from models/index.js
+const { TacGia, Sach } = require('../models');
+
+const validateAuthorData = (body = {}) => {
+  const authorData = {
+    tenTacGia: typeof body.tenTacGia === 'string' ? body.tenTacGia.trim() : '',
+    diaChi: typeof body.diaChi === 'string' ? body.diaChi.trim() : '',
+    soDienThoai: typeof body.soDienThoai === 'string' ? body.soDienThoai.trim() : '',
+  };
+  const errors = {};
+
+  if (!authorData.tenTacGia) {
+    errors.tenTacGia = 'Tên tác giả là bắt buộc';
+  }
+  if (authorData.soDienThoai && !/^\d{10}$/.test(authorData.soDienThoai)) {
+    errors.soDienThoai = 'Số điện thoại phải là 10 chữ số';
+  }
+  if (authorData.diaChi && authorData.diaChi.length < 5) {
+    errors.diaChi = 'Địa chỉ phải có ít nhất 5 ký tự';
+  }
+
+  return { authorData, errors };
+};
 
 const getAllAuthors = async (req, res) => {
   try {
@@ -17,7 +38,13 @@ const getAllAuthors = async (req, res) => {
 const createAuthor = async (req, res) => {
   try {
     logger.info('Creating author', { data: req.body });
-    const { maTacGia, ...authorData } = req.body;
+    const { authorData, errors } = validateAuthorData(req.body);
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({
+        message: 'Thông tin tác giả không hợp lệ',
+        errors,
+      });
+    }
     const author = await TacGia.create(authorData);
     logger.info('Author created', { author: author.toJSON() });
     res.status(201).json(author);
@@ -29,13 +56,21 @@ const createAuthor = async (req, res) => {
 
 const updateAuthor = async (req, res) => {
   try {
-    const { id } = req.params; // Use 'id' as defined in the route
-    if (!id) {
-      logger.warn('Missing author ID in request');
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      logger.warn('Invalid author ID in update request', { id: req.params.id });
       return res.status(400).json({ message: 'Mã tác giả là bắt buộc' });
     }
     logger.info('Updating author', { id, data: req.body });
-    const [updated] = await TacGia.update(req.body, {
+    const { authorData, errors } = validateAuthorData(req.body);
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({
+        message: 'Thông tin tác giả không hợp lệ',
+        errors,
+      });
+    }
+
+    const [updated] = await TacGia.update(authorData, {
       where: { maTacGia: id }, // Map 'id' to 'maTacGia' in the where clause
       returning: true,
     });
@@ -54,24 +89,32 @@ const updateAuthor = async (req, res) => {
 
 const deleteAuthor = async (req, res) => {
   try {
-    const { id } = req.params;
-    if (!id) {
-      logger.warn('Missing author ID in request');
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      logger.warn('Invalid author ID in delete request', { id: req.params.id });
       return res.status(400).json({ message: 'Mã tác giả là bắt buộc' });
     }
+
     logger.info('Checking author books', { id });
-    const [results] = await sequelize.query(
-      'SELECT fn_check_author_books(:maTacGia) as bookCount',
-      {
-        replacements: { maTacGia: parseInt(id) },
-        type: sequelize.QueryTypes.SELECT,
-      }
-    );
-    const bookCount = results[0]?.bookCount || 0;
-    if (bookCount > 0) {
-      logger.warn('Cannot delete author due to associated books', { id, bookCount });
-      return res.status(400).json({ message: 'Không thể xóa tác giả vì có sách liên kết' });
+    const books = await Sach.findAll({
+      where: { maTacGia: id },
+      attributes: ['maSach', 'tenSach'],
+    });
+    if (books.length > 0) {
+      const linkedBooks = books.map((book) => ({
+        maSach: book.maSach,
+        tenSach: book.tenSach,
+      }));
+      logger.warn('Cannot delete author due to associated books', {
+        id,
+        bookCount: linkedBooks.length,
+      });
+      return res.status(409).json({
+        message: 'Không thể xóa tác giả vì vẫn còn sách liên kết. Hãy chuyển sách sang tác giả khác trước.',
+        books: linkedBooks,
+      });
     }
+
     logger.info('Deleting author', { id });
     const deleted = await TacGia.destroy({ where: { maTacGia: id } });
     if (deleted === 0) {
@@ -81,9 +124,12 @@ const deleteAuthor = async (req, res) => {
     logger.info('Author deleted successfully', { id });
     res.json({ message: 'Xóa tác giả thành công' });
   } catch (error) {
-    if (error.message.includes('foreign key constraint fails')) {
+    const databaseError = error.parent || error.original;
+    if (databaseError?.code === 'ER_ROW_IS_REFERENCED_2') {
       logger.warn('Cannot delete author due to foreign key constraint', { error: error.message });
-      return res.status(409).json({ message: 'Không thể xóa tác giả vì có sách liên kết' });
+      return res.status(409).json({
+        message: 'Không thể xóa tác giả vì vẫn còn dữ liệu sách đang tham chiếu',
+      });
     }
     logger.error('Delete author error', { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Lỗi server khi xóa tác giả' });

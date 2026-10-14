@@ -4,6 +4,15 @@
 const logger = require('../src/logger');
 const { sequelize, TheLoai, Sach } = require('../models');
 
+const validateCategoryData = (body = {}) => {
+  const tenTheLoai = typeof body.tenTheLoai === 'string' ? body.tenTheLoai.trim() : '';
+  const errors = {};
+  if (!tenTheLoai) {
+    errors.tenTheLoai = 'Tên thể loại là bắt buộc';
+  }
+  return { categoryData: { tenTheLoai }, errors };
+};
+
 
 // Lấy danh sách tất cả thể loại
 const getAllCategories = async (req, res) => {
@@ -57,9 +66,15 @@ const getCategoryById = async (req, res) => {
 // Tạo thể loại mới
 const createCategory = async (req, res) => {
   try {
-    const { tenTheLoai } = req.body;
     logger.info('Creating category', { data: req.body });
-    const category = await TheLoai.create({ tenTheLoai });
+    const { categoryData, errors } = validateCategoryData(req.body);
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({
+        message: 'Thông tin thể loại không hợp lệ',
+        errors,
+      });
+    }
+    const category = await TheLoai.create(categoryData);
     logger.info('Category created', { category: category.toJSON() });
     res.status(201).json(category);
   } catch (error) {
@@ -76,16 +91,26 @@ const createCategory = async (req, res) => {
 const updateCategory = async (req, res) => {
   try {
     const { maTheLoai } = req.params;
-    const { tenTheLoai } = req.body;
+    const categoryId = Number(maTheLoai);
+    if (!Number.isInteger(categoryId) || categoryId <= 0) {
+      return res.status(400).json({ message: 'Mã thể loại không hợp lệ' });
+    }
+    const { categoryData, errors } = validateCategoryData(req.body);
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({
+        message: 'Thông tin thể loại không hợp lệ',
+        errors,
+      });
+    }
     logger.info('Updating category', { maTheLoai, data: req.body });
-    const [updated] = await TheLoai.update({ tenTheLoai }, {
-      where: { maTheLoai },
+    const [updated] = await TheLoai.update(categoryData, {
+      where: { maTheLoai: categoryId },
     });
     if (updated === 0) {
       logger.warn('Category not found for update', { maTheLoai });
       return res.status(404).json({ message: 'Không tìm thấy thể loại' });
     }
-    const category = await TheLoai.findByPk(maTheLoai);
+    const category = await TheLoai.findByPk(categoryId);
     logger.info('Category updated', { category: category.toJSON() });
     res.json(category);
   } catch (error) {
@@ -102,31 +127,42 @@ const updateCategory = async (req, res) => {
 // Xóa thể loại
 const deleteCategory = async (req, res) => {
   try {
-    const { maTheLoai } = req.params;
-    logger.info('Checking category books', { maTheLoai });
-    const [results] = await sequelize.query(
-      'SELECT COUNT(*) as bookCount FROM Sach WHERE maTheLoai = :maTheLoai',
-      {
-        replacements: { maTheLoai: parseInt(maTheLoai) },
-        type: sequelize.QueryTypes.SELECT,
-      }
-    );
-    const bookCount = results[0]?.bookCount || 0;
-    if (bookCount > 0) {
-      logger.warn('Cannot delete category due to associated books', { maTheLoai, bookCount });
-      return res.status(400).json({ message: 'Không thể xóa thể loại vì có sách liên kết' });
+    const categoryId = Number(req.params.maTheLoai);
+    if (!Number.isInteger(categoryId) || categoryId <= 0) {
+      return res.status(400).json({ message: 'Mã thể loại không hợp lệ' });
     }
-    logger.info('Deleting category', { maTheLoai });
-    const deleted = await TheLoai.destroy({ where: { maTheLoai } });
+
+    logger.info('Checking category books', { maTheLoai: categoryId });
+    const books = await Sach.findAll({
+      where: { maTheLoai: categoryId },
+      attributes: ['maSach', 'tenSach'],
+    });
+    if (books.length > 0) {
+      const linkedBooks = books.map((book) => ({
+        maSach: book.maSach,
+        tenSach: book.tenSach,
+      }));
+      logger.warn('Cannot delete category due to associated books', {
+        maTheLoai: categoryId,
+        bookCount: linkedBooks.length,
+      });
+      return res.status(409).json({
+        message: 'Không thể xóa thể loại vì vẫn còn sách liên kết. Hãy chuyển các sách này sang thể loại khác trước.',
+        books: linkedBooks,
+      });
+    }
+
+    logger.info('Deleting category', { maTheLoai: categoryId });
+    const deleted = await TheLoai.destroy({ where: { maTheLoai: categoryId } });
     if (deleted === 0) {
-      logger.warn('Category not found for deletion', { maTheLoai });
+      logger.warn('Category not found for deletion', { maTheLoai: categoryId });
       return res.status(404).json({ message: 'Không tìm thấy thể loại' });
     }
-    logger.info('Category deleted successfully', { maTheLoai });
+    logger.info('Category deleted successfully', { maTheLoai: categoryId });
     res.json({ message: 'Xóa thể loại thành công' });
   } catch (error) {
-    if (error.message.includes('foreign key constraint fails')) {
-      logger.warn('Cannot delete author due to foreign key constraint', { error: error.message });
+    if (error.name === 'SequelizeForeignKeyConstraintError' || error.message.includes('foreign key constraint fails')) {
+      logger.warn('Cannot delete category due to foreign key constraint', { error: error.message });
       return res.status(409).json({ message: 'Không thể xóa thể loại vì có sách liên kết' });
     }
     logger.error('Delete category error', {

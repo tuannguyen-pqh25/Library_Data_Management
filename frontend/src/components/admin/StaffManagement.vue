@@ -185,7 +185,7 @@
 import '@/assets/admin-management.css';
 import { ref, onMounted, computed } from 'vue';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
-import { showError } from '@/utils/notifications';
+import { showError, showSuccess } from '@/utils/notifications';
 import api from '@/services/api';
 
 export default {
@@ -266,9 +266,10 @@ export default {
         await api.delete(`/nhanvien/${selectedStaff.value.MSNV}`);
         await fetchStaff();
         closeDeleteModal();
-        proxy.$toast.show('Xóa nhân viên thành công', 'success');
-      } catch (error) {
-        error.value = error.response?.data?.message || 'Lỗi khi xóa nhân viên';
+        showSuccess('Xóa nhân viên thành công');
+      } catch (err) {
+        error.value = err.response?.data?.message || 'Lỗi khi xóa nhân viên';
+        showError(err);
       } finally {
         loading.value = false;
       }
@@ -312,21 +313,26 @@ export default {
         return;
       }
 
+      const isEditing = Boolean(editingStaff.value);
       loading.value = true;
       try {
         const formData = { ...staffForm.value };
         if (!formData.password) delete formData.password; // Remove password if empty for updates
-        if (editingStaff.value) {
-          await api.put(`/nhanvien/${editingStaff.value.MSNV}`, formData);
-          proxy.$toast.show('Cập nhật nhân viên thành công', 'success');
+        const response = isEditing
+          ? await api.put(`/nhanvien/${editingStaff.value.MSNV}`, formData)
+          : await api.post('/nhanvien', formData);
+        const savedStaff = response.data;
+        const staffIndex = staffList.value.findIndex((staff) => staff.MSNV === savedStaff.MSNV);
+        if (staffIndex === -1) {
+          staffList.value.push(savedStaff);
         } else {
-          await api.post('/nhanvien', formData);
-          proxy.$toast.show('Thêm nhân viên thành công', 'success');
+          staffList.value.splice(staffIndex, 1, savedStaff);
         }
-        await fetchStaff();
         closeModal();
-      } catch (error) {
-        error.value = error.response?.data?.message || 'Lỗi khi lưu thông tin nhân viên';
+        showSuccess(isEditing ? 'Cập nhật nhân viên thành công' : 'Thêm nhân viên thành công');
+      } catch (err) {
+        error.value = err.response?.data?.message || 'Lỗi khi lưu thông tin nhân viên';
+        showError(err);
       } finally {
         loading.value = false;
       }

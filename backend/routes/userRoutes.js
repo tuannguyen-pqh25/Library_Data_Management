@@ -5,6 +5,7 @@ const { auth, adminAuth } = require('../middlewares/authMiddleware.js');
 const {
   getAllReaders,
   getReaderById,
+  getReaderDeletionCheck,
   deleteReader,
   updateProfile,
   getProfile
@@ -16,6 +17,7 @@ router.get('/profile', auth, getProfile);
 
 // Routes cho admin
 router.get('/', auth, adminAuth, getAllReaders);
+router.get('/:id/deletion-check', auth, adminAuth, getReaderDeletionCheck);
 router.get('/:id', auth, adminAuth, getReaderById);
 router.delete('/:id', auth, adminAuth, deleteReader);
 

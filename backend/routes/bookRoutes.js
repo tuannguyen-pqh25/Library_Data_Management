@@ -18,6 +18,7 @@ router.get('/:maSach/:maTacGia/:maTheLoai', getBookById);
 // Routes yêu cầu quyền admin
 router.post('/', auth, adminAuth,upload.single('image'), createBook);
 router.put('/:maSach/:maTacGia/:maTheLoai', auth, adminAuth, upload.single('image'), updateBook);
+router.patch('/:maSach/:maTacGia/:maTheLoai', auth, adminAuth, upload.single('image'), updateBook);
 router.delete('/:maSach/:maTacGia/:maTheLoai', auth, adminAuth, deleteBook);
 
 module.exports = router;
