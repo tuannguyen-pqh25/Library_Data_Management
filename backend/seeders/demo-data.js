@@ -19,13 +19,14 @@ async function findOrCreate(model, where, defaults) {
 async function seedDemoData() {
   await sequelize.authenticate();
 
-  // --- 1. THỂ LOẠI (Không bao gồm Văn học) ---
+  // --- 1. THỂ LOẠI ---
   const categories = {
     xaHoi: await findOrCreate(TheLoai, { tenTheLoai: 'Xã hội học' }, { tenTheLoai: 'Xã hội học' }),
     khoaHoc: await findOrCreate(TheLoai, { tenTheLoai: 'Khoa học' }, { tenTheLoai: 'Khoa học' }),
     congNghe: await findOrCreate(TheLoai, { tenTheLoai: 'Công nghệ thông tin' }, { tenTheLoai: 'Công nghệ thông tin' }),
     tamLy: await findOrCreate(TheLoai, { tenTheLoai: 'Tâm lý & Kỹ năng' }, { tenTheLoai: 'Tâm lý & Kỹ năng' }),
     kinhTe: await findOrCreate(TheLoai, { tenTheLoai: 'Kinh tế & Đầu tư' }, { tenTheLoai: 'Kinh tế & Đầu tư' }),
+    vanHoc: await findOrCreate(TheLoai, { tenTheLoai: 'Văn học' }, { tenTheLoai: 'Văn học' }),
   };
 
   // --- 2. TÁC GIẢ ---
@@ -34,6 +35,91 @@ async function seedDemoData() {
       TacGia,
       { tenTacGia: 'Nguyễn Nhật Ánh' },
       { tenTacGia: 'Nguyễn Nhật Ánh', diaChi: 'TP. Hồ Chí Minh', soDienThoai: '0900000001' }
+    ),
+    namCao: await findOrCreate(
+      TacGia,
+      { tenTacGia: 'Nam Cao' },
+      { tenTacGia: 'Nam Cao', diaChi: 'Hà Nam', soDienThoai: '0900000009' }
+    ),
+    ngoTatTo: await findOrCreate(
+      TacGia,
+      { tenTacGia: 'Ngô Tất Tố' },
+      { tenTacGia: 'Ngô Tất Tố', diaChi: 'Hà Nội', soDienThoai: '0900000010' }
+    ),
+    toHoai: await findOrCreate(
+      TacGia,
+      { tenTacGia: 'Tô Hoài' },
+      { tenTacGia: 'Tô Hoài', diaChi: 'Hà Nội', soDienThoai: '0900000011' }
+    ),
+    vuTrongPhung: await findOrCreate(
+      TacGia,
+      { tenTacGia: 'Vũ Trọng Phụng' },
+      { tenTacGia: 'Vũ Trọng Phụng', diaChi: 'Hà Nội', soDienThoai: '0900000012' }
+    ),
+    baoNinh: await findOrCreate(
+      TacGia,
+      { tenTacGia: 'Bảo Ninh' },
+      { tenTacGia: 'Bảo Ninh', diaChi: 'Quảng Bình', soDienThoai: '0900000013' }
+    ),
+    kimLan: await findOrCreate(
+      TacGia,
+      { tenTacGia: 'Kim Lân' },
+      { tenTacGia: 'Kim Lân', diaChi: 'Bắc Ninh', soDienThoai: '0900000014' }
+    ),
+    nguyenDu: await findOrCreate(
+      TacGia,
+      { tenTacGia: 'Nguyễn Du' },
+      { tenTacGia: 'Nguyễn Du', diaChi: 'Hà Tĩnh', soDienThoai: '0900000015' }
+    ),
+    thachLam: await findOrCreate(
+      TacGia,
+      { tenTacGia: 'Thạch Lam' },
+      { tenTacGia: 'Thạch Lam', diaChi: 'Hà Nội', soDienThoai: '0900000017' }
+    ),
+    toHuu: await findOrCreate(
+      TacGia,
+      { tenTacGia: 'Tố Hữu' },
+      { tenTacGia: 'Tố Hữu', diaChi: 'Thừa Thiên Huế', soDienThoai: '0900000018' }
+    ),
+    xuanDieu: await findOrCreate(
+      TacGia,
+      { tenTacGia: 'Xuân Diệu' },
+      { tenTacGia: 'Xuân Diệu', diaChi: 'Bình Định', soDienThoai: '0900000019' }
+    ),
+    hanMacTu: await findOrCreate(
+      TacGia,
+      { tenTacGia: 'Hàn Mặc Tử' },
+      { tenTacGia: 'Hàn Mặc Tử', diaChi: 'Bình Định', soDienThoai: '0900000020' }
+    ),
+    cheLanVien: await findOrCreate(
+      TacGia,
+      { tenTacGia: 'Chế Lan Viên' },
+      { tenTacGia: 'Chế Lan Viên', diaChi: 'Quảng Trị', soDienThoai: '0900000021' }
+    ),
+    nguyenKhoaDiem: await findOrCreate(
+      TacGia,
+      { tenTacGia: 'Nguyễn Khoa Điềm' },
+      { tenTacGia: 'Nguyễn Khoa Điềm', diaChi: 'Thừa Thiên Huế', soDienThoai: '0900000022' }
+    ),
+    nguyenAiQuoc: await findOrCreate(
+      TacGia,
+      { tenTacGia: 'Nguyễn Ái Quốc' },
+      { tenTacGia: 'Nguyễn Ái Quốc', diaChi: 'Nghệ An', soDienThoai: '0900000023' }
+    ),
+    pauloCoelho: await findOrCreate(
+      TacGia,
+      { tenTacGia: 'Paulo Coelho' },
+      { tenTacGia: 'Paulo Coelho', diaChi: 'Brazil', soDienThoai: '0900000024' }
+    ),
+    damodarGujarati: await findOrCreate(
+      TacGia,
+      { tenTacGia: 'Damodar N. Gujarati' },
+      { tenTacGia: 'Damodar N. Gujarati', diaChi: 'Hoa Kỳ', soDienThoai: '0900000025' }
+    ),
+    philipKotler: await findOrCreate(
+      TacGia,
+      { tenTacGia: 'Philip Kotler' },
+      { tenTacGia: 'Philip Kotler', diaChi: 'Hoa Kỳ', soDienThoai: '0900000026' }
     ),
     tranKhoaHoc: await findOrCreate(
       TacGia,
@@ -94,9 +180,14 @@ async function seedDemoData() {
       { tenNXB: 'NXB Thông Tin & Truyền Thông' },
       { tenNXB: 'NXB Thông Tin & Truyền Thông', diaChi: 'Hà Nội' }
     ),
+    nxbVanHoc: await findOrCreate(
+      NhaXuatBan,
+      { tenNXB: 'NXB Văn Học' },
+      { tenNXB: 'NXB Văn Học', diaChi: 'Hà Nội' }
+    ),
   };
 
-  // --- 4. DANH SÁCH SÁCH (10 QUYỂN) ---
+  // --- 4. DANH SÁCH SÁCH ---
   const books = [
     // 2 cuốn ban đầu
     {
@@ -464,7 +555,412 @@ async function seedDemoData() {
       maTheLoai: categories.congNghe.maTheLoai,
       imagePath: 'uploads/1791283468775-Chuyen_nganh_co_dien_tu.jpg',
     },
+    {
+      tenSach: 'Chí Phèo',
+      donGia: 75000,
+      soLuongHienCo: 8,
+      namXuatBan: 1941,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbVanHoc.maNXB,
+      maTacGia: authors.namCao.maTacGia,
+      maTheLoai: categories.vanHoc.maTheLoai,
+      imagePath: 'uploads/102_chi_pheo.jpg',
+    },
+    {
+      tenSach: 'Lão Hạc',
+      donGia: 68000,
+      soLuongHienCo: 7,
+      namXuatBan: 1943,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbVanHoc.maNXB,
+      maTacGia: authors.namCao.maTacGia,
+      maTheLoai: categories.vanHoc.maTheLoai,
+      imagePath: 'uploads/211_lao_hac.jpg',
+    },
+    {
+      tenSach: 'Tắt đèn',
+      donGia: 82000,
+      soLuongHienCo: 6,
+      namXuatBan: 1939,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbVanHoc.maNXB,
+      maTacGia: authors.ngoTatTo.maTacGia,
+      maTheLoai: categories.vanHoc.maTheLoai,
+      imagePath: 'uploads/103_tat_den.jpg',
+    },
+    {
+      tenSach: 'Dế Mèn phiêu lưu ký',
+      donGia: 95000,
+      soLuongHienCo: 9,
+      namXuatBan: 1941,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbVanHoc.maNXB,
+      maTacGia: authors.toHoai.maTacGia,
+      maTheLoai: categories.vanHoc.maTheLoai,
+      imagePath: 'uploads/109_de_men_phieu_luu_ky.jpg',
+    },
+    {
+      tenSach: 'Số đỏ',
+      donGia: 105000,
+      soLuongHienCo: 7,
+      namXuatBan: 1936,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbVanHoc.maNXB,
+      maTacGia: authors.vuTrongPhung.maTacGia,
+      maTheLoai: categories.vanHoc.maTheLoai,
+      imagePath: 'uploads/101_so_do.jpg',
+    },
+    {
+      tenSach: 'Nỗi buồn chiến tranh',
+      donGia: 135000,
+      soLuongHienCo: 5,
+      namXuatBan: 1987,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbTre.maNXB,
+      maTacGia: authors.baoNinh.maTacGia,
+      maTheLoai: categories.vanHoc.maTheLoai,
+      imagePath: 'uploads/104_noi_buon_chien_tranh.jpg',
+    },
+    {
+      tenSach: 'Vợ nhặt',
+      donGia: 78000,
+      soLuongHienCo: 8,
+      namXuatBan: 1962,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbLaoDong.maNXB,
+      maTacGia: authors.kimLan.maTacGia,
+      maTheLoai: categories.vanHoc.maTheLoai,
+      imagePath: 'uploads/105_vo_nhat.jpg',
+    },
+    {
+      tenSach: 'Truyện Kiều',
+      donGia: 120000,
+      soLuongHienCo: 10,
+      namXuatBan: 1820,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbVanHoc.maNXB,
+      maTacGia: authors.nguyenDu.maTacGia,
+      maTheLoai: categories.vanHoc.maTheLoai,
+      imagePath: 'uploads/106_truyen_kieu.jpg',
+    },
+    {
+      tenSach: 'Hai đứa trẻ',
+      donGia: 72000,
+      soLuongHienCo: 7,
+      namXuatBan: 1938,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbVanHoc.maNXB,
+      maTacGia: authors.thachLam.maTacGia,
+      maTheLoai: categories.vanHoc.maTheLoai,
+      imagePath: 'uploads/108_hai_dua_tre.jpg',
+    },
+    {
+      tenSach: 'Dế Mèn phiêu lưu ký',
+      donGia: 95000,
+      soLuongHienCo: 9,
+      namXuatBan: 1941,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbTre.maNXB,
+      maTacGia: authors.toHoai.maTacGia,
+      maTheLoai: categories.vanHoc.maTheLoai,
+      imagePath: 'uploads/109_de_men_phieu_luu_ky.jpg',
+    },
+    {
+      tenSach: 'Cạm bẫy người',
+      donGia: 92000,
+      soLuongHienCo: 5,
+      namXuatBan: 1933,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbLaoDong.maNXB,
+      maTacGia: authors.vuTrongPhung.maTacGia,
+      maTheLoai: categories.tamLy.maTheLoai,
+      imagePath: 'uploads/541_cam_bay-nguoi.jpg',
+    },
+    {
+      tenSach: 'Kỹ nghệ lấy Tây',
+      donGia: 88000,
+      soLuongHienCo: 6,
+      namXuatBan: 1934,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbTriThuc.maNXB,
+      maTacGia: authors.vuTrongPhung.maTacGia,
+      maTheLoai: categories.xaHoi.maTheLoai,
+      imagePath: 'uploads/542_ky_nghe_lay_tay.jpg',
+    },
+    {
+      tenSach: 'Cơm thầy cơm cô',
+      donGia: 85000,
+      soLuongHienCo: 5,
+      namXuatBan: 1937,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbCTU.maNXB,
+      maTacGia: authors.vuTrongPhung.maTacGia,
+      maTheLoai: categories.xaHoi.maTheLoai,
+      imagePath: 'uploads/543_com_thay_com_co.jpg',
+    },
+    {
+      tenSach: 'Bản án chế độ thực dân Pháp',
+      donGia: 110000,
+      soLuongHienCo: 8,
+      namXuatBan: 1925,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbLaoDong.maNXB,
+      maTacGia: authors.nguyenAiQuoc.maTacGia,
+      maTheLoai: categories.xaHoi.maTheLoai,
+      imagePath: 'uploads/549_ban_an_che_do_thuc_dan_phap.jpg',
+    },
+    {
+      tenSach: 'Đường Kách Mệnh',
+      donGia: 95000,
+      soLuongHienCo: 7,
+      namXuatBan: 1927,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbCTU.maNXB,
+      maTacGia: authors.nguyenAiQuoc.maTacGia,
+      maTheLoai: categories.xaHoi.maTheLoai,
+      imagePath: 'uploads/550_duong_kach_menh.jpg',
+    },
+    {
+      tenSach: 'Vi sinh vật học đại cương',
+      donGia: 145000,
+      soLuongHienCo: 8,
+      namXuatBan: 2021,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbCTU.maNXB,
+      maTacGia: authors.tranKhoaHoc.maTacGia,
+      maTheLoai: categories.khoaHoc.maTheLoai,
+      imagePath: 'uploads/981_vi_sinh_vat.jpg',
+    },
+    {
+      tenSach: 'Bệnh học thủy sản cơ bản',
+      donGia: 160000,
+      soLuongHienCo: 6,
+      namXuatBan: 2022,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbTriThuc.maNXB,
+      maTacGia: authors.tranKhoaHoc.maTacGia,
+      maTheLoai: categories.khoaHoc.maTheLoai,
+      imagePath: 'uploads/982_benh_thuy_san.jpg',
+    },
+    {
+      tenSach: 'Hóa đại cương',
+      donGia: 135000,
+      soLuongHienCo: 9,
+      namXuatBan: 2020,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbCTU.maNXB,
+      maTacGia: authors.tranKhoaHoc.maTacGia,
+      maTheLoai: categories.khoaHoc.maTheLoai,
+      imagePath: 'uploads/983_hoa_dai_cuong_ctu.jpg',
+    },
+    {
+      tenSach: 'Kinh tế lượng nhập môn',
+      donGia: 175000,
+      soLuongHienCo: 7,
+      namXuatBan: 2021,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbCTU.maNXB,
+      maTacGia: authors.damodarGujarati.maTacGia,
+      maTheLoai: categories.kinhTe.maTheLoai,
+      imagePath: 'uploads/984_kinh_te_luong.jpg',
+    },
+    {
+      tenSach: 'Quản trị marketing',
+      donGia: 185000,
+      soLuongHienCo: 6,
+      namXuatBan: 2022,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbLaoDong.maNXB,
+      maTacGia: authors.philipKotler.maTacGia,
+      maTheLoai: categories.kinhTe.maTheLoai,
+      imagePath: 'uploads/985_qt_marketing.jpg',
+    },
+    {
+      tenSach: 'Kỹ thuật điện căn bản',
+      donGia: 155000,
+      soLuongHienCo: 8,
+      namXuatBan: 2020,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbCTU.maNXB,
+      maTacGia: authors.tranKhoaHoc.maTacGia,
+      maTheLoai: categories.congNghe.maTheLoai,
+      imagePath: 'uploads/988_ky_thuat_dien.jpg',
+    },
+    {
+      tenSach: 'Tin học đại cương',
+      donGia: 165000,
+      soLuongHienCo: 9,
+      namXuatBan: 2023,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbThongTin.maNXB,
+      maTacGia: authors.robertMartin.maTacGia,
+      maTheLoai: categories.congNghe.maTheLoai,
+      imagePath: 'uploads/990_ta_cntt.jpg',
+    },
+    {
+      tenSach: 'Trí tuệ nhân tạo: học máy và ứng dụng',
+      donGia: 220000,
+      soLuongHienCo: 7,
+      namXuatBan: 2024,
+      nguonGoc: 'Việt Nam',
+      maNXB: publishers.nxbThongTin.maNXB,
+      maTacGia: authors.andrewNg.maTacGia,
+      maTheLoai: categories.congNghe.maTheLoai,
+      imagePath: 'uploads/2_tri_tue_nhan_tao_hoc_may_va_ung_dung.jpg',
+    },
+    {
+      tenSach: 'Nhà giả kim',
+      donGia: 125000,
+      soLuongHienCo: 6,
+      namXuatBan: 2020,
+      nguonGoc: 'Dịch',
+      maNXB: publishers.nxbTre.maNXB,
+      maTacGia: authors.pauloCoelho.maTacGia,
+      maTheLoai: categories.vanHoc.maTheLoai,
+      imagePath: 'uploads/1754122553134-nhagiakimTB2020.jpg',
+    },
   ];
+// tạo ngẫu nhiên các sách từ các ảnh chưa sử dụng
+  const additionalBookCovers = [
+    '107_vang_bong_mot_thoi.jpg',
+    '1091_one_piece.jpg',
+    '1092_naruto.jpg',
+    '1093_dragon_ball.jpg',
+    '1094_conan.jpg',
+    '1095_doraemon.jpg',
+    '1096_attack_on_titan.jpg',
+    '1097_slam_dunk.jpg',
+    '1098_death_note.jpg',
+    '1099_fullmetal_alchemist.jpg',
+    '1100_demon_slayer.jpg',
+    '110_mat_biec.jpg',
+    '1754569576420-Capybara Hutech.jpg',
+    '1754569577342-Capybara Hutech.jpg',
+    '1754569590583-Capybara Hutech.jpg',
+    '1760437788195-Capybara CTU.jpg',
+    '1760437792583-Capybara CTU.jpg',
+    '1760438295113-Capybara CTU.jpg',
+    '1760438329139-Capybara CTU.jpg',
+    '1760439062392-Capybara CTU.jpg',
+    '1760575252758-Capybara CTU.jpg',
+    '1760594574954-Capybara Hutech.jpg',
+    '1791201209954-1_clean_code.jpg',
+    '1791262664917-Toi_thay_hoa_vang_tren_co_xanh.jpg',
+    '1_clean_code.jpg',
+    '212_lang.jpg',
+    '213_gio_lanh_dau_mua.jpg',
+    '214_vo_chong_a_phu.jpg',
+    '215_chu_nguoi_tu_tu.jpg',
+    '216_doi_thua.jpg',
+    '217_con_cho_xau_xi.jpg',
+    '218_duoi_bong_hoang_lan.jpg',
+    '219_truyen_ngan_nguyen_tuan.jpg',
+    '220_truyen_ngan_to_hoai.jpg',
+    '321_viet_bac.jpg',
+    '322_gui_huong_cho_gio.jpg',
+    '323_dau_thuong.jpg',
+    '324_anh_sang_va_phu_sa.jpg',
+    '325_loi_ru_tren_mat_dat.jpg',
+    '326_nhat_ky_trong_tu.jpg',
+    '327_vu_tru_ca.jpg',
+    '328_may_trang_cua_doi_toi.jpg',
+    '329_uc_trai_thi_tap.jpg',
+    '330_la.jpg',
+    '431_giong_to.jpg',
+    '432_leu_chong.jpg',
+    '433_binh_ngo_dai_cao.jpg',
+    '434_ha_noi_bam_sau_pho_phuong.jpg',
+    '435_nguoi_lai_do_song_da.jpg',
+    '436_tu_ay.jpg',
+    '437_tuyen_ngon_doc_lap.jpg',
+    '438_van_te_thap_loai_chung_sinh.jpg',
+    '439_giang_sang.jpg',
+    '440_tuoi_tho_du_doi.jpg',
+    '544_chiec_lu_dong_mat_cua.jpg',
+    '545_tuy_but_khang_chien.jpg',
+    '546_ha_noi_ta_danh_my_gioi.jpg',
+    '547_truyen_tay_bac.jpg',
+    '548_cat_bui_chan_ai.jpg',
+    '651_hon_truong_ba_da_hang_thit.jpg',
+    '652_loi_the_thu_9.jpg',
+    '653_nang_sita.jpg',
+    '654_benh_si.jpg',
+    '655_toi_va_chung_ta.jpg',
+    '656_ong_khong_phai_la_bo_toi.jpg',
+    '657_tin_o_hoa_hong.jpg',
+    '658_loi_noi_doi_cuoi_cung.jpg',
+    '659_hoa_cuc_xanh_tren_dam_lay.jpg',
+    '660_hon_buom_mo_tien.jpg',
+    '761_cho_toi_xin_mot_ve_di_tuoi_tho.jpg',
+    '762_toi_thay_hoa_vang_tren_co_xanh.jpg',
+    '763_kinh_van_hoa.jpg',
+    '764_chu_be_rac_roi.jpg',
+    '765_la_co_theu_sau_chu_vang.jpg',
+    '766_goc_san_va_khoang_troi.jpg',
+    '767_bau_troi_trong_qua_trung.jpg',
+    '768_tuoi_tho_im_lang.jpg',
+    '769_chuyen_hoa_chuyen_hoa.jpg',
+    '770_ngoi_khoc_tren_cay.jpg',
+    '871_dune.jpg',
+    '872_foundation.jpg',
+    '873_1984.jpg',
+    '874_brave_new_world.jpg',
+    '875_the_martian.jpg',
+    '876_enders_game.jpg',
+    '877_time_machine.jpg',
+    '878_fahrenheit451.jpg',
+    '879_neuromancer.jpg',
+    '880_i_robot.jpg',
+    '986_di_truyen_hoc.jpg',
+    '987_luat_hien_phap.jpg',
+    '989_csvh_vietnam.jpg',
+  ];
+  const authorKeys = [
+    'nguyenNhatAnh', 'namCao', 'ngoTatTo', 'toHoai', 'vuTrongPhung',
+    'baoNinh', 'kimLan', 'nguyenDu', 'thachLam', 'toHuu', 'xuanDieu',
+    'hanMacTu', 'cheLanVien', 'nguyenKhoaDiem', 'nguyenAiQuoc',
+    'pauloCoelho', 'tranKhoaHoc', 'robertMartin', 'andrewNg', 'jamesClear',
+    'robertKiyosaki', 'morganHousel', 'damodarGujarati', 'philipKotler',
+  ];
+  const categoryKeys = ['vanHoc', 'khoaHoc', 'congNghe', 'tamLy', 'kinhTe', 'xaHoi'];
+  const publisherKeys = ['nxbVanHoc', 'nxbCTU', 'nxbTriThuc', 'nxbTre', 'nxbLaoDong', 'nxbThongTin'];
+  const origins = ['Việt Nam', 'Mỹ', 'Nhật Bản', 'Pháp', 'Anh', 'Hàn Quốc', 'Canada', 'Úc'];
+  const normalizeTitle = (title) => title
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLocaleLowerCase('vi');
+  const existingTitles = new Set(books.map((book) => normalizeTitle(book.tenSach)));
+
+  for (const [index, coverName] of additionalBookCovers.entries()) {
+    const coverTitle = coverName
+      .replace(/\.[^.]+$/, '')
+      .replace(/^\d{10,}-/, '')
+      .replace(/^\d+[-_]?/, '')
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    let tenSach = coverTitle
+      ? `${coverTitle.charAt(0).toLocaleUpperCase('vi')}${coverTitle.slice(1)}`
+      : `Sách minh họa ${index + 1}`;
+    if (existingTitles.has(normalizeTitle(tenSach))) {
+      tenSach = `${tenSach} - Bản ảnh ${index + 1}`;
+    }
+    existingTitles.add(normalizeTitle(tenSach));
+
+    books.push({
+      tenSach,
+      donGia: 70000 + (index % 16) * 10000,
+      soLuongHienCo: 3 + (index % 10),
+      namXuatBan: 2000 + (index % 25),
+      nguonGoc: origins[index % origins.length],
+      maNXB: publishers[publisherKeys[index % publisherKeys.length]].maNXB,
+      maTacGia: authors[authorKeys[index % authorKeys.length]].maTacGia,
+      maTheLoai: categories[categoryKeys[index % categoryKeys.length]].maTheLoai,
+      imagePath: `uploads/${coverName}`,
+    });
+  }
 
   for (const book of books) {
     await findOrCreate(

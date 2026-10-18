@@ -138,6 +138,10 @@ npx sequelize-cli db:migrate
 # b. Khởi tạo tài khoản Admin mặc định (Email: Admin, Pass: amin123)
 npm run seed-admin
 ```
+**Trường hợp gặp lỗi**
+`ERROR: You do not have the SUPER privilege and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)` 
+Thì quay lại mySQL 26.7 Command Line Client, sau đó nhập lệnh `SET GLOBAL log_bin_trust_function_creators = 1;`
+Sau dó quay lại bước 6.
 
 ## Chạy Dự án
 
