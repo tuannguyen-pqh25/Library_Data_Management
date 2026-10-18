@@ -37,6 +37,12 @@
         </a>
       </li>
       <li class="nav-item">
+        <a class="nav-link" :class="{ active: currentTab === 'returnRequested' }"
+           @click="currentTab = 'returnRequested'">
+          Chờ xác nhận trả
+        </a>
+      </li>
+      <li class="nav-item">
         <a class="nav-link" :class="{ active: currentTab === 'rejected' }"
            @click="currentTab = 'rejected'">
           Từ chối
@@ -93,8 +99,11 @@
               <span v-else>-</span>
             </td>
             <td>
-              <span :class="getStatusBadgeClass(request.trangThai)">
-                {{ request.trangThai }}
+              <span :class="getStatusBadgeClass(request.trangThaiHienThi || request.trangThai)">
+                {{ request.trangThaiHienThi || request.trangThai }}
+                <small v-if="request.yeuCauTraAt" class="d-block">
+                  Yêu cầu lúc: {{ formatDate(request.yeuCauTraAt) }}
+                </small>
               </span>
             </td>
             <td>
@@ -108,10 +117,10 @@
                   <i class="fas fa-times"></i> Từ chối
                 </button>
               </template>
-              <template v-if="request.trangThai === 'Đang mượn'">
+              <template v-if="request.trangThai === 'Đang mượn' && request.yeuCauTraAt">
                 <button class="btn btn-sm btn-info me-2"
                         @click="showConfirmAction('return', request)">
-                  <i class="fas fa-undo"></i> Đánh dấu đã trả
+                  <i class="fas fa-undo"></i> Xác nhận đã nhận sách
                 </button>
               </template>
               <button
@@ -194,17 +203,14 @@ export default {
     const filteredRequests = computed(() => {
       let requests = borrowRequests.value;
 
-      if (currentTab.value !== 'all') {
-        const statusMap = {
-          pending: 'Chờ duyệt',
-          active: 'Đang mượn',
-          rejected: 'Từ chối',
-          returned: 'Đã trả'
-        };
-        requests = requests.filter(
-          request => request.trangThai === statusMap[currentTab.value]
-        );
-      }
+      const filters = {
+        pending: request => request.trangThai === 'Chờ duyệt',
+        active: request => request.trangThai === 'Đang mượn' && !request.yeuCauTraAt,
+        returnRequested: request => request.trangThai === 'Đang mượn' && !!request.yeuCauTraAt,
+        rejected: request => request.trangThai === 'Từ chối',
+        returned: request => request.trangThai === 'Đã trả'
+      };
+      if (filters[currentTab.value]) requests = requests.filter(filters[currentTab.value]);
 
       if (searchTerm.value.trim()) {
         const search = searchTerm.value.toLowerCase().trim();
@@ -247,7 +253,7 @@ export default {
       const messages = {
         approve: `Bạn có chắc muốn duyệt yêu cầu mượn sách của độc giả "${selectedRequest.value.DocGia?.fullName}" không?`,
         reject: `Bạn có chắc muốn từ chối yêu cầu mượn sách của độc giả "${selectedRequest.value.DocGia?.fullName}" không?`,
-        return: `Bạn có chắc muốn xác nhận độc giả "${selectedRequest.value.DocGia?.fullName}" đã trả sách không?`
+        return: `Chỉ xác nhận sau khi đã nhận sách thực tế từ độc giả "${selectedRequest.value.DocGia?.fullName}". Tiếp tục?`
       };
       return messages[selectedAction.value] || '';
     });
@@ -278,6 +284,7 @@ export default {
       const classes = {
         'Chờ duyệt': 'badge bg-warning',
         'Đang mượn': 'badge bg-success',
+        'Chờ xác nhận trả': 'badge bg-warning text-dark',
         'Từ chối': 'badge bg-danger',
         'Đã trả': 'badge bg-info'
       };

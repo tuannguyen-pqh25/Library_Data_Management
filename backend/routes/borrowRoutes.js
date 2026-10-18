@@ -6,6 +6,7 @@ const {
   getAllBorrowRequests,
   getReaderBorrowHistory,
   createBorrowRequest,
+  requestBorrowReturn,
   updateBorrowRequest,
   exportBorrowSlip,
   exportReturnSlip,
@@ -19,6 +20,7 @@ router.put('/admin/requests/:maPhieuMuon/:maDocGia', auth, adminAuth, updateBorr
 // Routes cho độc giả
 router.get('/history', auth, getReaderBorrowHistory);
 router.post('/request', auth, createBorrowRequest);
+router.post('/return-request/:maPhieuMuon', auth, requestBorrowReturn);
 
 // Routes mới cho xuất phiếu
 router.get('/export/borrow/:maPhieuMuon/:maDocGia', auth, exportBorrowSlip);

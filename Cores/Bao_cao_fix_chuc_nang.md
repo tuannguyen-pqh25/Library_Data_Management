@@ -140,3 +140,69 @@ Trước đây form quản trị kiểm tra bắt buộc toàn bộ thông tin s
 - Hộp thoại xác nhận kiểm tra sách thuộc các phiếu đang mượn, liệt kê sách chưa có phiếu trả và khóa nút xóa cho đến khi độc giả trả sách.
 - Backend kiểm tra lại điều kiện ngay trước khi xóa và trả `409` cùng danh sách sách còn mượn; không xóa phiếu mượn/trả.
 - Nếu độc giả có lịch sử mượn, vẫn chặn xóa vật lý để bảo toàn dữ liệu và khóa ngoại. Chỉ bổ sung kiểm tra đọc cho CRUD độc giả, không thay đổi nghiệp vụ mượn/trả của A.
+
+## Cập nhật quy trình mượn và trả sách
+
+### Mục tiêu
+
+Điều chỉnh quy trình để độc giả vẫn đăng nhập và sử dụng tài khoản khi đang mượn sách; giới hạn tổng số bản sách đang chờ duyệt hoặc đang mượn; để độc giả chủ động báo trả và chỉ ghi nhận trả sách sau khi quản trị viên xác nhận đã nhận sách thực tế.
+
+### Quy tắc nghiệp vụ đã triển khai
+
+1. **Hạn mức mượn:** tối đa 5 bản sách cho mỗi độc giả. Backend cộng số lượng trên các phiếu `Chờ duyệt` và `Đang mượn`; không đếm số đầu sách mà tính theo `soLuongSachMuon`. Các yêu cầu chờ duyệt cũng chiếm hạn mức để tránh độc giả gửi nhiều yêu cầu cùng lúc vượt giới hạn.
+2. **Đăng nhập:** bỏ điều kiện từ chối đăng nhập khi độc giả có phiếu `Đang mượn`. Endpoint đăng nhập không còn gọi thủ tục kiểm tra trạng thái mượn để chặn tài khoản; thủ tục và endpoint kiểm tra trạng thái khác (nếu còn được nơi khác sử dụng) không bị xóa trong thay đổi này.
+3. **Gửi yêu cầu trả:** độc giả có thể gửi yêu cầu trên phiếu đang mượn. Thời điểm yêu cầu được lưu vào trường `yeuCauTraAt`; trạng thái trong database vẫn là `Đang mượn`, còn API cung cấp trạng thái hiển thị `Chờ xác nhận trả`. Cách làm này giữ nguyên ENUM hiện tại và chưa xác nhận trả hoặc tăng tồn kho.
+4. **Quản trị viên xác nhận:** chỉ cho phép chuyển `Đang mượn` sang `Đã trả` nếu độc giả đã gửi yêu cầu trả. Khi xác nhận, backend mới tạo phiếu trả, tính tiền phạt qua cơ chế hiện có và cộng lại số lượng tồn kho. Thao tác được bảo vệ bởi kiểm tra trạng thái và bản ghi trả hiện có để không xác nhận lặp hoặc cộng tồn hai lần.
+5. **Thời hạn mượn:** khi duyệt yêu cầu, backend đặt lại `ngayMuon` thành thời điểm duyệt và `ngayTra` thành 14 ngày sau đó. Thời gian chờ duyệt vì vậy không làm giảm thời hạn mượn thực tế.
+
+### Thay đổi kỹ thuật
+
+- Backend khóa bản ghi độc giả trong transaction trước khi tạo yêu cầu mượn hoặc duyệt yêu cầu. Các thao tác của cùng độc giả được tuần tự hóa trước khi đếm hạn mức; việc duyệt cũng kiểm tra giới hạn và tồn kho trong transaction.
+- Thêm route độc giả `POST /muonsach/return-request/:maPhieuMuon`; chỉ tài khoản độc giả có thể yêu cầu trả phiếu của chính mình.
+- Quản trị viên tiếp tục dùng API cập nhật trạng thái hiện có để xác nhận trả; backend từ chối nếu phiếu chưa có `yeuCauTraAt`.
+- Giao diện lịch sử mượn của độc giả hiển thị số bản đang sử dụng, số bản còn có thể yêu cầu, bộ lọc `Chờ xác nhận trả` và thao tác gửi yêu cầu trả. Sau khi gửi thành công, danh sách được tải lại.
+- Giao diện quản trị có tab riêng `Chờ xác nhận trả`; chỉ những phiếu ở trạng thái này mới có nút **Xác nhận đã nhận sách**. Hộp thoại nhắc quản trị viên chỉ xác nhận sau khi đã nhận sách thực tế.
+- Thêm helper quy tắc mượn để dùng chung các phép tính hạn mức, tổng số bản, ngày đến hạn và trạng thái hiển thị; bổ sung kiểm thử đơn vị cho các quy tắc này.
+
+### File đã chỉnh sửa hoặc bổ sung
+
+- [`backend/controllers/borrowController.js`](../backend/controllers/borrowController.js): hạn mức, khóa transaction, yêu cầu trả, kiểm soát xác nhận và đặt ngày mượn khi duyệt.
+- [`backend/controllers/authController.js`](../backend/controllers/authController.js): bỏ chặn đăng nhập độc giả đang mượn.
+- [`backend/routes/borrowRoutes.js`](../backend/routes/borrowRoutes.js): khai báo API yêu cầu trả sách.
+- [`backend/models/PhieuMuon.js`](../backend/models/PhieuMuon.js): thêm thuộc tính nullable `yeuCauTraAt`.
+- [`backend/migrations/20261018130000-reader-return-requests.js`](../backend/migrations/20261018130000-reader-return-requests.js): migration thêm/xóa cột `yeuCauTraAt` trên bảng `PhieuMuon`.
+- [`backend/utils/borrowRules.js`](../backend/utils/borrowRules.js): các quy tắc tính hạn mức, số lượng, ngày đến hạn và trạng thái hiển thị.
+- [`backend/test/borrowRules.test.js`](../backend/test/borrowRules.test.js): kiểm thử hạn mức, tổng số lượng, thời hạn 14 ngày và trạng thái yêu cầu trả.
+- [`frontend/src/store/modules/borrow.js`](../frontend/src/store/modules/borrow.js): action gọi API yêu cầu trả.
+- [`frontend/src/components/reader/BorrowHistory.vue`](../frontend/src/components/reader/BorrowHistory.vue): hạn mức, trạng thái và thao tác yêu cầu trả cho độc giả.
+- [`frontend/src/components/admin/BorrowManagement.vue`](../frontend/src/components/admin/BorrowManagement.vue): tab yêu cầu trả và thao tác xác nhận của quản trị viên.
+
+### Kết quả kiểm tra và lưu ý triển khai
+
+- `npm.cmd --prefix backend test`: đạt, 5/5 kiểm thử.
+- `node --check` cho controller, helper, migration và file kiểm thử: đạt.
+- `git diff --check`: đạt.
+- `npm.cmd --prefix frontend run build`: build production thành công.
+- Chưa chạy migration và chưa kiểm thử tích hợp trên database trong lần cập nhật này. Trước khi sử dụng, cần sao lưu phù hợp và chạy `npx sequelize-cli db:migrate` trong thư mục `backend` để thêm cột `yeuCauTraAt`; nếu không có cột này, các API đọc/ghi phiếu mượn mới sẽ không hoạt động đúng.
+- Hạn mức 5 quyển là giá trị đang áp dụng trong backend và giao diện độc giả. Nếu đổi hạn mức sau này, cần cập nhật cả hai nơi để thông tin hiển thị khớp quy tắc kiểm tra phía server.
+
+## Sửa tải/in phiếu mượn và phiếu trả ở giao diện độc giả
+
+### Nguyên nhân
+
+- API tải phiếu mượn yêu cầu cả `maPhieuMuon` và `maDocGia`, nhưng hàm phía độc giả chỉ gửi `maPhieuMuon`; route không khớp nên backend không chạy chức năng tạo PDF.
+- API tải phiếu trả yêu cầu cả `maPhieuTra` và `maChiTietPM`, trong khi hàm tải ở giao diện độc giả chỉ nhận và gửi `maPhieuTra`. Nút đã có sẵn hai mã nhưng mã chi tiết không được chuyển tiếp vào request.
+- Cách gọi tải phiếu phạt cũng bị thiếu `maChiTietPM`, nên được sửa cùng quy tắc truyền tham số.
+
+### Cách xử lý
+
+- Giao diện độc giả hiện mã hóa và gửi đủ tham số theo đúng route của từng endpoint; tên file tải xuống vẫn giữ theo mã phiếu.
+- Backend xác thực mã phiếu hợp lệ và chỉ cho phép độc giả xuất phiếu mượn/trả/phạt thuộc tài khoản của mình. Tài khoản nhân viên vẫn có thể xuất các phiếu để phục vụ quản trị. Phiếu không thuộc độc giả được trả `404`.
+- Quyền sở hữu phiếu trả/phạt được đối chiếu qua chi tiết phiếu trả → chi tiết mượn → phiếu mượn; không cho phép sửa mã trên URL để tải chứng từ của độc giả khác.
+
+### File và xác minh
+
+- [`frontend/src/components/reader/BorrowHistory.vue`](../frontend/src/components/reader/BorrowHistory.vue): sửa tham số và URL tải phiếu mượn, phiếu trả, phiếu phạt.
+- [`backend/controllers/borrowController.js`](../backend/controllers/borrowController.js): kiểm tra mã đầu vào và quyền xuất chứng từ.
+- `npm.cmd --prefix backend test`: đạt, 5/5 kiểm thử hiện có.
+- `node --check backend/controllers/borrowController.js`, `git diff --check` và `npm.cmd --prefix frontend run build`: đạt.

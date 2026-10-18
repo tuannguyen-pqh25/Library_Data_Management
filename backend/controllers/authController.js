@@ -72,15 +72,6 @@ const loginReader = async (req, res) => {
       return res.status(400).send({ error: 'Invalid login credentials' });
     }
     
-    const results = await sequelize.query('CALL sp_check_reader_status(:maDocGia)', {
-      replacements: { maDocGia: docgia.maDocGia },
-    });
-    const hasPendingLoan = firstProcedureRow(results)?.hasPendingLoan || 0;
-    
-    if (hasPendingLoan > 0) {
-      return res.status(403).send({ error: 'Cannot login. You have pending borrow requests.' });
-    }
-    
     const token = generateToken(docgia, 'reader');
     res.send({ docgia: readerResponse(docgia), token });
   } catch (error) {
