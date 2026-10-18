@@ -1,6 +1,6 @@
 # Checkpoint — Trạng thái dự án LibraryManagement
 
-> Cập nhật lần cuối: 2026-10-09 (Cập nhật giao diện admin, fix lỗi các chức năng quản lý phía admin)
+> Cập nhật lần cuối: 2026-10-18 (backup dữ liệu mẫu, xử lý ảnh, cập nhật hướng dẫn vận hành)
 
 ## Bối cảnh và quyết định hiện tại
 
@@ -40,7 +40,11 @@
   - Hoàn thiện giao diện phía Amin
   - Chỉnh sửa các chức năng quản lý của Amin, thêm các ràng buộc khi xóa chi tiết trong file `Cores\Bao_cao_fix_chuc_nang.md`
   - **Trạng thái:** Hoàn thành Giai đoạn 2
-
+  - Bổ sùng hoàn thiện dữ liệu demo trong file `backend\seeders\demo-data.js`
+  - Xử lý ảnh đã làm xong ở giai đoạn 2
+  - hướng dẫn vận hành: Bổ sung cách xử lý lỗi khi Khởi tạo Bảng và Dữ liệu trong file `README.md`
+  - **Trạng thái:** Hoàn thành Giai đoạn 2
+  
 ## Cập nhật 2026-10-05 — Giao diện Độc giả (Thành viên C)
 
 **Phạm vi:** Chỉ frontend phần độc giả. Không đổi API, schema, store, hay bất kỳ component admin nào.
