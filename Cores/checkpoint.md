@@ -43,7 +43,10 @@
   - Bổ sùng hoàn thiện dữ liệu demo trong file `backend\seeders\demo-data.js`
   - Xử lý ảnh đã làm xong ở giai đoạn 2
   - hướng dẫn vận hành: Bổ sung cách xử lý lỗi khi Khởi tạo Bảng và Dữ liệu trong file `README.md`
-  - **Trạng thái:** Hoàn thành Giai đoạn 2
+  - Thêm chức năng cho phép người đăng nhập khi đang mượn, cho phép mượn tối đa 5 quyển, 
+    sửa chức năng in phiếu mượn/trả phía độc giá báo cáo chi tiết ở file `Cores\Bao_cao_fix_chuc_nang.md`
+  - lưu ý: trước khi test phải phải `cd backend` => `npx sequelize-cli db:migrate`  
+  - **Trạng thái:** Hoàn thành Giai đoạn 3
   
 ## Cập nhật 2026-10-05 — Giao diện Độc giả (Thành viên C)
 

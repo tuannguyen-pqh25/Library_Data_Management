@@ -9,6 +9,7 @@ module.exports = (sequelize, DataTypes) => {
     ngayMuon: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     ngayTra: { type: DataTypes.DATE, allowNull: false },
     trangThai: { type: DataTypes.ENUM('Chờ duyệt', 'Đang mượn', 'Đã trả', 'Từ chối'), defaultValue: 'Chờ duyệt' },
+    yeuCauTraAt: { type: DataTypes.DATE, allowNull: true },
   }, {
     sequelize,
     modelName: 'PhieuMuon',

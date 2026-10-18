@@ -83,6 +83,19 @@ export default {
       }
     },
 
+    async requestBorrowReturn({ commit }, maPhieuMuon) {
+      commit('SET_LOADING', true);
+      try {
+        const response = await api.post(`/muonsach/return-request/${encodeURIComponent(maPhieuMuon)}`);
+        return response.data;
+      } catch (error) {
+        commit('SET_ERROR', error.response?.data?.message || 'Không thể gửi yêu cầu trả sách');
+        throw error;
+      } finally {
+        commit('SET_LOADING', false);
+      }
+    },
+
     async updateBorrowStatus({ commit }, { maPhieuMuon, maDocGia, status }) {
       commit('SET_LOADING', true);
       try {

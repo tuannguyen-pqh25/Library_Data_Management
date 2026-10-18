@@ -14,6 +14,12 @@
       <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
       <button @click="clearError" class="error-alert__close">×</button>
     </div>
+    <div v-if="successMessage" class="alert alert-success" role="status">{{ successMessage }}</div>
+
+    <div class="alert alert-primary" role="status">
+      Đang sử dụng <strong>{{ outstandingCopies }}</strong>/5 quyển (gồm yêu cầu chờ duyệt).
+      Còn có thể yêu cầu mượn <strong>{{ remainingCopies }}</strong> quyển.
+    </div>
 
     <div class="toolbar">
       <!-- Search -->
@@ -33,6 +39,7 @@
         <button class="tab-item" :class="{ active: currentTab === 'all' }" @click="currentTab = 'all'">Tất cả</button>
         <button class="tab-item" :class="{ active: currentTab === 'pending' }" @click="currentTab = 'pending'">Chờ duyệt</button>
         <button class="tab-item" :class="{ active: currentTab === 'active' }" @click="currentTab = 'active'">Đang mượn</button>
+        <button class="tab-item" :class="{ active: currentTab === 'returnRequested' }" @click="currentTab = 'returnRequested'">Chờ xác nhận trả</button>
         <button class="tab-item" :class="{ active: currentTab === 'rejected' }" @click="currentTab = 'rejected'">Bị từ chối</button>
         <button class="tab-item" :class="{ active: currentTab === 'returned' }" @click="currentTab = 'returned'">Đã trả</button>
       </div>
@@ -74,11 +81,20 @@
                 <span v-else>—</span>
               </td>
               <td>
-                <span class="status-badge" :class="getStatusBadgeClass(request.trangThai)">
-                  {{ request.trangThai }}
+                <span class="status-badge" :class="getStatusBadgeClass(request.trangThaiHienThi || request.trangThai)">
+                  {{ request.trangThaiHienThi || request.trangThai }}
                 </span>
               </td>
               <td class="action-cell">
+                <button
+                  v-if="request.trangThai === 'Đang mượn' && !request.yeuCauTraAt"
+                  class="action-btn action-btn--primary"
+                  title="Yêu cầu trả sách"
+                  :disabled="returnRequestLoading"
+                  @click="requestReturn(request)"
+                >
+                  <i class="fas fa-undo"></i>
+                </button>
                 <button
                   v-if="['Đang mượn', 'Đã trả'].includes(request.trangThai)"
                   class="action-btn action-btn--primary"
@@ -135,25 +151,31 @@ export default {
     const store = useStore();
     const currentTab = ref('all');
     const loading = ref(false);
+    const returnRequestLoading = ref(false);
     const error = ref(null);
+    const successMessage = ref('');
     const searchTerm = ref('');
 
     const borrowHistory = computed(() => store.getters['borrow/borrowHistory']);
+    const outstandingCopies = computed(() => borrowHistory.value
+      .filter(request => ['Chờ duyệt', 'Đang mượn'].includes(request.trangThai))
+      .reduce((total, request) => total + request.ChiTietPhieuMuons.reduce(
+        (quantity, detail) => quantity + Number(detail.soLuongSachMuon || 0),
+        0
+      ), 0));
+    const remainingCopies = computed(() => Math.max(0, 5 - outstandingCopies.value));
 
     const filteredRequests = computed(() => {
       let results = borrowHistory.value;
 
-      if (currentTab.value !== 'all') {
-        const statusMap = {
-          pending: 'Chờ duyệt',
-          approved: 'Đã duyệt',
-          rejected: 'Từ chối',
-          returned: 'Đã trả'
-        };
-        results = results.filter(
-          request => request.trangThai === statusMap[currentTab.value]
-        );
-      }
+      const filters = {
+        pending: request => request.trangThai === 'Chờ duyệt',
+        active: request => request.trangThai === 'Đang mượn' && !request.yeuCauTraAt,
+        returnRequested: request => request.trangThai === 'Đang mượn' && !!request.yeuCauTraAt,
+        rejected: request => request.trangThai === 'Từ chối',
+        returned: request => request.trangThai === 'Đã trả'
+      };
+      if (filters[currentTab.value]) results = results.filter(filters[currentTab.value]);
 
       if (searchTerm.value.trim()) {
         const search = searchTerm.value.toLowerCase().trim();
@@ -194,6 +216,8 @@ export default {
       const classes = {
         'Chờ duyệt': 'badge bg-warning',
         'Đã duyệt': 'badge bg-success',
+        'Đang mượn': 'badge bg-success',
+        'Chờ xác nhận trả': 'badge bg-info',
         'Từ chối': 'badge bg-danger',
         'Đã trả': 'badge bg-info'
       };
@@ -204,18 +228,37 @@ export default {
       loading.value = true;
       try {
         await store.dispatch('borrow/fetchBorrowHistory');
+        return true;
       } catch (err) {
         error.value = err.response?.data?.message || 'Có lỗi khi tải lịch sử mượn sách';
-        showError(error.value);
+        showError(err);
+        return false;
       } finally {
         loading.value = false;
       }
     };
 
-    const downloadBorrowSlip = async (maPhieuMuon) => {
+    const requestReturn = async (request) => {
+      if (!window.confirm('Bạn đã mang sách đến thư viện và muốn gửi yêu cầu trả sách?')) return;
+      returnRequestLoading.value = true;
+      error.value = '';
+      successMessage.value = '';
+      try {
+        await store.dispatch('borrow/requestBorrowReturn', request.maPhieuMuon);
+        if (!(await fetchHistory())) return;
+        successMessage.value = 'Đã gửi yêu cầu trả sách. Vui lòng chờ quản trị viên xác nhận đã nhận sách.';
+      } catch (err) {
+        error.value = err.response?.data?.message || 'Không thể gửi yêu cầu trả sách';
+      } finally {
+        returnRequestLoading.value = false;
+      }
+    };
+
+    const downloadBorrowSlip = async (maPhieuMuon, maDocGia) => {
       try {
         loading.value = true;
-        const response = await api.get(`/muonsach/export/borrow/${maPhieuMuon}`, { responseType: 'blob' });
+        const path = [maPhieuMuon, maDocGia].map(encodeURIComponent).join('/');
+        const response = await api.get(`/muonsach/export/borrow/${path}`, { responseType: 'blob' });
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
@@ -231,10 +274,11 @@ export default {
       }
     };
 
-    const downloadReturnSlip = async (maPhieuTra) => {
+    const downloadReturnSlip = async (maPhieuTra, maChiTietPM) => {
       try {
         loading.value = true;
-        const response = await api.get(`/muonsach/export/return/${maPhieuTra}`, { responseType: 'blob' });
+        const path = [maPhieuTra, maChiTietPM].map(encodeURIComponent).join('/');
+        const response = await api.get(`/muonsach/export/return/${path}`, { responseType: 'blob' });
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
@@ -250,10 +294,11 @@ export default {
       }
     };
 
-    const downloadPenaltyForm = async (maPhieuTra) => {
+    const downloadPenaltyForm = async (maPhieuTra, maChiTietPM) => {
       try {
         loading.value = true;
-        const response = await api.get(`/muonsach/export/penalty/${maPhieuTra}`, { responseType: 'blob' });
+        const path = [maPhieuTra, maChiTietPM].map(encodeURIComponent).join('/');
+        const response = await api.get(`/muonsach/export/penalty/${path}`, { responseType: 'blob' });
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
@@ -280,8 +325,12 @@ export default {
       currentTab,
       filteredRequests,
       loading,
+      returnRequestLoading,
       error,
+      successMessage,
       searchTerm,
+      outstandingCopies,
+      remainingCopies,
       formatDate,
       formatCurrency,
       hasReturns,
@@ -292,7 +341,8 @@ export default {
       clearError,
       downloadBorrowSlip,
       downloadReturnSlip,
-      downloadPenaltyForm
+      downloadPenaltyForm,
+      requestReturn
     };
   }
 };
