@@ -9,14 +9,23 @@
 
 
 
-    <!-- Error Alert -->
-    <div v-if="error" class="error-alert">
-      <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
-      <button @click="clearError" class="error-alert__close">×</button>
+    <!-- Error Alert with Retry -->
+    <div v-if="error" class="error-alert" role="alert" aria-live="assertive">
+      <i class="fas fa-exclamation-triangle me-2" aria-hidden="true"></i>
+      <span class="error-alert__text">{{ error }}</span>
+      <div class="error-alert__actions">
+        <button class="btn-retry" @click="fetchHistory" aria-label="Thử lại tải lịch sử mượn">
+          <i class="fas fa-sync-alt me-1" aria-hidden="true"></i>Thử lại
+        </button>
+        <button @click="clearError" class="error-alert__close" aria-label="Đóng thông báo lỗi">×</button>
+      </div>
     </div>
-    <div v-if="successMessage" class="alert alert-success" role="status">{{ successMessage }}</div>
+    <div v-if="successMessage" class="alert alert-success" role="status">
+      <i class="fas fa-check-circle me-2" aria-hidden="true"></i>{{ successMessage }}
+    </div>
 
-    <div class="alert alert-primary" role="status">
+    <div class="alert alert-primary limit-info-banner" role="status">
+      <i class="fas fa-info-circle me-2" aria-hidden="true"></i>
       Đang sử dụng <strong>{{ outstandingCopies }}</strong>/5 quyển (gồm yêu cầu chờ duyệt).
       Còn có thể yêu cầu mượn <strong>{{ remainingCopies }}</strong> quyển.
     </div>
@@ -24,39 +33,47 @@
     <div class="toolbar">
       <!-- Search -->
       <div class="search-wrap">
-        <i class="fas fa-search search-icon"></i>
+        <label for="history-search-input" class="visually-hidden">Tìm kiếm lịch sử mượn sách</label>
+        <i class="fas fa-search search-icon" aria-hidden="true"></i>
         <input
           type="text"
+          id="history-search-input"
           class="search-input"
           v-model="searchTerm"
           placeholder="Tìm kiếm theo tên sách, mã sách..."
+          aria-label="Tìm kiếm theo tên sách hoặc mã sách"
         >
-        <button v-if="searchTerm" class="search-clear" @click="searchTerm = ''"><i class="fas fa-times"></i></button>
+        <button v-if="searchTerm" class="search-clear" @click="searchTerm = ''" aria-label="Xóa từ khóa tìm kiếm">
+          <i class="fas fa-times" aria-hidden="true"></i>
+        </button>
       </div>
 
       <!-- Tabs -->
-      <div class="custom-tabs">
-        <button class="tab-item" :class="{ active: currentTab === 'all' }" @click="currentTab = 'all'">Tất cả</button>
-        <button class="tab-item" :class="{ active: currentTab === 'pending' }" @click="currentTab = 'pending'">Chờ duyệt</button>
-        <button class="tab-item" :class="{ active: currentTab === 'active' }" @click="currentTab = 'active'">Đang mượn</button>
-        <button class="tab-item" :class="{ active: currentTab === 'returnRequested' }" @click="currentTab = 'returnRequested'">Chờ xác nhận trả</button>
-        <button class="tab-item" :class="{ active: currentTab === 'rejected' }" @click="currentTab = 'rejected'">Bị từ chối</button>
-        <button class="tab-item" :class="{ active: currentTab === 'returned' }" @click="currentTab = 'returned'">Đã trả</button>
+      <div class="custom-tabs" role="tablist" aria-label="Lọc theo trạng thái mượn">
+        <button class="tab-item" role="tab" :aria-selected="currentTab === 'all'" :class="{ active: currentTab === 'all' }" @click="currentTab = 'all'">Tất cả</button>
+        <button class="tab-item" role="tab" :aria-selected="currentTab === 'pending'" :class="{ active: currentTab === 'pending' }" @click="currentTab = 'pending'">Chờ duyệt</button>
+        <button class="tab-item" role="tab" :aria-selected="currentTab === 'active'" :class="{ active: currentTab === 'active' }" @click="currentTab = 'active'">Đang mượn</button>
+        <button class="tab-item" role="tab" :aria-selected="currentTab === 'returnRequested'" :class="{ active: currentTab === 'returnRequested' }" @click="currentTab = 'returnRequested'">Chờ xác nhận trả</button>
+        <button class="tab-item" role="tab" :aria-selected="currentTab === 'rejected'" :class="{ active: currentTab === 'rejected' }" @click="currentTab = 'rejected'">Bị từ chối</button>
+        <button class="tab-item" role="tab" :aria-selected="currentTab === 'returned'" :class="{ active: currentTab === 'returned' }" @click="currentTab = 'returned'">Đã trả</button>
       </div>
     </div>
 
     <!-- Danh sách yêu cầu mượn sách -->
     <div class="table-container">
+      <div class="table-scroll-hint d-md-none" aria-hidden="true">
+        <i class="fas fa-arrows-left-right me-1"></i>Cuộn ngang để xem đầy đủ thông tin
+      </div>
       <div class="table-responsive">
-        <table class="custom-table">
+        <table class="custom-table" aria-label="Bảng lịch sử mượn sách của bạn">
           <thead>
             <tr>
-              <th>Sách</th>
-              <th>Ngày mượn</th>
-              <th>Ngày trả</th>
-              <th>Tiền phạt</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
+              <th scope="col">Sách</th>
+              <th scope="col">Ngày mượn</th>
+              <th scope="col">Ngày trả</th>
+              <th scope="col">Tiền phạt</th>
+              <th scope="col">Trạng thái</th>
+              <th scope="col">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -64,14 +81,14 @@
               <td>
                 <div class="book-info-cell" v-for="ct in request.ChiTietPhieuMuons" :key="`${ct.maChiTietPM}:${ct.maPhieuMuon}:${ct.maSach}`">
                   <div class="fw-bold text-dark">{{ ct.Sach?.tenSach || 'N/A' }}</div>
-                  <div class="text-sm text-muted">Mã sách: {{ ct.Sach?.maSach || 'N/A' }}</div>
+                  <div class="text-sm text-muted">Mã sách: {{ ct.Sach?.maSach || 'N/A' }} | SL: {{ ct.soLuongSachMuon || 1 }}</div>
                 </div>
               </td>
               <td>{{ formatDate(request.ngayMuon) }}</td>
               <td>
                 {{ request.ngayTra ? formatDate(request.ngayTra) : '—' }}
                 <span v-if="(request.trangThai === 'Đã duyệt' || request.trangThai === 'Đang mượn') && new Date(request.ngayTra) < new Date()" class="badge bg-danger ms-2">
-                  <i class="fas fa-exclamation-circle me-1"></i> Quá hạn
+                  <i class="fas fa-exclamation-circle me-1" aria-hidden="true"></i> Quá hạn
                 </span>
               </td>
               <td>
@@ -82,6 +99,7 @@
               </td>
               <td>
                 <span class="status-badge" :class="getStatusBadgeClass(request.trangThaiHienThi || request.trangThai)">
+                  <i :class="getStatusIconClass(request.trangThaiHienThi || request.trangThai) + ' me-1'" aria-hidden="true"></i>
                   {{ request.trangThaiHienThi || request.trangThai }}
                 </span>
               </td>
@@ -90,43 +108,47 @@
                   v-if="request.trangThai === 'Đang mượn' && !request.yeuCauTraAt"
                   class="action-btn action-btn--primary"
                   title="Yêu cầu trả sách"
+                  aria-label="Gửi yêu cầu trả sách"
                   :disabled="returnRequestLoading"
                   @click="requestReturn(request)"
                 >
-                  <i class="fas fa-undo"></i>
+                  <i class="fas fa-undo" aria-hidden="true"></i>
                 </button>
                 <button
                   v-if="['Đang mượn', 'Đã trả'].includes(request.trangThai)"
                   class="action-btn action-btn--primary"
-                  title="Phiếu mượn"
+                  title="Tải phiếu mượn PDF"
+                  aria-label="Tải phiếu mượn PDF"
                   @click="downloadBorrowSlip(request.maPhieuMuon, request.maDocGia || request.DocGia?.maDocGia)"
                 >
-                  <i class="fas fa-file-download"></i>
+                  <i class="fas fa-file-download" aria-hidden="true"></i>
                 </button>
                 <button
                   v-if="request.trangThai === 'Đã trả' && hasReturns(request)"
                   class="action-btn action-btn--info"
-                  title="Phiếu trả"
+                  title="Tải phiếu trả PDF"
+                  aria-label="Tải phiếu trả PDF"
                   @click="downloadReturnSlip(firstReturn(request)?.returnRow.maPhieuTra, firstReturn(request)?.detail.maChiTietPM)"
                 >
-                  <i class="fas fa-file-invoice"></i>
+                  <i class="fas fa-file-invoice" aria-hidden="true"></i>
                 </button>
                 <button
                   v-if="request.trangThai === 'Đã trả' && firstPenalizedReturn(request) !== null"
                   class="action-btn action-btn--warning"
-                  title="Phiếu phạt"
+                  title="Tải phiếu phạt PDF"
+                  aria-label="Tải phiếu phạt PDF"
                   @click="downloadPenaltyForm(firstPenalizedReturn(request)?.returnRow.maPhieuTra, firstPenalizedReturn(request)?.detail.maChiTietPM)"
                 >
-                  <i class="fas fa-exclamation-triangle"></i>
+                  <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
                 </button>
               </td>
             </tr>
             <tr v-if="filteredRequests.length === 0">
               <td colspan="6">
                 <div class="empty-state">
-                  <i class="fas fa-inbox fa-3x mb-3 opacity-30"></i>
+                  <i class="fas fa-inbox fa-3x mb-3 opacity-30" aria-hidden="true"></i>
                   <h5>Không có dữ liệu</h5>
-                  <p class="text-muted">Chưa có lịch sử mượn sách nào phù hợp.</p>
+                  <p class="text-muted">Chưa có lịch sử mượn sách nào phù hợp với bộ lọc hiện tại.</p>
                 </div>
               </td>
             </tr>
@@ -156,10 +178,10 @@ export default {
     const successMessage = ref('');
     const searchTerm = ref('');
 
-    const borrowHistory = computed(() => store.getters['borrow/borrowHistory']);
+    const borrowHistory = computed(() => store.getters['borrow/borrowHistory'] || []);
     const outstandingCopies = computed(() => borrowHistory.value
       .filter(request => ['Chờ duyệt', 'Đang mượn'].includes(request.trangThai))
-      .reduce((total, request) => total + request.ChiTietPhieuMuons.reduce(
+      .reduce((total, request) => total + (request.ChiTietPhieuMuons || []).reduce(
         (quantity, detail) => quantity + Number(detail.soLuongSachMuon || 0),
         0
       ), 0));
@@ -180,7 +202,7 @@ export default {
       if (searchTerm.value.trim()) {
         const search = searchTerm.value.toLowerCase().trim();
         results = results.filter(request =>
-          request.ChiTietPhieuMuons.some(ct =>
+          (request.ChiTietPhieuMuons || []).some(ct =>
             ct.Sach?.tenSach?.toLowerCase().includes(search) ||
             ct.Sach?.maSach?.toString().includes(search)
           )
@@ -190,8 +212,8 @@ export default {
       return results;
     });
 
-    const getReturns = (request) => request.ChiTietPhieuMuons.flatMap(detail =>
-      detail.PhieuTra.map(returnRow => ({ detail, returnRow }))
+    const getReturns = (request) => (request.ChiTietPhieuMuons || []).flatMap(detail =>
+      (detail.PhieuTra || []).map(returnRow => ({ detail, returnRow }))
     );
     const hasReturns = (request) => getReturns(request).length > 0;
     const firstReturn = (request) => getReturns(request)[0] || null;
@@ -214,24 +236,37 @@ export default {
 
     const getStatusBadgeClass = (status) => {
       const classes = {
-        'Chờ duyệt': 'badge bg-warning',
+        'Chờ duyệt': 'badge bg-warning text-dark',
         'Đã duyệt': 'badge bg-success',
         'Đang mượn': 'badge bg-success',
-        'Chờ xác nhận trả': 'badge bg-info',
+        'Chờ xác nhận trả': 'badge bg-info text-dark',
         'Từ chối': 'badge bg-danger',
-        'Đã trả': 'badge bg-info'
+        'Đã trả': 'badge bg-secondary'
       };
       return classes[status] || 'badge-secondary';
     };
 
+    const getStatusIconClass = (status) => {
+      const icons = {
+        'Chờ duyệt': 'fas fa-clock',
+        'Đã duyệt': 'fas fa-check-circle',
+        'Đang mượn': 'fas fa-book-reader',
+        'Chờ xác nhận trả': 'fas fa-hourglass-half',
+        'Từ chối': 'fas fa-times-circle',
+        'Đã trả': 'fas fa-check-double'
+      };
+      return icons[status] || 'fas fa-info-circle';
+    };
+
     const fetchHistory = async () => {
       loading.value = true;
+      error.value = null;
       try {
         await store.dispatch('borrow/fetchBorrowHistory');
         return true;
       } catch (err) {
-        error.value = err.response?.data?.message || 'Có lỗi khi tải lịch sử mượn sách';
-        showError(err);
+        error.value = err.response?.data?.message || err.message || 'Có lỗi khi tải lịch sử mượn sách';
+        showError(error.value);
         return false;
       } finally {
         loading.value = false;
@@ -338,11 +373,13 @@ export default {
       firstPenalizedReturn,
       getTotalFine,
       getStatusBadgeClass,
+      getStatusIconClass,
       clearError,
       downloadBorrowSlip,
       downloadReturnSlip,
       downloadPenaltyForm,
-      requestReturn
+      requestReturn,
+      fetchHistory
     };
   }
 };
@@ -375,8 +412,65 @@ export default {
 .page-sub { color: var(--c-muted); font-size: 0.95rem; margin: 0; }
 
 /* ── Error Alert ─────────────────────────────────────────── */
-.error-alert { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 0.8rem 1.2rem; border-radius: 12px; display: flex; align-items: center; margin-bottom: 1.5rem; }
-.error-alert__close { margin-left: auto; background: none; border: none; cursor: pointer; color: #991b1b; }
+.error-alert {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 0.85rem 1.25rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.error-alert__text {
+  flex: 1;
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+.error-alert__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-left: auto;
+}
+.btn-retry {
+  background: #fff;
+  border: 1px solid #f87171;
+  color: #b91c1c;
+  padding: 0.35rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: all var(--trans);
+}
+.btn-retry:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+.error-alert__close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: #991b1b;
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 4px;
+}
+.error-alert__close:hover {
+  background: rgba(185, 28, 28, 0.1);
+}
+
+.limit-info-banner {
+  border-radius: 12px;
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+}
 
 /* ── Toolbar (Search + Tabs) ─────────────────────────────── */
 .toolbar { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; }
@@ -390,7 +484,7 @@ export default {
 .search-input:focus { border-color: var(--c-primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
 .search-clear { position: absolute; right: 0.8rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--c-muted); cursor: pointer; }
 
-.custom-tabs { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem; }
+.custom-tabs { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem; -webkit-overflow-scrolling: touch; }
 .custom-tabs::-webkit-scrollbar { display: none; }
 .tab-item { padding: 0.6rem 1.2rem; border: none; background: var(--c-surface); border-radius: 20px; font-family: var(--font-body); font-weight: 500; color: var(--c-muted); cursor: pointer; white-space: nowrap; transition: all var(--trans); border: 1px solid var(--c-border); }
 .tab-item:hover { background: #f1f5f9; color: var(--c-text); }
@@ -398,6 +492,14 @@ export default {
 
 /* ── Table ───────────────────────────────────────────────── */
 .table-container { background: var(--c-surface); border-radius: 16px; border: 1px solid var(--c-border); overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+.table-scroll-hint {
+  padding: 0.5rem 1rem;
+  background: #f1f5f9;
+  color: var(--c-muted);
+  font-size: 0.8rem;
+  border-bottom: 1px solid var(--c-border);
+  text-align: center;
+}
 .table-responsive { overflow-x: auto; }
 .custom-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 .custom-table th, .custom-table td { padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--c-border); text-align: left; vertical-align: middle; }
@@ -414,22 +516,37 @@ export default {
 .text-danger { color: #dc2626; }
 
 /* ── Badges ──────────────────────────────────────────────── */
-.status-badge { padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; display: inline-block; }
-.badge-warning { background: #fef3c7; color: #b45309; }
-.badge-success { background: #dcfce7; color: #15803d; }
-.badge-danger { background: #fee2e2; color: #b91c1c; }
-.badge-info { background: #e0f2fe; color: #0369a1; }
+.status-badge {
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+.badge-warning { background: #fef3c7; color: #92400e; }
+.badge-success { background: #dcfce7; color: #166534; }
+.badge-danger { background: #fee2e2; color: #991b1b; }
+.badge-info { background: #e0f2fe; color: #075985; }
 .badge-secondary { background: #f1f5f9; color: #475569; }
 
 /* ── Actions ─────────────────────────────────────────────── */
 .action-cell { display: flex; gap: 0.5rem; }
-.action-btn { width: 36px; height: 36px; border-radius: 8px; border: none; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all var(--trans); color: white; }
+.action-btn { width: 38px; height: 38px; border-radius: 8px; border: none; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all var(--trans); color: white; }
 .action-btn--primary { background: var(--c-primary); }
 .action-btn--primary:hover { background: var(--c-primary-dk); }
 .action-btn--info { background: #0ea5e9; }
 .action-btn--info:hover { background: #0284c7; }
 .action-btn--warning { background: #f59e0b; }
 .action-btn--warning:hover { background: #d97706; }
+
+/* ── Focus Visible ───────────────────────────────────────── */
+button:focus-visible,
+input:focus-visible,
+.tab-item:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+}
 
 /* ── Empty State ─────────────────────────────────────────── */
 .empty-state { text-align: center; padding: 3rem 1rem; color: var(--c-muted); }

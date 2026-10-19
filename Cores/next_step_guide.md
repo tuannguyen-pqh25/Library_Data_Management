@@ -10,11 +10,32 @@ Khi tạo Pull Request gộp nhánh `C-Tuấn` (Giai đoạn 2 UI Độc giả) 
 - **BookList.vue:** Điều chỉnh cấu hình phân trang từ 12 sách/trang về 10 sách/trang.
 - **AuthorList.vue & PublisherList.vue:** Sửa lỗi đếm sai số lượng sách của từng tác giả/nhà xuất bản do tham chiếu nhầm ID của MongoDB (`_id`) thay vì khóa chính của MySQL (`maTacGia`, `maNXB`).
 
-### Prompt gợi ý cho phiên làm việc tiếp theo:
-```text
-Bạn hãy đọc lại các file trong thư mục Cores để nắm ngữ cảnh hiện tại. Nhánh của thành viên C vừa được merge vào main, hoàn thiện toàn bộ Giai đoạn 2 cho Giao diện Độc giả (bộ lọc, phân trang 10 sách, lịch sử mượn, fix bug hiển thị số lượng sách). 
+---
 
-Nhiệm vụ tiếp theo của chúng ta là bắt đầu công việc của thành viên D trong Giai đoạn 2: bổ sung tính năng Import/Export CSV danh mục sách cho Admin. Hãy giúp tôi thiết kế luồng Import/Export sách và viết mã cho tính năng này. Nhớ chú ý các yêu cầu về validate từng dòng và định dạng CSV (UTF-8 BOM).
+## Hướng dẫn Commit và Pull Request (Cập nhật 19/10/2026)
+Khi tạo commit hoặc tạo Pull Request cho đợt sửa lỗi Backend Dashboard, Database Schema và Frontend Admin vừa rồi, bạn sử dụng nội dung sau:
+
+**Tiêu đề Commit / PR:** 
+`fix(admin): Khắc phục lỗi 500 Dashboard, tràn nút đăng xuất navbar và mất số liệu thống kê khi F5`
+
+**Nội dung chi tiết PR / Commit Description:**
+- **Database & Stored Procedure / Trigger:**
+  - Đồng bộ lại stored procedure `sp_thong_ke_sach_muon_thang` và trigger `trg_tinh_tien_phat` theo chuẩn `Cores/Tieuchiduan.md`, loại bỏ điều kiện join thừa trên `ChiTietPhieuMuon.maDocGia`.
+  - Cập nhật models Sequelize `ChiTietPhieuMuon.js` và `PhieuTra.js` khớp chính xác với cấu trúc thực tế của database MySQL.
+- **Backend Controllers (`reportController.js`, `borrowController.js`):**
+  - Sửa câu lệnh SQL trong `getDetailedUnreturnedLoans`: lấy `maDocGia` từ bảng `PhieuMuon` và join sách qua `ct.maSach`, triệt tiêu hoàn toàn lỗi 500 (`Unknown column 'ChiTietPhieuMuon.maDocGia' in on clause` & `field list`).
+  - Tự động khởi tạo/đồng bộ Stored Procedure và Trigger với cơ chế fallback truy vấn SQL an toàn.
+- **Frontend Navbar & Responsiveness (`AdminDashboard.vue`):**
+  - Thay thế khung `container` thành `container-fluid px-3 px-xl-4` và tinh chỉnh khoảng cách, font-size, media queries cho màn hình desktop (992px–1400px), đảm bảo nút "Đăng xuất" luôn nằm gọn gàng bên trong màn hình.
+- **Frontend State Management (`AdminHomePage.vue`, `author.js`, `publisher.js`):**
+  - Sửa hàm `loadDashboard()`: Gọi song song `book/fetchBooks`, `author/fetchAuthors`, `publisher/fetchPublishers` cùng `dashboardReportService.getDashboardReport()`. Nhờ đó khi F5 (Refresh trang), các thẻ "Tổng số sách", "Tác giả", "Nhà xuất bản" không bị reset về 0.
+  - Thêm chuẩn hóa phòng vệ `Array.isArray` trong mutations của `author.js` và `publisher.js`.
+
+**Lệnh Git gợi ý:**
+```bash
+git add backend/ frontend/ Cores/
+git commit -m "fix(admin): fix 500 error on dashboard, navbar overflow and vuex refresh zero counts"
+git push origin <ten-nhanh-cua-ban>
 ```
 
 ---

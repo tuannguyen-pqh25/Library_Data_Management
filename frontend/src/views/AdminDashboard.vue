@@ -1,7 +1,7 @@
 <template>
     <div class="admin-dashboard">
       <nav class="navbar navbar-expand-lg navbar-dark bg-primary admin-navbar" aria-label="Điều hướng quản trị">
-        <div class="container">
+        <div class="container-fluid px-3 px-xl-4">
           <a class="navbar-brand" href="#" @click.prevent="currentComponent = 'AdminHomePage'">
             <i class="fas fa-book-reader me-2"></i>Quản lý thư viện
           </a>
@@ -166,8 +166,8 @@
     box-shadow: 0 8px 24px rgb(16 45 59 / 18%);
   }
 
-  .admin-navbar :deep(.container) {
-    gap: 18px;
+  .admin-navbar .container-fluid {
+    gap: 12px;
   }
 
   .admin-navbar .navbar-brand {
@@ -175,50 +175,50 @@
     align-items: center;
     flex-shrink: 0;
     gap: 3px;
-    margin-right: clamp(10px, 1.4vw, 24px);
+    margin-right: clamp(8px, 1.2vw, 20px);
     color: #fff;
-    font-size: 1.12rem;
+    font-size: 1.08rem;
     font-weight: 750;
     letter-spacing: -0.035em;
   }
 
   .admin-navbar .navbar-brand i {
     display: grid;
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     place-items: center;
-    margin-right: 7px;
+    margin-right: 6px;
     border: 1px solid rgb(255 255 255 / 18%);
-    border-radius: 12px;
+    border-radius: 11px;
     background: rgb(255 255 255 / 11%);
     color: #b8f1df;
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
 
   .admin-navbar .navbar-collapse {
     align-items: center;
-    gap: 14px;
+    gap: 10px;
   }
 
   .admin-navbar .navbar-nav {
     align-items: center;
-    gap: 3px;
+    gap: 2px;
   }
 
   .admin-navbar .navbar-nav.me-auto {
     flex: 1 1 auto;
-    justify-content: space-between;
+    justify-content: flex-start;
   }
 
   .admin-navbar .nav-link {
     display: inline-flex;
-    min-height: 40px;
+    min-height: 38px;
     align-items: center;
     justify-content: center;
-    padding: 8px 10px;
-    border-radius: 10px;
-    color: rgb(241 248 250 / 76%);
-    font-size: 0.88rem;
+    padding: 6px 9px;
+    border-radius: 9px;
+    color: rgb(241 248 250 / 78%);
+    font-size: 0.84rem;
     font-weight: 600;
     line-height: 1.25;
     text-align: center;
@@ -242,8 +242,8 @@
 
   .admin-navbar .navbar-nav:last-child {
     flex-shrink: 0;
-    gap: 8px;
-    margin-left: 10px;
+    gap: 7px;
+    margin-left: auto;
   }
 
   .admin-navbar .navbar-nav:last-child .nav-item.me-3 {
@@ -253,10 +253,10 @@
   .admin-user {
     display: flex;
     align-items: center;
-    gap: 9px;
-    padding: 4px 10px 4px 5px;
+    gap: 7px;
+    padding: 4px 9px 4px 5px;
     border: 1px solid rgb(255 255 255 / 13%);
-    border-radius: 13px;
+    border-radius: 12px;
     background: rgb(255 255 255 / 8%);
     color: #fff;
     white-space: nowrap;
@@ -264,13 +264,14 @@
 
   .admin-user-icon {
     display: grid;
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     flex-shrink: 0;
     place-items: center;
-    border-radius: 10px;
+    border-radius: 9px;
     background: rgb(184 241 223 / 17%);
     color: #b8f1df;
+    font-size: 0.85rem;
   }
 
   .admin-user-copy {
@@ -281,27 +282,27 @@
 
   .admin-user-greeting {
     color: rgb(241 248 250 / 68%);
-    font-size: 0.68rem;
+    font-size: 0.65rem;
   }
 
   .admin-user-copy strong {
-    max-width: 135px;
+    max-width: 110px;
     overflow: hidden;
-    font-size: 0.84rem;
+    font-size: 0.82rem;
     font-weight: 650;
     text-overflow: ellipsis;
   }
 
   .admin-navbar .nav-link.admin-logout {
-    gap: 8px;
-    padding-inline: 12px;
+    gap: 6px;
+    padding-inline: 10px;
     border: 1px solid rgb(255 255 255 / 18%);
     color: #fff;
   }
 
   .admin-navbar .nav-link.admin-reader-link {
-    gap: 8px;
-    padding-inline: 12px;
+    gap: 6px;
+    padding-inline: 10px;
     border: 1px solid rgb(184 241 223 / 35%);
     color: #c9f4e5;
   }
@@ -328,23 +329,58 @@
     box-shadow: 0 0 0 3px rgb(184 241 223 / 28%);
   }
 
-  @media (min-width: 992px) and (max-width: 1199.98px) {
+  @media (min-width: 992px) and (max-width: 1240px) {
     .admin-navbar .navbar-brand {
-      margin-right: 6px;
-      font-size: 1rem;
+      margin-right: 4px;
+      font-size: 0.95rem;
+    }
+
+    .admin-navbar .navbar-brand i {
+      width: 30px;
+      height: 30px;
+      margin-right: 4px;
+      font-size: 0.85rem;
     }
 
     .admin-navbar .navbar-nav {
-      gap: 0;
+      gap: 1px;
     }
 
     .admin-navbar .nav-link {
-      padding-inline: 6px;
-      font-size: 0.79rem;
+      padding: 5px 6px;
+      font-size: 0.76rem;
     }
 
     .admin-navbar .navbar-collapse {
-      gap: 7px;
+      gap: 6px;
+    }
+
+    .admin-user {
+      padding: 3px 6px 3px 4px;
+      gap: 5px;
+    }
+
+    .admin-user-copy strong {
+      max-width: 85px;
+      font-size: 0.76rem;
+    }
+
+    .admin-navbar .nav-link.admin-reader-link,
+    .admin-navbar .nav-link.admin-logout {
+      padding-inline: 8px;
+      font-size: 0.76rem;
+      gap: 4px;
+    }
+  }
+
+  @media (min-width: 1241px) and (max-width: 1400px) {
+    .admin-navbar .nav-link {
+      padding: 6px 8px;
+      font-size: 0.81rem;
+    }
+
+    .admin-navbar .navbar-collapse {
+      gap: 8px;
     }
   }
 

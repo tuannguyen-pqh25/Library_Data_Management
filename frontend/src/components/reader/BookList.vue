@@ -13,23 +13,43 @@
     <!-- Borrow Cart Drawer / Modal -->
     <transition name="modal-fade">
       <div v-if="showConfirmModal" class="modal-overlay" @click.self="closeConfirmModal">
-        <div class="borrow-drawer">
+        <div class="borrow-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-drawer-heading">
           <div class="borrow-drawer__header">
-            <h5 class="borrow-drawer__title">
-              <i class="fas fa-shopping-basket me-2"></i>Giỏ mượn sách
+            <h5 class="borrow-drawer__title" id="cart-drawer-heading">
+              <i class="fas fa-shopping-basket me-2" aria-hidden="true"></i>Giỏ mượn sách
             </h5>
-            <button class="borrow-drawer__close" @click="closeConfirmModal" aria-label="Đóng">
-              <i class="fas fa-times"></i>
+            <button class="borrow-drawer__close" @click="closeConfirmModal" aria-label="Đóng giỏ mượn sách">
+              <i class="fas fa-times" aria-hidden="true"></i>
             </button>
           </div>
 
           <div class="borrow-drawer__body">
             <p class="borrow-drawer__note">
-              <i class="fas fa-info-circle me-1 text-primary"></i>
+              <i class="fas fa-info-circle me-1 text-primary" aria-hidden="true"></i>
               Sau khi gửi, yêu cầu sẽ ở trạng thái <strong>Chờ duyệt</strong> và cần chờ quản lý xác nhận.
             </p>
 
-            <ul class="cart-list">
+            <!-- Hạn mức mượn 5 quyển -->
+            <div class="cart-limit-box" :class="{ 'cart-limit-box--warning': isOverLimit }">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <span class="limit-label">
+                  <i class="fas" :class="isOverLimit ? 'fa-exclamation-triangle text-danger' : 'fa-clipboard-check text-primary'" aria-hidden="true"></i>
+                  Hạn mức mượn sách
+                </span>
+                <span class="limit-badge" :class="isOverLimit ? 'limit-badge--danger' : 'limit-badge--normal'">
+                  Giỏ: {{ totalCartQty }} / Còn lại: {{ remainingBorrowLimit }} quyển
+                </span>
+              </div>
+              <div class="limit-detail">
+                Đang mượn / chờ duyệt: <strong>{{ outstandingCopies }}</strong>/5 quyển. Còn có thể mượn tối đa: <strong>{{ remainingBorrowLimit }}</strong> quyển.
+              </div>
+              <div v-if="isOverLimit" class="limit-alert-msg" role="alert">
+                <i class="fas fa-circle-exclamation me-1" aria-hidden="true"></i>
+                Số lượng trong giỏ ({{ totalCartQty }}) vượt quá hạn mức cho phép ({{ remainingBorrowLimit }} quyển). Vui lòng giảm số lượng.
+              </div>
+            </div>
+
+            <ul class="cart-list" aria-label="Danh sách sách trong giỏ mượn">
               <li
                 v-for="item in borrowCart"
                 :key="`${item.maSach}:${item.maTacGia}:${item.maTheLoai}`"
@@ -44,57 +64,66 @@
                   />
                 </div>
                 <div class="cart-item__info">
-                  <p class="cart-item__name">{{ item.tenSach }}</p>
-                  <p class="cart-item__stock">Còn lại: {{ item.soLuongHienCo }} quyển</p>
+                  <p class="cart-item__name" :title="item.tenSach">{{ item.tenSach }}</p>
+                  <p class="cart-item__stock">Còn lại trong kho: {{ item.soLuongHienCo }} quyển</p>
                 </div>
                 <div class="cart-item__qty">
-                  <label class="qty-label">Số lượng</label>
+                  <label class="qty-label" :for="`qty-cart-${item.maSach}-${item.maTacGia}-${item.maTheLoai}`">Số lượng</label>
                   <div class="qty-control">
                     <button
                       class="qty-btn"
                       @click="changeQty(item, -1)"
                       :disabled="item.soLuongSachMuon <= 1"
-                      aria-label="Giảm"
+                      :aria-label="`Giảm số lượng của ${item.tenSach}`"
                     >−</button>
                     <input
                       type="number"
+                      :id="`qty-cart-${item.maSach}-${item.maTacGia}-${item.maTheLoai}`"
                       class="qty-input"
                       v-model.number="item.soLuongSachMuon"
                       :min="1"
                       :max="item.soLuongHienCo"
+                      :aria-label="`Số lượng mượn sách ${item.tenSach}`"
                       @change="validateQuantity(item)"
                     />
                     <button
                       class="qty-btn"
                       @click="changeQty(item, 1)"
                       :disabled="item.soLuongSachMuon >= item.soLuongHienCo"
-                      aria-label="Tăng"
+                      :aria-label="`Tăng số lượng của ${item.tenSach}`"
                     >+</button>
                   </div>
-                  <p v-if="!isItemValid(item)" class="qty-error">Số lượng không hợp lệ</p>
+                  <p v-if="!isItemValid(item)" class="qty-error" role="alert">
+                    <i class="fas fa-circle-exclamation me-1" aria-hidden="true"></i>Số lượng không hợp lệ
+                  </p>
                 </div>
-                <button class="cart-item__remove" @click="removeFromCart(item)" aria-label="Xóa">
-                  <i class="fas fa-trash-alt"></i>
+                <button
+                  class="cart-item__remove"
+                  @click="removeFromCart(item)"
+                  :aria-label="`Xóa ${item.tenSach} khỏi giỏ mượn`"
+                  title="Xóa khỏi giỏ"
+                >
+                  <i class="fas fa-trash-alt" aria-hidden="true"></i>
                 </button>
 
               </li>
             </ul>
 
             <div v-if="!borrowCart.length" class="cart-empty">
-              <i class="fas fa-shopping-basket fa-2x mb-2 opacity-40"></i>
+              <i class="fas fa-shopping-basket fa-2x mb-2 opacity-40" aria-hidden="true"></i>
               <p>Giỏ mượn đang trống</p>
             </div>
           </div>
 
           <div class="borrow-drawer__footer">
-            <button class="btn-outline-secondary-custom" @click="closeConfirmModal">Hủy</button>
+            <button class="btn-outline-secondary-custom" @click="closeConfirmModal">Đóng</button>
             <button
               class="btn-primary-custom"
               @click="handleConfirmBorrow"
-              :disabled="loading || !isValidCart || !borrowCart.length"
+              :disabled="loading || !isValidCart || !borrowCart.length || isOverLimit"
             >
-              <i v-if="loading" class="fas fa-spinner fa-spin me-2"></i>
-              <span v-else><i class="fas fa-paper-plane me-2"></i></span>
+              <i v-if="loading" class="fas fa-spinner fa-spin me-2" aria-hidden="true"></i>
+              <span v-else><i class="fas fa-paper-plane me-2" aria-hidden="true"></i></span>
               {{ loading ? 'Đang gửi...' : 'Gửi yêu cầu mượn' }}
             </button>
           </div>
@@ -105,16 +134,18 @@
     <!-- Book Detail Modal -->
     <transition name="modal-fade">
       <div v-if="selectedBook" class="modal-overlay modal-overlay--center" @click.self="selectedBook = null">
-        <div class="book-detail-modal">
-          <button class="modal-close" @click="selectedBook = null" aria-label="Đóng"><i class="fas fa-times"></i></button>
+        <div class="book-detail-modal" role="dialog" aria-modal="true" aria-labelledby="book-detail-heading">
+          <button class="modal-close" @click="selectedBook = null" aria-label="Đóng chi tiết sách">
+            <i class="fas fa-times" aria-hidden="true"></i>
+          </button>
           <div class="book-detail-content">
             <div class="book-detail-cover">
               <img :src="getImageUrl(selectedBook.imagePath)" :alt="selectedBook.tenSach" @error="onImgError" />
             </div>
             <div class="book-detail-info">
               <span class="category-tag mb-2">{{ selectedBook.TheLoai?.tenTheLoai || 'Khác' }}</span>
-              <h3 class="book-detail-title">{{ selectedBook.tenSach }}</h3>
-              <p class="book-detail-author"><i class="fas fa-pen-nib me-2"></i>{{ selectedBook.TacGia?.tenTacGia || 'Tác giả không rõ' }}</p>
+              <h3 class="book-detail-title" id="book-detail-heading">{{ selectedBook.tenSach }}</h3>
+              <p class="book-detail-author"><i class="fas fa-pen-nib me-2" aria-hidden="true"></i>{{ selectedBook.TacGia?.tenTacGia || 'Tác giả không rõ' }}</p>
               
               <div class="detail-grid mt-4">
                 <div class="detail-item">
@@ -146,7 +177,7 @@
                   @click="addToBorrowCart(selectedBook); selectedBook = null"
                   :disabled="selectedBook.soLuongHienCo === 0 || loading || isBookInCart(selectedBook)"
                 >
-                  <i class="fas me-2" :class="isBookInCart(selectedBook) ? 'fa-check' : selectedBook.soLuongHienCo === 0 ? 'fa-ban' : 'fa-plus'"></i>
+                  <i class="fas me-2" :class="isBookInCart(selectedBook) ? 'fa-check' : selectedBook.soLuongHienCo === 0 ? 'fa-ban' : 'fa-plus'" aria-hidden="true"></i>
                   {{ isBookInCart(selectedBook) ? 'Đã có trong giỏ mượn' : selectedBook.soLuongHienCo === 0 ? 'Sách đã hết' : 'Thêm vào giỏ mượn' }}
                 </button>
               </div>
@@ -169,39 +200,49 @@
           @click="borrowCart.length && showBorrowCart()"
           :disabled="!borrowCart.length || loading"
           id="open-cart-btn"
+          aria-label="Mở giỏ mượn sách"
         >
-          <i class="fas fa-basket-shopping me-2"></i>
-          <span v-if="borrowCart.length">Giỏ mượn ({{ borrowCart.length }})</span>
+          <i class="fas fa-shopping-basket me-2" aria-hidden="true"></i>
+          <span v-if="borrowCart.length">Giỏ mượn ({{ totalCartQty }})</span>
           <span v-else>Giỏ mượn trống</span>
         </button>
       </div>
     </div>
 
-    <!-- Error Alert -->
-    <div v-if="error" class="error-alert">
-      <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
-      <button @click="clearError" class="error-alert__close">×</button>
+    <!-- Error Alert with Retry -->
+    <div v-if="error" class="error-alert" role="alert" aria-live="assertive">
+      <i class="fas fa-exclamation-triangle me-2" aria-hidden="true"></i>
+      <span class="error-alert__text">{{ error }}</span>
+      <div class="error-alert__actions">
+        <button class="btn-retry" @click="fetchData" aria-label="Thử lại tải danh sách sách">
+          <i class="fas fa-sync-alt me-1" aria-hidden="true"></i>Thử lại
+        </button>
+        <button @click="clearError" class="error-alert__close" aria-label="Đóng thông báo lỗi">×</button>
+      </div>
     </div>
 
     <!-- Filters & Search Bar -->
     <div class="search-row">
       <div class="search-filters">
         <div class="search-wrap flex-grow-1">
-          <i class="fas fa-search search-icon"></i>
+          <label for="book-search-input" class="visually-hidden">Tìm kiếm sách</label>
+          <i class="fas fa-search search-icon" aria-hidden="true"></i>
           <input
             type="text"
             class="search-input"
             v-model="searchTerm"
             placeholder="Tìm theo tên sách, tác giả, NXB..."
             id="book-search-input"
+            aria-label="Tìm theo tên sách, tác giả, nhà xuất bản"
           />
-          <button v-if="searchTerm" class="search-clear" @click="searchTerm = ''" aria-label="Xóa tìm kiếm">
-            <i class="fas fa-times"></i>
+          <button v-if="searchTerm" class="search-clear" @click="searchTerm = ''" aria-label="Xóa nội dung tìm kiếm">
+            <i class="fas fa-times" aria-hidden="true"></i>
           </button>
         </div>
         <div class="category-filter-wrap">
-          <i class="fas fa-filter category-icon"></i>
-          <select class="category-select" v-model="selectedCategory">
+          <label for="book-filter-category" class="visually-hidden">Lọc theo thể loại</label>
+          <i class="fas fa-filter category-icon" aria-hidden="true"></i>
+          <select id="book-filter-category" class="category-select" v-model="selectedCategory" aria-label="Lọc theo thể loại">
             <option value="">Tất cả thể loại</option>
             <option v-for="cat in categories" :key="cat.maTheLoai" :value="cat.maTheLoai">
               {{ cat.tenTheLoai }}
@@ -209,8 +250,9 @@
           </select>
         </div>
         <div class="category-filter-wrap">
-          <i class="fas fa-user category-icon"></i>
-          <select class="category-select" v-model="selectedAuthor">
+          <label for="book-filter-author" class="visually-hidden">Lọc theo tác giả</label>
+          <i class="fas fa-user category-icon" aria-hidden="true"></i>
+          <select id="book-filter-author" class="category-select" v-model="selectedAuthor" aria-label="Lọc theo tác giả">
             <option value="">Tất cả tác giả</option>
             <option v-for="author in authors" :key="author.maTacGia" :value="author.maTacGia">
               {{ author.tenTacGia }}
@@ -218,8 +260,9 @@
           </select>
         </div>
         <div class="category-filter-wrap">
-          <i class="fas fa-building category-icon"></i>
-          <select class="category-select" v-model="selectedPublisher">
+          <label for="book-filter-publisher" class="visually-hidden">Lọc theo nhà xuất bản</label>
+          <i class="fas fa-building category-icon" aria-hidden="true"></i>
+          <select id="book-filter-publisher" class="category-select" v-model="selectedPublisher" aria-label="Lọc theo nhà xuất bản">
             <option value="">Tất cả NXB</option>
             <option v-for="pub in publishers" :key="pub.maNXB" :value="pub.maNXB">
               {{ pub.tenNXB }}
@@ -227,8 +270,9 @@
           </select>
         </div>
         <div class="category-filter-wrap">
-          <i class="fas fa-sort category-icon"></i>
-          <select class="category-select" v-model="sortOption">
+          <label for="book-filter-sort" class="visually-hidden">Sắp xếp danh sách sách</label>
+          <i class="fas fa-sort category-icon" aria-hidden="true"></i>
+          <select id="book-filter-sort" class="category-select" v-model="sortOption" aria-label="Sắp xếp danh sách sách">
             <option value="name_asc">Tên A-Z</option>
             <option value="name_desc">Tên Z-A</option>
             <option value="newest">Mới nhất</option>
@@ -241,7 +285,7 @@
 
     <!-- Empty Search Result -->
     <div v-if="!books.length && !loading" class="empty-state">
-      <i class="fas fa-book-open fa-3x mb-3 opacity-30"></i>
+      <i class="fas fa-book-open fa-3x mb-3 opacity-30" aria-hidden="true"></i>
       <h5>Không tìm thấy sách</h5>
       <p class="text-muted">Thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc.</p>
       <button v-if="searchTerm || selectedCategory || selectedAuthor || selectedPublisher" class="btn-outline-secondary-custom mt-2" @click="clearFilters">Xóa bộ lọc</button>
@@ -319,15 +363,25 @@
     </div>
 
     <!-- Pagination -->
-    <div v-if="totalPages > 1" class="pagination-wrap mt-5 d-flex justify-content-center align-items-center gap-2">
-      <button class="btn-outline-secondary-custom" :disabled="currentPage === 1" @click="currentPage--">
-        <i class="fas fa-chevron-left"></i>
+    <nav v-if="totalPages > 1" class="pagination-wrap mt-5 d-flex justify-content-center align-items-center gap-2" aria-label="Phân trang danh sách sách">
+      <button
+        class="btn-outline-secondary-custom"
+        :disabled="currentPage === 1"
+        @click="currentPage--"
+        aria-label="Trang trước"
+      >
+        <i class="fas fa-chevron-left" aria-hidden="true"></i>
       </button>
-      <span class="fw-medium mx-3">Trang {{ currentPage }} / {{ totalPages }}</span>
-      <button class="btn-outline-secondary-custom" :disabled="currentPage === totalPages" @click="currentPage++">
-        <i class="fas fa-chevron-right"></i>
+      <span class="fw-medium mx-3" aria-current="page">Trang {{ currentPage }} / {{ totalPages }}</span>
+      <button
+        class="btn-outline-secondary-custom"
+        :disabled="currentPage === totalPages"
+        @click="currentPage++"
+        aria-label="Trang sau"
+      >
+        <i class="fas fa-chevron-right" aria-hidden="true"></i>
       </button>
-    </div>
+    </nav>
   </div>
 </template>
 
@@ -389,7 +443,23 @@ export default {
     const authors = computed(() => store.getters['author/allAuthors'] || []);
     const publishers = computed(() => store.getters['publisher/allPublishers'] || []);
     const allBooks = computed(() => store.getters['book/allBooks'] || []);
+    const borrowHistory = computed(() => store.getters['borrow/borrowHistory'] || []);
     
+    // 5-book maximum limit calculation
+    const outstandingCopies = computed(() => {
+      return borrowHistory.value
+        .filter(request => ['Chờ duyệt', 'Đang mượn'].includes(request.trangThai))
+        .reduce((total, request) => total + (request.ChiTietPhieuMuons || []).reduce(
+          (quantity, detail) => quantity + Number(detail.soLuongSachMuon || 0),
+          0
+        ), 0);
+    });
+    const remainingBorrowLimit = computed(() => Math.max(0, 5 - outstandingCopies.value));
+    const totalCartQty = computed(() => borrowCart.value.reduce(
+      (sum, item) => sum + (Number(item.soLuongSachMuon) || 0), 0
+    ));
+    const isOverLimit = computed(() => totalCartQty.value > remainingBorrowLimit.value);
+
     const filteredAndSortedBooks = computed(() => {
       let result = [...allBooks.value];
 
@@ -462,7 +532,11 @@ export default {
       item.soLuongSachMuon >= 1 &&
       item.soLuongSachMuon <= item.soLuongHienCo;
 
-    const isValidCart = computed(() => borrowCart.value.length > 0 && borrowCart.value.every(isItemValid));
+    const isValidCart = computed(() =>
+      borrowCart.value.length > 0 &&
+      borrowCart.value.every(isItemValid) &&
+      !isOverLimit.value
+    );
 
     const isBookInCart = (book) =>
       borrowCart.value.some(
@@ -471,6 +545,10 @@ export default {
 
     const addToBorrowCart = (book) => {
       if (isBookInCart(book)) return; // Không thêm trùng
+      if (totalCartQty.value >= remainingBorrowLimit.value) {
+        showToast(`Bạn chỉ còn có thể mượn tối đa ${remainingBorrowLimit.value} quyển nữa (hạn mức 5 quyển).`, 'error');
+        return;
+      }
       borrowCart.value.push({ ...book, soLuongSachMuon: 1 });
       showToast(`Đã thêm "${book.tenSach}" vào giỏ mượn`, 'success');
     };
@@ -496,15 +574,17 @@ export default {
     const fetchData = async () => {
       try {
         loading.value = true;
+        error.value = null;
         await Promise.all([
           store.dispatch('book/fetchBooks'),
           store.dispatch('publisher/fetchPublishers'),
           store.dispatch('author/fetchAuthors'),
           store.dispatch('category/fetchCategories'),
+          store.dispatch('borrow/fetchBorrowHistory').catch(() => {}),
         ]);
       } catch (err) {
-        error.value = err.message;
-        showError(err.message || 'Lỗi khi tải dữ liệu');
+        error.value = err.response?.data?.message || err.message || 'Lỗi khi tải dữ liệu';
+        showError(error.value);
       } finally {
         loading.value = false;
       }
@@ -552,8 +632,9 @@ export default {
       toastMsg, showToast,
       getImageUrl, onImgError,
       isValidCart, isItemValid, isBookInCart,
+      totalCartQty, outstandingCopies, remainingBorrowLimit, isOverLimit,
       addToBorrowCart, removeFromCart, changeQty, validateQuantity,
-      showBorrowCart, closeConfirmModal, handleConfirmBorrow, clearError,
+      showBorrowCart, closeConfirmModal, handleConfirmBorrow, clearError, fetchData,
       API_URL,
     };
   },
@@ -659,14 +740,56 @@ export default {
   background: #fef2f2;
   border: 1px solid #fca5a5;
   color: #991b1b;
-  padding: 0.8rem 1.2rem;
+  padding: 0.85rem 1.25rem;
   border-radius: 12px;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 6px rgba(185, 28, 28, 0.08);
 }
-.error-alert__close { margin-left: auto; background: none; border: none; font-size: 1.1rem; color: inherit; cursor: pointer; }
+.error-alert__text {
+  flex: 1;
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+.error-alert__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-left: auto;
+}
+.btn-retry {
+  background: #fff;
+  border: 1px solid #f87171;
+  color: #b91c1c;
+  padding: 0.35rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: all var(--trans);
+}
+.btn-retry:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+.error-alert__close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: #991b1b;
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 4px;
+}
+.error-alert__close:hover {
+  background: rgba(185, 28, 28, 0.1);
+}
 
 /* ── Search & Filters ────────────────────────────────────── */
 .search-row { margin-bottom: 2.5rem; }
@@ -1092,7 +1215,58 @@ export default {
   padding: 0.7rem 0.9rem;
   font-size: 0.85rem;
   color: #1e40af;
-  margin-bottom: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+/* ── Cart Limit Box ──────────────────────────────────────── */
+.cart-limit-box {
+  background: #f8fafc;
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.25rem;
+  transition: all var(--trans);
+}
+.cart-limit-box--warning {
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+.limit-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--c-text);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.limit-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+.limit-badge--normal {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #dbeafe;
+}
+.limit-badge--danger {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+.limit-detail {
+  font-size: 0.8rem;
+  color: var(--c-muted);
+}
+.limit-alert-msg {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
 }
 
 .borrow-drawer__footer {
@@ -1198,18 +1372,31 @@ export default {
 }
 .btn-outline-secondary-custom:hover { background: #f1f5f9; border-color: #cbd5e1; }
 
+/* ── Focus Visible ───────────────────────────────────────── */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+}
+
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 768px) {
   .book-detail-content { flex-direction: column; }
   .book-detail-cover { padding: 1.5rem; }
   .book-detail-cover img { max-height: 250px; }
   .book-detail-info { padding: 1.5rem; }
+  .search-filters { flex-direction: column; width: 100%; max-width: 100%; }
+  .category-filter-wrap { width: 100%; }
 }
 @media (max-width: 640px) {
   .book-list-page { padding: 1.25rem 0.75rem 3rem; }
-  .book-list-header { flex-direction: column; align-items: flex-start; }
-  .search-filters { flex-direction: column; }
-  .book-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
-  .cart-item { grid-template-columns: 48px 1fr auto auto; }
+  .book-list-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+  .book-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.85rem; }
+  .cart-item { grid-template-columns: 48px 1fr auto auto; padding: 0.6rem; }
+  .borrow-drawer { width: 100vw; }
+  .cart-badge-btn { width: 100%; justify-content: center; }
+  .btn-add-to-cart { min-height: 42px; }
 }
 </style>

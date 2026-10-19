@@ -27,15 +27,15 @@ export default {
         commit('SET_LOADING', true);
         console.log('Fetching books...');
         const response = await api.get('/sach');
-        console.log('API response for fetchBooks:', response.data);
-        commit('SET_BOOKS', response.data);
+        const bookList = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+        commit('SET_BOOKS', bookList);
       } catch (error) {
         console.error('Error in fetchBooks:', {
           message: error.message,
           stack: error.stack,
           response: error.response?.data
         });
-        commit('SET_ERROR', error.message);
+        commit('SET_ERROR', error.response?.data?.message || error.message || 'Không thể tải danh sách sách');
         throw error;
       } finally {
         commit('SET_LOADING', false);
