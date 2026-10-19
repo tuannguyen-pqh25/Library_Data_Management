@@ -9,7 +9,7 @@ export default {
   },
   mutations: {
   SET_PUBLISHERS(state, publishers) {
-    state.publishers = publishers; // Gán danh sách nhà xuất bản từ API vào state
+    state.publishers = Array.isArray(publishers) ? publishers : (publishers?.data || []);
   },
   SET_LOADING(state, status) {
     state.loading = status; // Bật hoặc tắt trạng thái loading

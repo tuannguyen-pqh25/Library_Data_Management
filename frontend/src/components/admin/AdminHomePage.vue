@@ -431,7 +431,12 @@ export default {
       reportLoading.value = true;
       reportError.value = "";
       try {
-        const report = await dashboardReportService.getDashboardReport();
+        const [report] = await Promise.all([
+          dashboardReportService.getDashboardReport(),
+          store.dispatch("book/fetchBooks").catch((err) => console.warn("Failed to load books count:", err)),
+          store.dispatch("author/fetchAuthors").catch((err) => console.warn("Failed to load authors count:", err)),
+          store.dispatch("publisher/fetchPublishers").catch((err) => console.warn("Failed to load publishers count:", err)),
+        ]);
         statistics.value = report.statistics;
         unreturnedLoans.value = report.unreturnedLoans;
         monthlyLoans.value = report.monthlyLoans || [];

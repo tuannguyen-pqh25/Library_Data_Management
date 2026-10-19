@@ -36,10 +36,10 @@ export default {
         const cleanedData = response.data.map(request => ({
           ...request,
           DocGia: request.DocGia || { fullName: 'N/A', maDocGia: 'N/A' },
-          ChiTietPhieuMuons: request.ChiTietPhieuMuons.map(ct => ({
+          ChiTietPhieuMuons: (request.ChiTietPhieuMuons || []).map(ct => ({
             ...ct,
             PhieuTra: Array.isArray(ct.PhieuTra) ? ct.PhieuTra : ct.PhieuTra ? [ct.PhieuTra] : []
-          })) || []
+          }))
         }));
         commit('SET_BORROW_REQUESTS', cleanedData);
       } catch (error) {
@@ -54,12 +54,12 @@ export default {
       commit('SET_LOADING', true);
       try {
         const response = await api.get('/muonsach/history');
-        const cleanedData = response.data.map(request => ({
+        const cleanedData = (response.data || []).map(request => ({
           ...request,
-          ChiTietPhieuMuons: request.ChiTietPhieuMuons.map(ct => ({
+          ChiTietPhieuMuons: (request.ChiTietPhieuMuons || []).map(ct => ({
             ...ct,
             PhieuTra: Array.isArray(ct.PhieuTra) ? ct.PhieuTra : ct.PhieuTra ? [ct.PhieuTra] : []
-          })) || []
+          }))
         }));
         commit('SET_BORROW_HISTORY', cleanedData);
       } catch (error) {

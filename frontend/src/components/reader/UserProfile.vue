@@ -1,131 +1,181 @@
 <template>
   <div class="user-profile">
-    <h2>Thông tin cá nhân</h2>
-    <div v-if="loading" class="text-center">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Đang tải...</span>
+    <div class="profile-card">
+      <div class="page-header">
+        <h2 class="page-title">Thông tin cá nhân</h2>
+        <p class="page-sub">Quản lý và cập nhật thông tin tài khoản độc giả</p>
       </div>
-    </div>
-    <div v-else-if="error" class="alert alert-danger" role="alert">
-      {{ error }}
-      <button type="button" class="btn-close" @click="clearError"></button>
-    </div>
-    <div v-else class="profile-details">
-      <form @submit.prevent="handleUpdateProfile" class="needs-validation" novalidate>
-        <div class="mb-3">
-          <label for="fullName" class="form-label">Họ và tên <span class="text-danger">*</span></label>
-          <input
-            type="text"
-            class="form-control"
-            id="fullName"
-            v-model="userProfile.fullName"
-            :class="{ 'is-invalid': errors.fullName }"
-            required
-            @input="validateField('fullName')"
-          >
-          <div class="invalid-feedback" v-if="errors.fullName">{{ errors.fullName }}</div>
-        </div>
 
-        <div class="mb-3">
-          <label for="ngaySinh" class="form-label">Ngày sinh</label>
-          <input
-            type="date"
-            class="form-control"
-            id="ngaySinh"
-            v-model="userProfile.ngaySinh"
-            :class="{ 'is-invalid': errors.ngaySinh }"
-            @input="validateField('ngaySinh')"
-          >
-          <div class="invalid-feedback" v-if="errors.ngaySinh">{{ errors.ngaySinh }}</div>
+      <!-- Loading Spinner -->
+      <div v-if="loading && !userProfile.fullName" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Đang tải thông tin...</span>
         </div>
+      </div>
 
-        <div class="mb-3">
-          <label for="phai" class="form-label">Giới tính</label>
-          <select
-            class="form-select"
-            id="phai"
-            v-model="userProfile.phai"
-            :class="{ 'is-invalid': errors.phai }"
-            @change="validateField('phai')"
-          >
-            <option value="Nam">Nam</option>
-            <option value="Nữ">Nữ</option>
-            <option value="Khác">Khác</option>
-          </select>
-          <div class="invalid-feedback" v-if="errors.phai">{{ errors.phai }}</div>
+      <!-- Error Alert -->
+      <div v-else-if="error" class="error-alert" role="alert" aria-live="assertive">
+        <div class="error-alert__content">
+          <i class="fas fa-exclamation-triangle me-2" aria-hidden="true"></i>{{ error }}
         </div>
-
-        <div class="mb-3">
-          <label for="diaChi" class="form-label">Địa chỉ</label>
-          <input
-            type="text"
-            class="form-control"
-            id="diaChi"
-            v-model="userProfile.diaChi"
-            :class="{ 'is-invalid': errors.diaChi }"
-            @input="validateField('diaChi')"
-          >
-          <div class="invalid-feedback" v-if="errors.diaChi">{{ errors.diaChi }}</div>
-        </div>
-
-        <div class="mb-3">
-          <label for="dienThoai" class="form-label">Số điện thoại</label>
-          <input
-            type="text"
-            class="form-control"
-            id="dienThoai"
-            v-model="userProfile.dienThoai"
-            :class="{ 'is-invalid': errors.dienThoai }"
-            @input="validateField('dienThoai')"
-          >
-          <div class="invalid-feedback" v-if="errors.dienThoai">{{ errors.dienThoai }}</div>
-        </div>
-
-        <div class="mb-3">
-          <label for="email" class="form-label">Email</label>
-          <input
-            type="email"
-            class="form-control"
-            id="email"
-            v-model="userProfile.email"
-            :class="{ 'is-invalid': errors.email }"
-            @input="validateField('email')"
-          >
-          <div class="invalid-feedback" v-if="errors.email">{{ errors.email }}</div>
-        </div>
-
-        <div class="mb-3">
-          <router-link to="/forgot-password" class="text-primary">Quên mật khẩu? Nhấn vào đây để đổi mật khẩu.</router-link>
-        </div>
-
-        <div v-if="message" class="alert alert-success alert-dismissible fade show mb-3" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" @click="clearMessage"></button>
-        </div>
-
-        <div class="text-end">
-          <button type="button" class="btn btn-secondary me-2" @click="cancelUpdate">Hủy</button>
-          <button type="submit" class="btn btn-primary" :disabled="loading || Object.keys(errors).length > 0">
-            {{ loading ? 'Đang lưu...' : 'Cập nhật thông tin' }}
+        <div class="error-alert__actions">
+          <button @click="fetchProfile" class="btn-retry" type="button" aria-label="Thử tải lại thông tin">
+            <i class="fas fa-redo-alt me-1" aria-hidden="true"></i>Thử lại
           </button>
+          <button type="button" class="error-alert__close" @click="clearError" aria-label="Đóng thông báo lỗi">×</button>
         </div>
-      </form>
+      </div>
+
+      <div v-else class="profile-details">
+        <form @submit.prevent="handleUpdateProfile" class="needs-validation" novalidate>
+          <div class="mb-3">
+            <label for="fullName" class="form-label">
+              Họ và tên <span class="text-danger" aria-hidden="true">*</span>
+            </label>
+            <input
+              type="text"
+              class="form-control"
+              id="fullName"
+              v-model="userProfile.fullName"
+              :class="{ 'is-invalid': errors.fullName }"
+              required
+              aria-required="true"
+              :aria-invalid="errors.fullName ? 'true' : 'false'"
+              aria-describedby="fullName-error"
+              @input="validateField('fullName')"
+            />
+            <div id="fullName-error" class="invalid-feedback" v-if="errors.fullName">
+              {{ errors.fullName }}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="ngaySinh" class="form-label">Ngày sinh</label>
+            <input
+              type="date"
+              class="form-control"
+              id="ngaySinh"
+              v-model="userProfile.ngaySinh"
+              :class="{ 'is-invalid': errors.ngaySinh }"
+              :aria-invalid="errors.ngaySinh ? 'true' : 'false'"
+              aria-describedby="ngaySinh-error"
+              @input="validateField('ngaySinh')"
+            />
+            <div id="ngaySinh-error" class="invalid-feedback" v-if="errors.ngaySinh">
+              {{ errors.ngaySinh }}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="phai" class="form-label">Giới tính</label>
+            <select
+              class="form-select"
+              id="phai"
+              v-model="userProfile.phai"
+              :class="{ 'is-invalid': errors.phai }"
+              :aria-invalid="errors.phai ? 'true' : 'false'"
+              aria-describedby="phai-error"
+              @change="validateField('phai')"
+            >
+              <option value="Nam">Nam</option>
+              <option value="Nữ">Nữ</option>
+              <option value="Khác">Khác</option>
+            </select>
+            <div id="phai-error" class="invalid-feedback" v-if="errors.phai">
+              {{ errors.phai }}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="diaChi" class="form-label">Địa chỉ</label>
+            <input
+              type="text"
+              class="form-control"
+              id="diaChi"
+              v-model="userProfile.diaChi"
+              :class="{ 'is-invalid': errors.diaChi }"
+              :aria-invalid="errors.diaChi ? 'true' : 'false'"
+              aria-describedby="diaChi-error"
+              @input="validateField('diaChi')"
+            />
+            <div id="diaChi-error" class="invalid-feedback" v-if="errors.diaChi">
+              {{ errors.diaChi }}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="dienThoai" class="form-label">Số điện thoại</label>
+            <input
+              type="tel"
+              class="form-control"
+              id="dienThoai"
+              v-model="userProfile.dienThoai"
+              :class="{ 'is-invalid': errors.dienThoai }"
+              :aria-invalid="errors.dienThoai ? 'true' : 'false'"
+              aria-describedby="dienThoai-error"
+              @input="validateField('dienThoai')"
+            />
+            <div id="dienThoai-error" class="invalid-feedback" v-if="errors.dienThoai">
+              {{ errors.dienThoai }}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input
+              type="email"
+              class="form-control"
+              id="email"
+              v-model="userProfile.email"
+              :class="{ 'is-invalid': errors.email }"
+              :aria-invalid="errors.email ? 'true' : 'false'"
+              aria-describedby="email-error"
+              @input="validateField('email')"
+            />
+            <div id="email-error" class="invalid-feedback" v-if="errors.email">
+              {{ errors.email }}
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <router-link to="/forgot-password" class="text-primary link-reset-password">
+              <i class="fas fa-key me-1" aria-hidden="true"></i>Quên mật khẩu? Nhấn vào đây để đặt lại mật khẩu.
+            </router-link>
+          </div>
+
+          <div v-if="message" class="alert alert-success alert-dismissible fade show mb-4" role="status" aria-live="polite">
+            <i class="fas fa-check-circle me-2" aria-hidden="true"></i>{{ message }}
+            <button type="button" class="btn-close" @click="clearMessage" aria-label="Đóng thông báo thành công"></button>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary me-2" @click="cancelUpdate">
+              Hủy
+            </button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              :disabled="loading || Object.keys(errors).length > 0"
+            >
+              <i class="fas fa-save me-1" aria-hidden="true"></i>
+              {{ loading ? 'Đang lưu...' : 'Cập nhật thông tin' }}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </template>
 
-<!-- UserProfile.vue (updated script section) -->
 <script>
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { showError, showSuccess } from '@/utils/notifications';
-import { useRouter } from 'vue-router';
 
 export default {
   name: 'UserProfile',
   setup() {
     const store = useStore();
-    const router = useRouter();
     const userProfile = ref({
       fullName: '',
       ngaySinh: '',
@@ -222,7 +272,6 @@ export default {
           ...response.data,
           ngaySinh: formatDate(response.data.ngaySinh)
         };
-        console.log('Fetched profile:', userProfile.value);
       } catch (err) {
         error.value = err.response?.data?.error || 'Không thể tải thông tin cá nhân';
         showError(error.value);
@@ -244,7 +293,6 @@ export default {
         const updateData = Object.fromEntries(
           Object.entries(userProfile.value).filter(([key]) => allowedFields.includes(key))
         );
-        console.log('Sending update data:', updateData);
         await store.dispatch('auth/updateProfile', updateData);
         message.value = 'Cập nhật thông tin thành công';
         showSuccess(message.value);
@@ -254,7 +302,6 @@ export default {
           errors.value = err.response.data.errors;
           error.value = Object.values(err.response.data.errors)[0] || error.value;
         }
-        console.error('Update profile error:', err.response?.data || err.message);
         showError(error.value);
       } finally {
         loading.value = false;
@@ -287,6 +334,7 @@ export default {
       message,
       isReader,
       validateField,
+      fetchProfile,
       handleUpdateProfile,
       cancelUpdate,
       clearError,
@@ -297,19 +345,177 @@ export default {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
 .user-profile {
-  padding: 20px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
+  --c-primary:    #2563eb;
+  --c-primary-dk: #1d4ed8;
+  --c-bg:         #f8fafc;
+  --c-surface:    #ffffff;
+  --c-border:     #e2e8f0;
+  --c-text:       #0f172a;
+  --c-muted:      #64748b;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'Outfit', system-ui, sans-serif;
+  --trans:        0.2s ease;
+  font-family: var(--font-body);
+  color: var(--c-text);
+  min-height: 100vh;
+  padding: 2rem 1.5rem 4rem;
+  background: var(--c-bg);
 }
-.profile-details {
-  max-width: 600px;
+
+.profile-card {
+  max-width: 680px;
   margin: 0 auto;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 18px;
+  padding: 2.25rem 2rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
 }
-.form-label .text-danger {
-  color: #dc3545;
+
+.page-header {
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--c-border);
+  padding-bottom: 1.25rem;
 }
+.page-title {
+  font-family: var(--font-display);
+  font-size: 1.85rem;
+  font-weight: 700;
+  margin: 0 0 0.3rem;
+}
+.page-sub {
+  color: var(--c-muted);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.form-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #334155;
+  margin-bottom: 0.4rem;
+}
+.form-label .text-danger { color: #dc2626; }
+
+.form-control, .form-select {
+  border: 1.5px solid var(--c-border);
+  border-radius: 10px;
+  padding: 0.65rem 0.9rem;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  transition: all var(--trans);
+}
+.form-control:focus, .form-select:focus,
+.form-control:focus-visible, .form-select:focus-visible {
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.14);
+  outline: none;
+}
+.form-control.is-invalid, .form-select.is-invalid {
+  border-color: #ef4444;
+}
+
 .invalid-feedback {
   display: block;
+  font-size: 0.82rem;
+  color: #dc2626;
+  margin-top: 0.35rem;
+}
+
+.link-reset-password {
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+}
+.link-reset-password:hover {
+  text-decoration: underline;
+}
+
+.error-alert {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 0.85rem 1.2rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+.error-alert__content { display: flex; align-items: center; }
+.error-alert__actions { display: flex; align-items: center; gap: 0.75rem; }
+.btn-retry {
+  background: #fff;
+  border: 1px solid #f87171;
+  color: #b91c1c;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: all var(--trans);
+}
+.btn-retry:hover { background: #fee2e2; }
+.error-alert__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #991b1b;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--c-border);
+}
+
+.btn {
+  padding: 0.7rem 1.4rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all var(--trans);
+  display: inline-flex;
+  align-items: center;
+  border: none;
+}
+.btn-primary {
+  background: var(--c-primary);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--c-primary-dk);
+}
+.btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+.btn:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .user-profile { padding: 1.25rem 1rem 3rem; }
+  .profile-card { padding: 1.5rem 1.25rem; }
+  .form-actions { flex-direction: column-reverse; }
+  .form-actions .btn { width: 100%; justify-content: center; }
 }
 </style>

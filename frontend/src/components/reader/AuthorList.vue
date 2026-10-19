@@ -7,22 +7,38 @@
       <p class="page-sub">Những người sáng tạo nên các tác phẩm tại thư viện</p>
     </div>
 
-    <!-- Error Alert -->
-    <div v-if="error" class="error-alert">
-      <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
-      <button @click="clearError" class="error-alert__close">×</button>
+    <!-- Error Alert with Retry -->
+    <div v-if="error" class="error-alert" role="alert" aria-live="assertive">
+      <i class="fas fa-exclamation-triangle me-2" aria-hidden="true"></i>
+      <span class="error-alert__text">{{ error }}</span>
+      <div class="error-alert__actions">
+        <button class="btn-retry" @click="fetchData" aria-label="Thử lại tải danh sách tác giả">
+          <i class="fas fa-sync-alt me-1" aria-hidden="true"></i>Thử lại
+        </button>
+        <button @click="clearError" class="error-alert__close" aria-label="Đóng thông báo lỗi">×</button>
+      </div>
     </div>
 
     <!-- Search -->
     <div class="search-wrap">
-      <i class="fas fa-search search-icon"></i>
-      <input type="text" class="search-input" v-model="searchTerm" placeholder="Tìm kiếm tác giả theo tên hoặc mã..." />
-      <button v-if="searchTerm" class="search-clear" @click="searchTerm = ''"><i class="fas fa-times"></i></button>
+      <label for="author-search-input" class="visually-hidden">Tìm kiếm tác giả</label>
+      <i class="fas fa-search search-icon" aria-hidden="true"></i>
+      <input
+        type="text"
+        id="author-search-input"
+        class="search-input"
+        v-model="searchTerm"
+        placeholder="Tìm kiếm tác giả theo tên hoặc mã..."
+        aria-label="Tìm kiếm tác giả theo tên hoặc mã"
+      />
+      <button v-if="searchTerm" class="search-clear" @click="searchTerm = ''" aria-label="Xóa từ khóa tìm kiếm">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
     </div>
 
     <!-- List -->
     <div v-if="!authors.length && !loading" class="empty-state">
-      <i class="fas fa-pen-nib fa-3x mb-3 opacity-30"></i>
+      <i class="fas fa-pen-nib fa-3x mb-3 opacity-30" aria-hidden="true"></i>
       <h5>Không tìm thấy tác giả</h5>
       <p class="text-muted">Thử tìm kiếm với từ khóa khác.</p>
     </div>
@@ -34,13 +50,13 @@
           <p class="info-card__code">Mã tác giả: {{ author.maTacGia }}</p>
           <div class="info-card__meta">
             <div class="meta-row">
-              <i class="fas fa-book"></i>
+              <i class="fas fa-book" aria-hidden="true"></i>
               <span>Đã xuất bản: <strong>{{ getAuthorBookCount(author.maTacGia) }}</strong> sách</span>
             </div>
           </div>
         </div>
         <div class="info-card__footer">
-          <button class="btn-primary-custom" @click="showAuthorBooks(author)">
+          <button class="btn-primary-custom" @click="showAuthorBooks(author)" :aria-label="`Xem danh sách sách của ${author.tenTacGia}`">
             Xem danh sách sách
           </button>
         </div>
@@ -50,26 +66,28 @@
     <!-- Book Modal -->
     <transition name="modal-fade">
       <div v-if="showBooksModal" class="modal-overlay" @click.self="closeBooksModal">
-        <div class="detail-modal">
+        <div class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="author-modal-heading">
           <div class="detail-modal__header">
-            <h5 class="detail-modal__title">Sách của {{ selectedAuthor?.tenTacGia }}</h5>
-            <button class="modal-close" @click="closeBooksModal"><i class="fas fa-times"></i></button>
+            <h5 class="detail-modal__title" id="author-modal-heading">Sách của {{ selectedAuthor?.tenTacGia }}</h5>
+            <button class="modal-close" @click="closeBooksModal" aria-label="Đóng cửa sổ sách tác giả">
+              <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
           </div>
           <div class="detail-modal__body">
             <div class="table-responsive" v-if="authorBooks.length">
-              <table class="custom-table">
+              <table class="custom-table" aria-label="Bảng sách của tác giả">
                 <thead>
                   <tr>
-                    <th>Mã sách</th>
-                    <th>Tên sách</th>
-                    <th>Nhà xuất bản</th>
-                    <th>Năm XB</th>
-                    <th>Số quyển</th>
-                    <th>Đơn giá</th>
+                    <th scope="col">Mã sách</th>
+                    <th scope="col">Tên sách</th>
+                    <th scope="col">Nhà xuất bản</th>
+                    <th scope="col">Năm XB</th>
+                    <th scope="col">Số quyển</th>
+                    <th scope="col">Đơn giá</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="book in authorBooks" :key="book._id">
+                  <tr v-for="book in authorBooks" :key="`${book.maSach}:${book.maTacGia}:${book.maTheLoai}`">
                     <td>{{ book.maSach }}</td>
                     <td class="fw-bold">{{ book.tenSach }}</td>
                     <td>{{ book.maNXB?.tenNXB || book.NhaXuatBan?.tenNXB || '—' }}</td>
@@ -152,16 +170,18 @@ export default {
       store.commit('author/SET_ERROR', null);
     };
 
-    onMounted(async () => {
+    const fetchData = async () => {
       try {
         await Promise.all([
           store.dispatch('author/fetchAuthors'),
           store.dispatch('book/fetchBooks')
         ]);
       } catch (err) {
-        showError(err.message);
+        showError(err.message || 'Lỗi khi tải dữ liệu tác giả');
       }
-    });
+    };
+
+    onMounted(fetchData);
 
     return {
       authors,
@@ -175,7 +195,8 @@ export default {
       closeBooksModal,
       getAuthorBookCount,
       formatCurrency,
-      clearError
+      clearError,
+      fetchData
     };
   }
 };
@@ -208,8 +229,35 @@ export default {
 .page-sub { color: var(--c-muted); font-size: 0.95rem; margin: 0; }
 
 /* ── Error & Empty State ─────────────────────────────────── */
-.error-alert { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 0.8rem 1.2rem; border-radius: 12px; display: flex; align-items: center; margin-bottom: 1rem; }
-.error-alert__close { margin-left: auto; background: none; border: none; cursor: pointer; }
+.error-alert {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 0.85rem 1.25rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.error-alert__text { flex: 1; font-weight: 500; font-size: 0.92rem; }
+.error-alert__actions { display: flex; align-items: center; gap: 0.6rem; margin-left: auto; }
+.btn-retry {
+  background: #fff;
+  border: 1px solid #f87171;
+  color: #b91c1c;
+  padding: 0.35rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: all var(--trans);
+}
+.btn-retry:hover { background: #fee2e2; border-color: #ef4444; }
+.error-alert__close { background: none; border: none; font-size: 1.25rem; line-height: 1; color: #991b1b; cursor: pointer; padding: 0.2rem; }
 .empty-state { text-align: center; padding: 3rem; color: var(--c-muted); }
 
 /* ── Search ──────────────────────────────────────────────── */
@@ -247,4 +295,11 @@ export default {
 .custom-table th { color: var(--c-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
 .custom-table td { font-size: 0.95rem; }
 .fw-bold { font-weight: 600; color: var(--c-text); }
+
+/* ── Focus ───────────────────────────────────────────────── */
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+}
 </style>

@@ -11,7 +11,7 @@ export default {
 
   mutations: {
     SET_AUTHORS(state, authors) {
-      state.authors = authors;
+      state.authors = Array.isArray(authors) ? authors : (authors?.data || []);
     },
     SET_LOADING(state, status) {
       state.loading = status;

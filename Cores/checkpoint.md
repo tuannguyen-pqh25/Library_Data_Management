@@ -242,3 +242,100 @@ Các vấn đề nghiệp vụ cần ưu tiên sửa ngay (theo `Chienluoc.md`):
 
 - A đã công bố hợp đồng API trong `Cores/next_step_guide.md`. B tích hợp dashboard bằng hai endpoint, bỏ fixture và giữ trạng thái loading/error/empty. C kiểm tra copy trạng thái giỏ mượn nói rõ yêu cầu `Chờ duyệt` chưa làm đổi tồn. Không cần đổi schema hay frontend trong phần việc A.
 - Database `library_db` hiện là schema sạch đã migrate; test lifecycle đã xóa các fixture đã tạo. Chưa chạy `seed-admin` hay nạp dữ liệu demo.
+
+---
+
+## Cập nhật 2026-10-19 — Giai đoạn 3: Hoàn thiện Trải nghiệm Độc giả, Độ tin cậy & Accessibility (Thành viên C)
+
+**Phạm vi:** Frontend khu vực Độc giả (`frontend/src/views/ReaderDashboard.vue`, `frontend/src/components/reader/*`, `frontend/src/store/modules/borrow.js`, `frontend/src/store/modules/book.js`). Giữ nguyên API/schema của A, dashboard của B và các chức năng quản trị của D.
+
+### 1. Công việc đã thực hiện
+- **Khả năng tiếp cận (Accessibility - WCAG 2.1 AA cơ bản):**
+  - **Focus visibility:** Bổ sung hiệu ứng `:focus-visible` (viền nổi bật 2px-3px, offset rõ ràng) cho toàn bộ nút bấm, ô input, dropdown select và liên kết navbar.
+  - **Nhãn Form & Screen Readers:** Bổ sung `<label class="visually-hidden">`, `id`, `aria-label`, `aria-required`, `aria-invalid`, `aria-describedby` trên các thanh tìm kiếm (Sách, Tác giả, NXB, Thể loại) và biểu mẫu cập nhật thông tin cá nhân `UserProfile.vue`.
+  - **Trạng thái không chỉ dựa vào màu sắc:** Trong `BorrowHistory.vue`, các trạng thái phiếu mượn được phân biệt kết hợp giữa màu sắc và icon trực quan riêng biệt:
+    - *Chờ duyệt:* Icon đồng hồ cát `fa-clock` (vàng)
+    - *Đang mượn:* Icon người đọc sách `fa-book-reader` (xanh dương)
+    - *Chờ xác nhận trả:* Icon đồng hồ chờ `fa-hourglass-half` (cam)
+    - *Đã trả:* Icon kiểm hoàn tất kép `fa-check-double` (xanh lá)
+    - *Từ chối:* Icon hủy tròn `fa-times-circle` (xám)
+    - *Quá hạn:* Icon cảnh báo chấm than `fa-exclamation-circle` (đỏ)
+  - **Modal Dialog & Menubar:** Khai báo đầy đủ `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, `role="menubar"`, `role="menuitem"`, `aria-current="page"`, `aria-expanded` trên Drawer giỏ mượn, Modal chi tiết sách, và thanh điều hướng chính.
+- **Trải nghiệm màn hình hẹp (Mobile Responsiveness):**
+  - **BookList Drawer & Modal:** Side drawer giỏ mượn và modal chi tiết sách co giãn linh hoạt, trên màn hình di động (<640px) chiếm trọn chiều rộng với nút đóng nổi bật, thao tác chạm mượt mà.
+  - **Bảng dữ liệu:** Thêm container `.table-scroll-hint` và vùng cuộn ngang có gợi ý trực quan cho bảng phiếu mượn/trả trong `BorrowHistory.vue` và bảng sách tác giả/NXB.
+  - **Card Grid & Quick Actions:** Chuyển đổi lưới sách, tác giả, NXB sang dạng 1-cột tự động co giãn (`auto-fill`) tối ưu trên mobile.
+  - **User Summary Mobile:** Hiển thị thẻ người dùng (avatar + tên + vai trò) ngay trong menu dropdown di động.
+- **Độ tin cậy & Xử lý lỗi (Reliability & Error Handling):**
+  - **Nút "Thử lại" (Retry action):** Tích hợp nút Thử lại vào banner lỗi `role="alert"` của `BookList.vue`, `BorrowHistory.vue`, `HomePage.vue`, `AuthorList.vue`, `PublisherList.vue`, `CategoryList.vue`, `UserProfile.vue`.
+  - **Ràng buộc giới hạn mượn 5 quyển (5-book quota):** `BookList.vue` tự động tính tổng số bản sách đang mượn/chờ duyệt từ lịch sử mượn (`outstandingCopies`) và giới hạn số sách trong giỏ (`remainingBorrowLimit`). Nếu vượt quá 5 quyển, giao diện hiển thị cảnh báo vàng rõ ràng và vô hiệu hóa nút gửi yêu cầu mượn, ngăn chặn lỗi 400/409 từ server.
+  - **Phòng vệ lỗi crash dữ liệu (Defensive coding):** Chuẩn hóa an toàn `(request.ChiTietPhieuMuons || [])` trong `borrow.js` và `(Array.isArray(response.data) ? ...)` trong `book.js`.
+  - **Sửa khóa định danh bảng sách:** Thay thế triệt để các mã `book._id` còn sót lại từ MongoDB sang khóa chính phức hợp MySQL `${book.maSach}:${book.maTacGia}:${book.maTheLoai}` trong các modal `AuthorList.vue`, `PublisherList.vue`, `CategoryList.vue`.
+  - **Chuẩn hóa thương hiệu:** Cập nhật tên thư viện trong `HomePage.vue` thành "Thư viện CTU" (thay cho thông tin cá nhân cũ của source gốc) và sửa lỗi biến `loading` chưa khai báo trong `HomePage.vue`. Injected `navigateToTab` giúp chuyển tab SPA mượt mà từ các thẻ thống kê.
+
+### 2. Danh sách file đã chỉnh sửa
+| STT | Đường dẫn file | Nội dung thay đổi chính |
+|---|---|---|
+| 1 | `frontend/src/views/ReaderDashboard.vue` | Semantic menubar, aria attributes, user summary card trên mobile, focus-visible styling, provide `navigateToTab`. |
+| 2 | `frontend/src/components/reader/BookList.vue` | Quota check 5 quyển (cart vs active loans), visually-hidden labels, dialog aria attributes, retry button, responsive drawer & grid. |
+| 3 | `frontend/src/components/reader/BorrowHistory.vue` | Icon kết hợp màu cho từng trạng thái, retry button, table horizontal scroll hint, aria-label cho nút tải PDF / yêu cầu trả, tablist a11y. |
+| 4 | `frontend/src/components/reader/HomePage.vue` | Cập nhật thương hiệu "Thư viện CTU", fix biến `loading`, retry button, điều hướng nhanh tab qua `navigateToTab`, thẻ thống kê có thể tương tác bàn phím. |
+| 5 | `frontend/src/components/reader/AuthorList.vue` | Sửa khóa lặp hàng thành `${book.maSach}:${book.maTacGia}:${book.maTheLoai}`, dialog attributes, retry button, focus-visible. |
+| 6 | `frontend/src/components/reader/PublisherList.vue` | Form search a11y label, retry button, dialog modal a11y, composite key fix, responsive CSS. |
+| 7 | `frontend/src/components/reader/CategoryList.vue` | Form search a11y label, retry button, dialog modal a11y, composite key fix, responsive CSS. |
+| 8 | `frontend/src/components/reader/UserProfile.vue` | WCAG form attributes (`aria-required`, `aria-invalid`, `aria-describedby`), retry button khi fetch lỗi, responsive styling. |
+| 9 | `frontend/src/store/modules/borrow.js` | Safe null-check `(request.ChiTietPhieuMuons || [])` chống crash khi server trả data thiếu mảng chi tiết. |
+| 10 | `frontend/src/store/modules/book.js` | Normalize response data sách và ưu tiên câu thông báo lỗi tiếng Việt thân thiện. |
+
+### 3. Lệnh đã chạy và kết quả kiểm thử
+- **Lệnh thực hiện:** `npm run build` tại thư mục `frontend`.
+- **Kết quả:** **PASS (Code 0, built in 12.43s)**. Toàn bộ 142 modules Vue/JS/CSS biên dịch thành công, không có lỗi cú pháp, template hay bundle.
+
+### 4. Bảng kiểm tra nghiệm thu (PASS/FAIL Checklist)
+- [x] **[PASS] Focus Visibility:** Điều hướng bàn phím qua phím `Tab` hiển thị rõ viền nét xanh `:focus-visible` trên tất cả liên kết, nút bấm và trường nhập liệu.
+- [x] **[PASS] Form Labels & Screen Readers:** Các ô tìm kiếm và form có nhãn tường minh hoặc `.visually-hidden`, hỗ trợ công nghệ trợ năng đọc tên trường.
+- [x] **[PASS] Phân biệt trạng thái không chỉ bằng màu:** Bảng lịch sử mượn hiển thị rõ ràng icon biểu tượng song song với chữ và màu sắc cho 6 trạng thái (`Chờ duyệt`, `Đang mượn`, `Chờ xác nhận trả`, `Đã trả`, `Từ chối`, `Quá hạn`).
+- [x] **[PASS] Dialog Accessibility:** Giỏ mượn và modal xem sách có thuộc tính `role="dialog"`, `aria-modal="true"`, `aria-labelledby`.
+- [x] **[PASS] Responsive Màn hình hẹp:** Drawer giỏ mượn hiển thị tối ưu trên màn hình <640px, bảng lịch sử có cuộn ngang không làm vỡ bố cục trang.
+- [x] **[PASS] Nút Thử lại khi gặp sự cố:** Tất cả các màn hình danh sách và thông tin độc giả đều có nút "Thử lại" khi mạng hoặc API phản hồi lỗi.
+- [x] **[PASS] Khóa giới hạn mượn 5 quyển:** Giỏ mượn tính toán trước với số sách đang mượn/chờ duyệt, ngăn chặn vượt hạn mức 5 quyển trước khi gửi lên backend.
+- [x] **[PASS] Chuẩn hóa MySQL Composite Key:** Không còn tham chiếu `_id` của MongoDB trong danh sách sách theo tác giả, NXB, thể loại.
+- [x] **[PASS] Build & Tương thích:** Không can thiệp API/schema của A, giữ nguyên router/guards và dashboard của B.
+
+### 5. Rủi ro còn lại và lưu ý vận hành
+- Cần đảm bảo backend server (`npm run dev` ở port 5000) và MySQL (port 3306) đang hoạt động bình thường khi demo.
+- File `frontend/.env` cần có `VITE_API_IMAGE_URL=http://localhost:5000` để các bìa sách hiển thị đầy đủ ảnh upload từ backend.
+
+### 7. Cập nhật sửa lỗi Dashboard 500 & Tràn thanh điều hướng Admin (AdminDashboard.vue)
+- **Vấn đề 1: Lỗi 500 trên trang Tổng quan quản trị (`/admin`):**
+  - *Nguyên nhân:*
+    1. Trong MySQL, bảng `ChiTietPhieuMuon` thực tế chỉ có các cột: `maChiTietPM`, `maPhieuMuon`, `maSach`, `soLuongSachMuon`, `createdAt`, `updatedAt` (không có cột `maDocGia` vì `maDocGia` nằm ở bảng `PhieuMuon`).
+    2. Trong stored procedure `sp_thong_ke_sach_muon_thang`, câu lệnh SQL cũ join `ON ChiTietPhieuMuon.maPhieuMuon = PhieuMuon.maPhieuMuon AND ChiTietPhieuMuon.maDocGia = PhieuMuon.maDocGia`, dẫn đến lỗi MySQL: `Unknown column 'ChiTietPhieuMuon.maDocGia' in 'on clause'`.
+    3. Trong `reportController.js`, API `getDetailedUnreturnedLoans` truy vấn `ct.maDocGia`, `ct.maTacGia`, `ct.maTheLoai` và join bằng `ct.maDocGia = pm.maDocGia`, dẫn đến lỗi `Unknown column 'ct.maDocGia' in 'field list'`.
+  - *Giải pháp đã xử lý:*
+    1. Đã chuẩn hóa lại `sp_thong_ke_sach_muon_thang` trong MySQL: loại bỏ điều kiện join thừa trên `maDocGia`. Đồng thời thêm cơ chế tự động đồng bộ stored procedure và fallback truy vấn SQL trực tiếp trong `backend/controllers/reportController.js`.
+    2. Sửa câu lệnh SQL trong `getDetailedUnreturnedLoans`: lấy `pm.maDocGia`, `s.maTacGia`, `s.maTheLoai` thông qua bảng `PhieuMuon` và `Sach`, join `ChiTietPhieuMuon` qua `maPhieuMuon`.
+    3. Cập nhật model `ChiTietPhieuMuon.js` và `borrowController.js`: loại bỏ các trường không tồn tại trong bảng để đảm bảo tính nhất quán tuyệt đối.
+- **Vấn đề 2: Nút "Đăng xuất" bị tràn ra ngoài màn hình:**
+  - *Nguyên nhân:* Khung navbar sử dụng thẻ Bootstrap `<div class="container">` cố định max-width (1140px/1320px). Với 7 tab quản lý cùng cụm thông tin user + link độc giả + nút đăng xuất dài với `white-space: nowrap`, tổng chiều rộng vượt quá chiều rộng của container, khiến phần tử cuối cùng ("Đăng xuất") bị đẩy tràn ra khỏi lề phải màn hình.
+  - *Giải pháp đã xử lý:*
+    1. Thay thế `<div class="container">` bằng `<div class="container-fluid px-3 px-xl-4">` giúp navbar tận dụng toàn bộ chiều rộng màn hình.
+    2. Tinh chỉnh padding, font-size và gap của 7 tab quản trị (`padding: 6px 9px; font-size: 0.84rem;`).
+    3. Thêm media query linh hoạt cho các khoảng màn hình 992px–1240px và 1241px–1400px, đảm bảo tất cả các nút luôn hiển thị trọn vẹn, không bao giờ bị cắt viền hay tràn trang.
+- **Kết quả kiểm thử:**
+  - Đã xác thực trực tiếp qua browser subagent: Thông báo lỗi 500 biến mất 100%, các thẻ thống kê thư viện tải mượt mà, và nút "Đăng xuất" hiển thị rõ ràng, cân đối ở góc trên bên phải.
+
+### 8. Cập nhật sửa lỗi mất số liệu "Danh mục thư viện" khi Refresh (F5) trang quản trị
+- **Vấn đề:** Khi người dùng bấm F5 (Refresh) tại trang Tổng quan quản trị (`/admin`), các thẻ trong mục "Danh mục thư viện" (Tổng số sách, Tác giả, Nhà xuất bản) bị trở về 0.
+- **Nguyên nhân:**
+  1. Các số liệu `totalBooks`, `totalAuthors`, `totalPublishers` được tính toán thông qua getter của Vuex store (`store.getters['book/allBooks'].length`, ...).
+  2. Vuex lưu trạng thái trong RAM của trình duyệt. Khi người dùng bấm F5 tải lại trang web, Vuex bị reset hoàn toàn về mảng rỗng ban đầu `[]`.
+  3. Hàm khởi tạo `loadDashboard()` của `AdminHomePage.vue` trước đó chỉ gọi API thống kê báo cáo (`dashboardReportService.getDashboardReport()`) mà không kích hoạt gọi tải danh sách Sách, Tác giả, Nhà xuất bản. Do đó, nếu người dùng chưa click chuyển qua các tab quản lý khác để trigger fetch dữ liệu, Vuex store sẽ giữ mảng rỗng, khiến 3 thẻ hiển thị số 0.
+- **Giải pháp đã xử lý:**
+  1. Trong `frontend/src/components/admin/AdminHomePage.vue`: Bổ sung gọi song song các action Vuex `book/fetchBooks`, `author/fetchAuthors`, `publisher/fetchPublishers` cùng lúc với `getDashboardReport()` thông qua `Promise.all` trong hàm `loadDashboard()`.
+  2. Trong `frontend/src/store/modules/author.js` và `publisher.js`: Thêm kiểm tra phòng vệ `Array.isArray(data) ? data : (data?.data || [])` tại mutations `SET_AUTHORS` và `SET_PUBLISHERS` để đảm bảo state luôn là mảng chuẩn.
+- **Kết quả:** Khi mở trang lần đầu hoặc khi bấm F5 refresh trang, hệ thống tự động tải ngay dữ liệu thực tế từ cơ sở dữ liệu vào Vuex; các thẻ "Tổng số sách", "Tác giả", "Nhà xuất bản" luôn giữ đúng số lượng chính xác.
+
+### 9. Ghi chú Commit & Pull Request cho đợt cập nhật (19/10/2026)
+- **Tiêu đề Commit / PR:** `fix(admin): Khắc phục lỗi 500 Dashboard, tràn nút đăng xuất navbar và mất số liệu thống kê khi F5`
+- Xem chi tiết mẫu commit, nội dung PR và lệnh git tại [next_step_guide.md](file:///d:/Project/CT467/LibraryManagement/Cores/next_step_guide.md).

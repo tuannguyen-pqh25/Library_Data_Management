@@ -1,7 +1,7 @@
 <template>
   <div class="reader-shell">
     <!-- ── Navbar ── -->
-    <nav class="rd-navbar">
+    <nav class="rd-navbar" aria-label="Thanh điều hướng chính của độc giả">
       <div class="rd-navbar__inner">
         <!-- Brand -->
         <a
@@ -9,22 +9,25 @@
           href="#"
           @click.prevent="currentComponent = 'HomePage'"
           id="nav-brand"
+          aria-label="Về trang chủ Thư viện CTU"
         >
-          <i class="fas fa-book-open me-2"></i>
+          <i class="fas fa-book-open me-2" aria-hidden="true"></i>
           <span class="brand-name">Thư viện CTU</span>
         </a>
 
         <!-- Desktop Nav Links -->
-        <ul class="rd-navbar__links">
-          <li v-for="item in navItems" :key="item.component">
+        <ul class="rd-navbar__links" role="menubar">
+          <li v-for="item in navItems" :key="item.component" role="none">
             <a
               class="rd-navbar__link"
               :class="{ 'rd-navbar__link--active': currentComponent === item.component }"
               href="#"
+              role="menuitem"
+              :aria-current="currentComponent === item.component ? 'page' : undefined"
               @click.prevent="currentComponent = item.component"
               :id="`nav-${item.component.toLowerCase()}`"
             >
-              <i :class="item.icon + ' me-1'"></i>{{ item.label }}
+              <i :class="item.icon + ' me-1'" aria-hidden="true"></i>{{ item.label }}
             </a>
           </li>
         </ul>
@@ -36,6 +39,7 @@
             class="rd-navbar__admin-return"
             type="button"
             @click="returnToAdmin"
+            aria-label="Quay lại giao diện quản trị"
           >
             <i class="fas fa-arrow-left me-2" aria-hidden="true"></i>
             Về quản trị
@@ -44,36 +48,54 @@
             class="rd-navbar__user-btn"
             @click="currentComponent = 'UserProfile'"
             id="nav-profile"
+            :aria-label="`Xem hồ sơ cá nhân của ${currentUserName}`"
           >
-            <span class="user-avatar">
+            <span class="user-avatar" aria-hidden="true">
               {{ userInitial }}
             </span>
             <span class="user-name">{{ currentUserName }}</span>
           </button>
-          <button class="rd-navbar__logout" @click="handleLogout" id="nav-logout" aria-label="Đăng xuất">
-            <i class="fas fa-sign-out-alt"></i>
+          <button class="rd-navbar__logout" @click="handleLogout" id="nav-logout" aria-label="Đăng xuất khỏi hệ thống">
+            <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
           </button>
 
         </div>
 
         <!-- Mobile Hamburger -->
-        <button class="rd-navbar__toggle" @click="mobileOpen = !mobileOpen" aria-label="Mở menu">
-          <i :class="mobileOpen ? 'fas fa-times' : 'fas fa-bars'"></i>
+        <button
+          class="rd-navbar__toggle"
+          @click="mobileOpen = !mobileOpen"
+          :aria-expanded="mobileOpen ? 'true' : 'false'"
+          aria-controls="mobile-nav-menu"
+          aria-label="Mở hoặc đóng menu điều hướng"
+        >
+          <i :class="mobileOpen ? 'fas fa-times' : 'fas fa-bars'" aria-hidden="true"></i>
         </button>
       </div>
 
       <!-- Mobile Dropdown -->
       <transition name="mobile-drop">
-        <div v-if="mobileOpen" class="rd-navbar__mobile">
+        <div v-if="mobileOpen" class="rd-navbar__mobile" id="mobile-nav-menu">
+          <!-- Mobile User Summary -->
+          <div class="rd-navbar__mobile-user">
+            <span class="user-avatar user-avatar--mobile" aria-hidden="true">{{ userInitial }}</span>
+            <div class="rd-navbar__mobile-user-info">
+              <span class="rd-navbar__mobile-user-name">{{ currentUserName }}</span>
+              <span class="rd-navbar__mobile-user-role">{{ isAdmin ? 'Quản trị viên' : 'Độc giả' }}</span>
+            </div>
+          </div>
+          <hr class="rd-navbar__mobile-sep" />
+
           <a
             v-for="item in navItems"
             :key="item.component + '-m'"
             class="rd-navbar__mobile-link"
             :class="{ 'rd-navbar__mobile-link--active': currentComponent === item.component }"
             href="#"
+            :aria-current="currentComponent === item.component ? 'page' : undefined"
             @click.prevent="currentComponent = item.component; mobileOpen = false"
           >
-            <i :class="item.icon + ' me-2'"></i>{{ item.label }}
+            <i :class="item.icon + ' me-2'" aria-hidden="true"></i>{{ item.label }}
           </a>
           <hr class="rd-navbar__mobile-sep" />
           <a
@@ -89,10 +111,10 @@
             href="#"
             @click.prevent="currentComponent = 'UserProfile'; mobileOpen = false"
           >
-            <i class="fas fa-user me-2"></i>Hồ sơ cá nhân
+            <i class="fas fa-user me-2" aria-hidden="true"></i>Hồ sơ cá nhân
           </a>
           <a class="rd-navbar__mobile-link rd-navbar__mobile-link--danger" href="#" @click.prevent="handleLogout">
-            <i class="fas fa-sign-out-alt me-2"></i>Đăng xuất
+            <i class="fas fa-sign-out-alt me-2" aria-hidden="true"></i>Đăng xuất
           </a>
         </div>
       </transition>
@@ -135,7 +157,7 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, provide } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import HomePage     from '@/components/reader/HomePage.vue';
@@ -189,6 +211,7 @@ export default {
     };
 
     const navigateTo = (c) => { currentComponent.value = c; };
+    provide('navigateToTab', navigateTo);
 
     return {
       currentComponent, mobileOpen, currentYear,
@@ -376,12 +399,44 @@ export default {
   flex-direction: column;
   background: var(--c-surface);
   border-top: 1px solid var(--c-border);
-  padding: 0.5rem 1rem 1rem;
+  padding: 0.75rem 1rem 1rem;
+}
+.rd-navbar__mobile-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid var(--c-border);
+}
+.user-avatar--mobile {
+  width: 38px;
+  height: 38px;
+  font-size: 1rem;
+}
+.rd-navbar__mobile-user-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.rd-navbar__mobile-user-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rd-navbar__mobile-user-role {
+  font-size: 0.75rem;
+  color: var(--c-muted);
 }
 .rd-navbar__mobile-link {
   display: flex;
   align-items: center;
-  padding: 0.7rem 0.75rem;
+  padding: 0.75rem 0.75rem;
+  min-height: 44px;
   border-radius: 10px;
   color: var(--c-muted);
   text-decoration: none;
@@ -390,7 +445,7 @@ export default {
   transition: all 0.18s;
 }
 .rd-navbar__mobile-link:hover { color: var(--c-primary); background: #eff6ff; }
-.rd-navbar__mobile-link--active { color: var(--c-primary); font-weight: 600; }
+.rd-navbar__mobile-link--active { color: var(--c-primary); font-weight: 600; background: #eff6ff; }
 .rd-navbar__mobile-link--admin { color: var(--c-primary-dk); font-weight: 600; }
 .rd-navbar__mobile-link--admin:hover { background: #eff6ff; }
 .rd-navbar__mobile-link--danger { color: var(--c-danger); }
@@ -401,6 +456,13 @@ export default {
 .mobile-drop-leave-active { transition: all 0.22s ease; }
 .mobile-drop-enter-from,
 .mobile-drop-leave-to { opacity: 0; transform: translateY(-8px); }
+
+/* ── Focus Visible ───────────────────────────────────────── */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+}
 
 /* ── Main ────────────────────────────────────────────────── */
 .rd-main { flex: 1; }
