@@ -25,6 +25,18 @@
   - Giai đoạn 2:
     Đã kết nối dashboard quản trị với API tổng quan và API danh sách phiếu chưa trả. Dashboard hiển thị ba chỉ số bắt buộc, thông tin độc giả/sách và hạn trả, bộ lọc phiếu quá hạn cùng badge số ngày trễ; giữ các trạng thái tải, lỗi và rỗng. Biểu đồ dùng số liệu mượn của tháng hiện tại từ API. API chưa cung cấp lịch sử nhiều tháng nên hiện chưa thể so sánh xu hướng.
   * trạng thái đã hoàn thành giai đoạn 2:
+  - Giai đoạn 3:
+    Xác nhận dashboard dùng hai API báo cáo hiện có: tổng quan và danh sách phiếu chưa trả.
+    Rà soát responsive: thẻ chỉ số xếp thành một cột trên màn hình hẹp, bộ lọc chuyển sang bố cục dọc và bảng phiếu có vùng cuộn ngang.
+    Đối chiếu biểu đồ với API: hiện API chỉ trả tổng sách mượn tháng này, chưa trả lịch sử nhiều tháng. Biểu đồ hiển thị một điểm tháng hiện tại và giao diện nêu rõ chưa có lịch sử so sánh. Khi API trả monthlyLoans gồm nhiều tháng, dashboard sẽ hiển thị các điểm tương ứng.
+    Không phát hiện lỗi cần sửa trong phạm vi rà soát.
+    * Bổ sung điều hướng admin ↔ giao diện độc giả
+    Phạm vi: Chỉ cập nhật giao diện điều hướng; giữ nguyên route guard, API và quyền truy cập.
+    Trong AdminDashboard.vue, thêm liên kết Giao diện độc giả để admin mở /reader.
+    Trong ReaderDashboard.vue, thêm nút Về quản trị cho tài khoản admin. Tài khoản độc giả không thấy nút này.
+    Khi admin vào giao diện độc giả, tên và chữ cái đại diện hiển thị theo thông tin nhân viên.
+    Không chỉnh sửa router, store, backend hoặc nghiệp vụ mượn/trả.
+  - Trạng thái hoàn thành giai đoạn 3: 
 
 - **Người C (Tuấn - Trải nghiệm Độc giả & Frontend):**
   - Đã thiết kế lại toàn bộ UI khu vực Độc giả (BookList, Drawer Giỏ mượn, PublisherList, BorrowHistory).

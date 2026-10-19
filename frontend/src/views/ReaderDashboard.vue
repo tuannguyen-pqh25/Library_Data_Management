@@ -32,6 +32,15 @@
         <!-- User Area -->
         <div class="rd-navbar__user">
           <button
+            v-if="isAdmin"
+            class="rd-navbar__admin-return"
+            type="button"
+            @click="returnToAdmin"
+          >
+            <i class="fas fa-arrow-left me-2" aria-hidden="true"></i>
+            Về quản trị
+          </button>
+          <button
             class="rd-navbar__user-btn"
             @click="currentComponent = 'UserProfile'"
             id="nav-profile"
@@ -39,7 +48,7 @@
             <span class="user-avatar">
               {{ userInitial }}
             </span>
-            <span class="user-name">{{ currentUser?.fullName || 'Độc giả' }}</span>
+            <span class="user-name">{{ currentUserName }}</span>
           </button>
           <button class="rd-navbar__logout" @click="handleLogout" id="nav-logout" aria-label="Đăng xuất">
             <i class="fas fa-sign-out-alt"></i>
@@ -67,6 +76,14 @@
             <i :class="item.icon + ' me-2'"></i>{{ item.label }}
           </a>
           <hr class="rd-navbar__mobile-sep" />
+          <a
+            v-if="isAdmin"
+            class="rd-navbar__mobile-link rd-navbar__mobile-link--admin"
+            href="#"
+            @click.prevent="returnToAdmin"
+          >
+            <i class="fas fa-arrow-left me-2" aria-hidden="true"></i>Về quản trị
+          </a>
           <a
             class="rd-navbar__mobile-link"
             href="#"
@@ -154,10 +171,16 @@ export default {
     });
 
     const currentUser = computed(() => store.getters['auth/currentUser']);
+    const isAdmin = computed(() => store.getters['auth/isAdmin']);
+    const currentUserName = computed(() => (
+      currentUser.value?.fullName || currentUser.value?.hoTenNV || 'Độc giả'
+    ));
     const userInitial = computed(() => {
-      const name = currentUser.value?.fullName || 'D';
+      const name = currentUserName.value || 'D';
       return name.trim().split(' ').pop()?.[0]?.toUpperCase() ?? 'D';
     });
+
+    const returnToAdmin = () => router.push('/admin');
 
     const handleLogout = async () => {
       await store.dispatch('auth/logout');
@@ -169,7 +192,7 @@ export default {
 
     return {
       currentComponent, mobileOpen, currentYear,
-      currentUser, userInitial,
+      currentUser, currentUserName, userInitial, isAdmin, returnToAdmin,
       navItems: NAV_ITEMS,
       handleLogout, navigateTo,
     };
@@ -267,8 +290,26 @@ export default {
 .rd-navbar__user {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   margin-left: auto;
+}
+.rd-navbar__admin-return {
+  align-items: center;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  color: var(--c-primary-dk);
+  cursor: pointer;
+  display: inline-flex;
+  font: 500 0.8rem var(--font-body);
+  min-height: 36px;
+  padding: 0.4rem 0.75rem;
+  white-space: nowrap;
+}
+.rd-navbar__admin-return:hover,
+.rd-navbar__admin-return:focus-visible {
+  background: #dbeafe;
+  color: #1e40af;
 }
 .rd-navbar__user-btn {
   display: flex;
@@ -350,6 +391,8 @@ export default {
 }
 .rd-navbar__mobile-link:hover { color: var(--c-primary); background: #eff6ff; }
 .rd-navbar__mobile-link--active { color: var(--c-primary); font-weight: 600; }
+.rd-navbar__mobile-link--admin { color: var(--c-primary-dk); font-weight: 600; }
+.rd-navbar__mobile-link--admin:hover { background: #eff6ff; }
 .rd-navbar__mobile-link--danger { color: var(--c-danger); }
 .rd-navbar__mobile-link--danger:hover { background: #fef2f2; }
 .rd-navbar__mobile-sep { margin: 0.5rem 0; border-color: var(--c-border); }

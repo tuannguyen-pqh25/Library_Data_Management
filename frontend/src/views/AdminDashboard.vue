@@ -71,6 +71,12 @@
                 </div>
               </li>
               <li class="nav-item">
+                <router-link class="nav-link admin-reader-link" to="/reader">
+                  <i class="fas fa-book-open" aria-hidden="true"></i>
+                  <span>Giao diện độc giả</span>
+                </router-link>
+              </li>
+              <li class="nav-item">
                 <a class="nav-link admin-logout" href="#" @click.prevent="handleLogout">
                   <i class="fas fa-right-from-bracket" aria-hidden="true"></i>
                   <span>Đăng xuất</span>
@@ -290,6 +296,19 @@
     gap: 8px;
     padding-inline: 12px;
     border: 1px solid rgb(255 255 255 / 18%);
+    color: #fff;
+  }
+
+  .admin-navbar .nav-link.admin-reader-link {
+    gap: 8px;
+    padding-inline: 12px;
+    border: 1px solid rgb(184 241 223 / 35%);
+    color: #c9f4e5;
+  }
+
+  .admin-navbar .nav-link.admin-reader-link:hover,
+  .admin-navbar .nav-link.admin-reader-link:focus-visible {
+    background: rgb(184 241 223 / 12%);
     color: #fff;
   }
 
