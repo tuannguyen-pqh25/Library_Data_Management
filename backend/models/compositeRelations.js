@@ -12,8 +12,8 @@ function completeKey(source, fields) {
   return where;
 }
 
-const loanDetailWhere = (loan) => completeKey(loan, ['maPhieuMuon']);
-const bookDetailWhere = (book) => completeKey(book, ['maSach']);
+const loanDetailWhere = (loan) => completeKey(loan, ['maPhieuMuon', 'maDocGia']);
+const bookDetailWhere = (book) => completeKey(book, ['maSach', 'maTacGia', 'maTheLoai']);
 const detailReturnWhere = (detail) => completeKey(detail, ['maChiTietPM', 'maPhieuMuon', 'maSach']);
 
 function registerAssociations({ Sach, TacGia, TheLoai, NhaXuatBan, PhieuMuon, DocGia }) {

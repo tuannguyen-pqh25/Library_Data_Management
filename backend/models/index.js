@@ -15,9 +15,11 @@ const sequelize = new Sequelize(
 );
 
 // Test kết nối
-sequelize.authenticate()
-  .then(() => console.log('Kết nối MySQL thành công!'))
-  .catch(err => console.error('Lỗi kết nối:', err));
+if (process.env.NODE_ENV !== 'test') {
+  sequelize.authenticate()
+    .then(() => console.log('Kết nối MySQL thành công!'))
+    .catch(err => console.error('Lỗi kết nối:', err));
+}
 
 // Initialize models
 const DocGia = require('./DocGia')(sequelize, DataTypes);
@@ -35,8 +37,10 @@ const { registerAssociations } = require('./compositeRelations');
 registerAssociations({ Sach, TacGia, TheLoai, NhaXuatBan, PhieuMuon, DocGia });
 
 // Debugging
-console.log('NhanVien.findOne:', typeof NhanVien.findOne);
-console.log('DocGia.findOne:', typeof DocGia.findOne);
-console.log('NhaXuatBan.findOne:', typeof NhaXuatBan.findOne);
+if (process.env.NODE_ENV !== 'test') {
+  console.log('NhanVien.findOne:', typeof NhanVien.findOne);
+  console.log('DocGia.findOne:', typeof DocGia.findOne);
+  console.log('NhaXuatBan.findOne:', typeof NhaXuatBan.findOne);
+}
 
 module.exports = { sequelize, DocGia, NhanVien, NhaXuatBan, TacGia, TheLoai, Sach, PhieuMuon, ChiTietPhieuMuon, PhieuTra };
