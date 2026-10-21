@@ -22,6 +22,7 @@ const getOutstandingCopies = async (maDocGia, transaction) => {
     FROM ChiTietPhieuMuon
     INNER JOIN PhieuMuon
       ON PhieuMuon.maPhieuMuon = ChiTietPhieuMuon.maPhieuMuon
+     AND PhieuMuon.maDocGia = ChiTietPhieuMuon.maDocGia
     WHERE PhieuMuon.maDocGia = :maDocGia
       AND PhieuMuon.trangThai IN (:statuses)
   `, {
@@ -34,15 +35,15 @@ const getOutstandingCopies = async (maDocGia, transaction) => {
 
 const getDetails = async (loan, transaction) => {
   const details = await ChiTietPhieuMuon.findAll({
-    where: { maPhieuMuon: loan.maPhieuMuon },
-    order: [['maSach', 'ASC']], transaction,
+    where: { maPhieuMuon: loan.maPhieuMuon, maDocGia: loan.maDocGia },
+    order: [['maSach', 'ASC'], ['maTacGia', 'ASC'], ['maTheLoai', 'ASC']], transaction,
   });
   for (const detail of details) {
     detail.setDataValue('Sach', await Sach.findOne({ where: {
-      maSach: detail.maSach,
+      maSach: detail.maSach, maTacGia: detail.maTacGia, maTheLoai: detail.maTheLoai,
     }, transaction }));
     detail.setDataValue('PhieuTra', await PhieuTra.findAll({ where: {
-      maChiTietPM: detail.maChiTietPM,
+      maChiTietPM: detail.maChiTietPM, maPhieuMuon: detail.maPhieuMuon, maSach: detail.maSach,
     }, transaction }));
   }
   return details;
@@ -67,13 +68,13 @@ const loadReturn = async (maPhieuTra, maChiTietPM) => {
   const record = await PhieuTra.findOne({ where: { maPhieuTra, maChiTietPM } });
   if (!record) return null;
   const detail = await ChiTietPhieuMuon.findOne({ where: {
-    maChiTietPM: record.maChiTietPM,
+    maChiTietPM: record.maChiTietPM, maPhieuMuon: record.maPhieuMuon, maSach: record.maSach,
   } });
   if (!detail) return null;
   detail.setDataValue('Sach', await Sach.findOne({ where: {
-    maSach: detail.maSach,
+    maSach: detail.maSach, maTacGia: detail.maTacGia, maTheLoai: detail.maTheLoai,
   } }));
-  const loan = await PhieuMuon.findOne({ where: { maPhieuMuon: detail.maPhieuMuon } });
+  const loan = await PhieuMuon.findOne({ where: { maPhieuMuon: detail.maPhieuMuon, maDocGia: detail.maDocGia } });
   if (loan) {
     loan.setDataValue('DocGia', await DocGia.findByPk(loan.maDocGia));
     loan.setDataValue('ChiTietPhieuMuons', await getDetails(loan));
@@ -167,6 +168,13 @@ const createBorrowRequest = async (req, res) => {
       );
     }
 
+    for (const detail of normalizedDetails) {
+      const book = await Sach.findOne({ where: { maSach: detail.maSach }, transaction });
+      if (!book) {
+        throw Object.assign(new Error(`Sách ${detail.maSach} không tồn tại`), { statusCode: 404 });
+      }
+    }
+
     const phieuMuon = await PhieuMuon.create({
       maDocGia: req.user.maDocGia,
       ngayMuon,
@@ -175,8 +183,8 @@ const createBorrowRequest = async (req, res) => {
     }, { transaction });
     for (const detail of normalizedDetails) {
       await ChiTietPhieuMuon.create({
-        maPhieuMuon: phieuMuon.maPhieuMuon,
-        maSach: detail.maSach,
+        maPhieuMuon: phieuMuon.maPhieuMuon, maDocGia: phieuMuon.maDocGia,
+        maSach: detail.maSach, maTacGia: detail.maTacGia, maTheLoai: detail.maTheLoai,
         soLuongSachMuon: detail.soLuongSachMuon,
       }, { transaction });
     }
@@ -294,9 +302,10 @@ const updateBorrowRequest = async (req, res) => {
       }
       const booksByKey = new Map();
       for (const ct of details) {
-        const inventoryKey = `${ct.maSach}`;
+        const key = { maSach: ct.maSach, maTacGia: ct.maTacGia, maTheLoai: ct.maTheLoai };
+        const inventoryKey = `${key.maSach}:${key.maTacGia}:${key.maTheLoai}`;
         if (!booksByKey.has(inventoryKey)) {
-          const book = await Sach.findOne({ where: { maSach: ct.maSach }, transaction, lock: transaction.LOCK.UPDATE });
+          const book = await Sach.findOne({ where: key, transaction, lock: transaction.LOCK.UPDATE });
           if (!book) throw Object.assign(new Error(`Sách ${ct.maSach} không tồn tại`), { statusCode: 404 });
           booksByKey.set(inventoryKey, { book, quantity: 0 });
         }
@@ -314,7 +323,7 @@ const updateBorrowRequest = async (req, res) => {
         }
       } else {
         for (const ct of details) {
-          const returnKey = { maChiTietPM: ct.maChiTietPM };
+          const returnKey = { maChiTietPM: ct.maChiTietPM, maPhieuMuon: ct.maPhieuMuon, maSach: ct.maSach };
           const existingPhieuTra = await PhieuTra.findOne({ where: returnKey, transaction });
           if (existingPhieuTra) throw Object.assign(new Error('Chi tiết phiếu mượn đã được trả'), { statusCode: 400 });
           await PhieuTra.create({ ...returnKey, ngayTraSach: new Date() }, { transaction });

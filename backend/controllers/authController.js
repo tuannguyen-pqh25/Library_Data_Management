@@ -187,6 +187,12 @@ const checkReaderStatus = async (req, res) => {
     if (!Number.isInteger(maDocGia) || maDocGia <= 0) {
       return res.status(400).json({ error: 'Mã độc giả không hợp lệ' });
     }
+
+    // Kiểm tra quyền truy cập: độc giả chỉ có quyền xem trạng thái của chính mình
+    if (req.userType === 'reader' && Number(req.user?.maDocGia) !== maDocGia) {
+      return res.status(403).json({ error: 'Bạn không có quyền truy cập trạng thái của độc giả khác' });
+    }
+
     const results = await sequelize.query('CALL sp_check_reader_status(:maDocGia)', {
       replacements: { maDocGia },
     });

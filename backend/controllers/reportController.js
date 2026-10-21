@@ -2,54 +2,6 @@ const { sequelize } = require('../models');
 const logger = require('../src/logger');
 const { QueryTypes } = require('sequelize');
 
-const ensureDatabaseObjects = async () => {
-  try {
-    await sequelize.query('DROP PROCEDURE IF EXISTS sp_thong_ke_sach_muon_thang');
-    await sequelize.query(`
-      CREATE PROCEDURE sp_thong_ke_sach_muon_thang ()
-      BEGIN
-        SELECT COALESCE(SUM(ChiTietPhieuMuon.soLuongSachMuon), 0) AS tongSachMuonThang
-        FROM ChiTietPhieuMuon
-        JOIN PhieuMuon
-          ON ChiTietPhieuMuon.maPhieuMuon = PhieuMuon.maPhieuMuon
-        WHERE MONTH(PhieuMuon.ngayMuon) = MONTH(CURRENT_DATE())
-          AND YEAR(PhieuMuon.ngayMuon) = YEAR(CURRENT_DATE())
-          AND PhieuMuon.trangThai IN ('Đang mượn', 'Đã trả');
-      END
-    `);
-    logger.info('sp_thong_ke_sach_muon_thang procedure synced successfully');
-  } catch (err) {
-    logger.warn('Could not sync sp_thong_ke_sach_muon_thang', { error: err.message });
-  }
-
-  try {
-    await sequelize.query('DROP TRIGGER IF EXISTS trg_tinh_tien_phat');
-    await sequelize.query(`
-      CREATE TRIGGER trg_tinh_tien_phat
-      BEFORE INSERT ON PhieuTra
-      FOR EACH ROW
-      BEGIN
-        DECLARE ngayTraDuKien DATE;
-        DECLARE soLuongSachMuon INT;
-
-        SELECT PhieuMuon.ngayTra, ChiTietPhieuMuon.soLuongSachMuon
-          INTO ngayTraDuKien, soLuongSachMuon
-        FROM ChiTietPhieuMuon
-        JOIN PhieuMuon
-          ON ChiTietPhieuMuon.maPhieuMuon = PhieuMuon.maPhieuMuon
-        WHERE ChiTietPhieuMuon.maChiTietPM = NEW.maChiTietPM;
-
-        SET NEW.tienPhat = GREATEST(0, DATEDIFF(NEW.ngayTraSach, ngayTraDuKien))
-          * 1000 * soLuongSachMuon;
-      END
-    `);
-    logger.info('trg_tinh_tien_phat trigger synced successfully');
-  } catch (err) {
-    logger.warn('Could not sync trg_tinh_tien_phat', { error: err.message });
-  }
-};
-ensureDatabaseObjects();
-
 const procedureRows = async (name) => {
   const result = await sequelize.query(`CALL ${name}()`);
   let rows = result;

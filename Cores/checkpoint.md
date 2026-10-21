@@ -339,3 +339,72 @@ Các vấn đề nghiệp vụ cần ưu tiên sửa ngay (theo `Chienluoc.md`):
 ### 9. Ghi chú Commit & Pull Request cho đợt cập nhật (19/10/2026)
 - **Tiêu đề Commit / PR:** `fix(admin): Khắc phục lỗi 500 Dashboard, tràn nút đăng xuất navbar và mất số liệu thống kê khi F5`
 - Xem chi tiết mẫu commit, nội dung PR và lệnh git tại [next_step_guide.md](file:///d:/Project/CT467/LibraryManagement/Cores/next_step_guide.md).
+
+---
+
+## Cập nhật 2026-10-21 — Giai đoạn 3 (Tuần 3): Chất lượng, Bảo mật và Concurrency Backend (Thành viên A - Minh)
+
+**Phạm vi:** Backend CSDL, Migration, Authorization Middleware, Race Conditions & Transaction Locking, đồng bộ Stored Procedures/Triggers. Giữ nguyên dashboard của B, UX độc giả của C và CRUD quản trị của D.
+
+### 1. Nội dung công việc đã hoàn thành
+1. **Xác thực quyền ở endpoint nhạy cảm (Security & Authorization):**
+   - Đã bảo vệ endpoint `GET /api/auth/check-reader-status/:maDocGia` bằng middleware `auth`:
+     - Yêu cầu token hợp lệ (chặn truy cập ẩn danh với HTTP 401).
+     - Phân quyền theo vai trò: Độc giả chỉ được kiểm tra trạng thái mượn của chính mình (đối chiếu `req.user.maDocGia === maDocGia`). Mọi nỗ lực thăm dò mã độc giả khác bị từ chối với HTTP 403 Forbidden.
+     - Nhân viên / Admin (`staff`) được phép tra cứu trạng thái mượn của bất kỳ độc giả nào để phục vụ công tác quản trị.
+   - Xác nhận tất cả route thống kê `/api/thong-ke/*` và `/api/reports/*` được bảo vệ nghiêm ngặt bằng `auth` và `adminAuth`.
+
+2. **Chặn triệt để Race Condition tồn kho bằng Transaction & Lock (ACID Concurrency):**
+   - Khóa dòng bi-level: Duyệt mượn (`updateBorrowRequest`) sử dụng `lock: transaction.LOCK.UPDATE` cho bản ghi `DocGia`, `PhieuMuon` và toàn bộ các dòng `Sach` theo thứ tự khóa ghép tăng dần (`maSach ASC, maTacGia ASC, maTheLoai ASC`) nhằm triệt tiêu hoàn toàn nguy cơ Deadlock.
+   - Concurrency Stock Check: Khi hai phiên quản trị cùng duyệt hai phiếu mượn cạnh tranh bản sách cuối cùng (`soLuongHienCo = 1`), giao dịch thứ nhất thành công và trừ tồn về 0; giao dịch thứ hai đọc trạng thái tồn mới nhất dưới khóa UPDATE, phát hiện không đủ số lượng, ném lỗi HTTP 400 rõ ràng và rollback sạch sẽ, số tồn không bao giờ bị âm.
+   - Concurrency Reader Quota Check: Chặn độc giả gửi đồng thời nhiều yêu cầu mượn để vượt quá hạn mức 5 cuốn bằng cơ chế khóa độc giả trong transaction trước khi tính tổng số bản đang mượn/chờ duyệt.
+   - Xác nhận trả sách: Bắt buộc phiếu mượn phải có yêu cầu trả từ độc giả (`yeuCauTraAt`), khóa bản ghi chi tiết và sách, tăng tồn kho và tạo phiếu trả trong cùng transaction (kích hoạt trigger phạt). Ngăn chặn hoàn toàn việc xác nhận trả lặp lại (HTTP 400).
+
+3. **Khắc phục lỗi lệch Schema Models & Khôi phục Composite Keys:**
+   - Khắc phục sự cố từ PR trước (loại bỏ nhầm các trường khóa ngoại ghép trên `ChiTietPhieuMuon` và `PhieuTra` trong Sequelize model khiến `ChiTietPhieuMuon.create` bị MySQL từ chối vì `Field 'maDocGia' doesn't have a default value`).
+   - Khôi phục đầy đủ các trường khóa ngoại ghép trên:
+     - `ChiTietPhieuMuon`: `maDocGia`, `maTacGia`, `maTheLoai`.
+     - `PhieuTra`: `maPhieuMuon`, `maSach`.
+     - `compositeRelations.js`: Khôi phục vị từ `loanDetailWhere`, `bookDetailWhere`, `detailReturnWhere`.
+     - `borrowController.js`: Điền đầy đủ bộ khóa ngoại ghép khi tạo chi tiết phiếu mượn và phiếu trả.
+   - Thêm kiểm tra phòng vệ: `createBorrowRequest` kiểm tra tồn tại của sách trong CSDL trước khi tạo chi tiết, trả về HTTP 404 nếu mã sách không tồn tại.
+
+4. **Chuẩn hóa CSDL bằng Migration mới (No DDL at runtime):**
+   - Tạo migration chính quy `backend/migrations/20261021120000-align-routines-and-triggers.js`:
+     - Cập nhật Stored Procedure `sp_thong_ke_sach_muon_thang`: Loại bỏ điều kiện join sai trên `maDocGia`, gom nhóm số lượng sách mượn trong tháng theo chuẩn.
+     - Cập nhật Trigger `trg_tinh_tien_phat`: Tính tiền phạt tự động dựa trên ngày trả thực tế và ngày trả dự kiến với join chính xác trên `maChiTietPM`.
+     - Cập nhật Stored Procedure `sp_thong_ke_doc_gia_muon_sach_nam`: Sử dụng `COUNT(DISTINCT maDocGia)` trong năm hiện tại theo đúng `Tieuchiduan.md`.
+     - Cập nhật Stored Procedure `sp_danh_sach_phieu_muon_chua_tra`: Lọc chính xác phiếu có trạng thái `'Đang mượn'`.
+   - Gỡ bỏ hoàn toàn hàm tự chạy DDL `ensureDatabaseObjects()` trong `reportController.js`, tuân thủ nguyên tắc quản lý schema độc quyền qua Sequelize Migration.
+   - Bảo vệ kết nối trong `models/index.js`: Chỉ gọi `sequelize.authenticate()` ngoài môi trường test (`process.env.NODE_ENV !== 'test'`).
+
+### 2. Danh sách file đã chỉnh sửa
+| STT | Đường dẫn file | Thay đổi chính |
+|---|---|---|
+| 1 | `backend/routes/authRoutes.js` | Thêm middleware `auth` cho route `GET /check-reader-status/:maDocGia`. |
+| 2 | `backend/controllers/authController.js` | Kiểm tra quyền sở hữu độc giả (độc giả chỉ xem chính mình, staff được xem tất cả), trả 403 nếu vi phạm. |
+| 3 | `backend/controllers/borrowController.js` | Khóa sách theo thứ tự khóa ghép, kiểm tra tồn tại sách trước khi mượn, điền đủ khóa ghép `ChiTietPhieuMuon` và `PhieuTra`, bảo vệ transaction duyệt/trả. |
+| 4 | `backend/controllers/reportController.js` | Gỡ bỏ `ensureDatabaseObjects()`, chuyển hoàn toàn quản lý routine sang migration. |
+| 5 | `backend/models/ChiTietPhieuMuon.js` | Khôi phục thuộc tính `maDocGia`, `maTacGia`, `maTheLoai` khớp với schema MySQL. |
+| 6 | `backend/models/PhieuTra.js` | Khôi phục thuộc tính `maPhieuMuon`, `maSach` khớp với schema MySQL. |
+| 7 | `backend/models/compositeRelations.js` | Khôi phục đầy đủ khóa ngoại ghép cho `loanDetailWhere`, `bookDetailWhere`, `detailReturnWhere`. |
+| 8 | `backend/models/index.js` | Bọc `sequelize.authenticate()` trong điều kiện `NODE_ENV !== 'test'`. |
+| 9 | `backend/migrations/20261021120000-align-routines-and-triggers.js` | Migration mới chuẩn hóa các Stored Procedures và Trigger tính phạt. |
+| 10 | `backend/test/week3-concurrency-and-auth.test.js` | Bộ kiểm thử Tuần 3 kiểm chứng concurrency/race condition, quota limit và phân quyền 401/403. |
+| 11 | `backend/test/borrow-flow.test.js` | Cập nhật mocks cho quota query, userType và trạng thái `yeuCauTraAt`. |
+| 12 | `backend/test/borrow-flow.integration.test.js` | Bổ sung luồng `requestBorrowReturn` và `userType` trong integration test trên MySQL thật. |
+
+### 3. Kết quả kiểm thử (Verification Evidence)
+1. **Kiểm thử đơn vị Backend (Unit Tests):**
+   - Chạy 28 ca kiểm thử trên `borrowRules`, `borrow-flow`, `statistics-api`, `core-schema`, `approval-stock-migration`, `week3-concurrency-and-auth`.
+   - Kết quả: **PASS 28/28 tests (100%)** trong 780ms.
+2. **Kiểm thử tích hợp MySQL thật (MySQL Integration Tests):**
+   - `MIGRATION_TEST_DB_URL=... node --test test/database-features.integration.test.js`: **PASS 1/1**.
+   - `MIGRATION_TEST_DB_URL=... node --test test/borrow-flow.integration.test.js`: **PASS 1/1** (chu kỳ mượn/duyệt/trả/trả lặp, concurrency 2 approvals cạnh tranh 1 sách: 1 đạt [200], 1 từ chối [400], tồn không âm).
+3. **Frontend Production Build:**
+   - `npm run build` tại `frontend`: **PASS (built in 4.04s, 142 modules transformed, 0 errors)**.
+4. **Kiểm tra chuẩn định dạng Git:**
+   - `git diff --check`: **PASS (0 whitespace errors)**.
+
+### 4. Đánh giá trạng thái
+- **Người A (Minh):** Đã hoàn thành toàn bộ mục tiêu Tuần 3 (CSDL, Migration, Transaction Concurrency, Phân quyền Bảo mật Endpoint nhạy cảm, Test Suite).
