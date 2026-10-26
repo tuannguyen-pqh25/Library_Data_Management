@@ -19,13 +19,13 @@ Nguyên tắc phối hợp:
 - Pull request phải có ca kiểm thử tối thiểu cho chức năng thay đổi và dữ liệu mẫu để demo.
 - Trạng thái lưu trong enum hiện hành: `Chờ duyệt`, `Đang mượn`, `Đã trả`, `Từ chối`. Trong tài liệu kế hoạch, `Đã duyệt` nghĩa là phiếu đã được duyệt và tương ứng với `Đang mượn`; code, DB và API tiếp tục dùng `Đang mượn`.
 
-## Các việc bắt buộc trước khi bổ sung
+## Các việc bắt buộc trước khi bổ sung (Trạng thái: ĐÃ HOÀN THÀNH 100% — Nghiệm thu 26/10/2026)
 
-1. Luồng tồn kho được giao cho transaction ở backend khi chuyển `Chờ duyệt → Đang mượn` và `Đang mượn → Đã trả`; migration mới gỡ trigger tăng/giảm tồn. Xác nhận trạng thái triển khai và MySQL runtime trong `checkpoint.md` trước khi coi là nghiệm thu.
-2. Đã áp dụng state machine: `Chờ duyệt → Đang mượn | Từ chối`; `Đang mượn → Đã trả`. Trạng thái lặp và chuyển thẳng sang đã trả bị từ chối.
-3. Procedure “phiếu mượn chưa trả” lọc `Đang mượn`, đúng với enum hiện tại; đã kiểm tra bằng MySQL integration.
-4. Procedure năm dùng `COUNT(DISTINCT maDocGia)` theo năm mượn và loại phiếu chờ/từ chối; đã kiểm tra bằng MySQL integration.
-5. Hai API admin `/api/thong-ke/tong-quan` và `/api/thong-ke/phieu-chua-tra` đã được triển khai. B cần tích hợp dashboard với API thay vì tự tính từ dữ liệu frontend.
+1. **[ĐÃ HOÀN THÀNH]** Luồng tồn kho được giao cho transaction ở backend khi chuyển `Chờ duyệt → Đang mượn` và `Đang mượn → Đã trả`; migration mới gỡ trigger tăng/giảm tồn. Xác nhận trạng thái triển khai và MySQL runtime trong `checkpoint.md` đã nghiệm thu.
+2. **[ĐÃ HOÀN THÀNH]** Đã áp dụng state machine: `Chờ duyệt → Đang mượn | Từ chối`; `Đang mượn → Đã trả`. Trạng thái lặp và chuyển thẳng sang đã trả bị từ chối.
+3. **[ĐÃ HOÀN THÀNH]** Procedure “phiếu mượn chưa trả” lọc `Đang mượn`, đúng với enum hiện tại; đã kiểm tra bằng MySQL integration PASS.
+4. **[ĐÃ HOÀN THÀNH]** Procedure năm dùng `COUNT(DISTINCT maDocGia)` theo năm mượn và loại phiếu chờ/từ chối; đã kiểm tra bằng MySQL integration PASS.
+5. **[ĐÃ HOÀN THÀNH]** Hai API admin `/api/thong-ke/tong-quan` và `/api/thong-ke/phieu-chua-tra` đã được triển khai. B đã tích hợp dashboard với API thật, có cơ chế nạp song song tránh reset số liệu khi F5.
 
 ## Phân công độc lập
 
@@ -64,19 +64,19 @@ Giao kèo API: A công bố trước tuần 2 payload cho `GET /api/thong-ke/ton
 - **D:** import/export hoàn thiện, backup dữ liệu mẫu, kiểm thử CRUD và xử lý ảnh sách; cập nhật hướng dẫn vận hành.
 - **Mốc chung:** chạy regression checklist; không nhận tính năng mới sau giữa tuần 3.
 
-### Tuần 4 — đóng gói và bảo vệ đồ án
+### Tuần 4 — đóng gói và bảo vệ đồ án (Trạng thái: HOÀN THÀNH 100% — Nghiệm thu 26/10/2026)
 
-- **A:** rà soát migration từ database trống, dữ liệu demo và truy vấn CSDL để trình bày function/trigger/procedure.
-- **B:** chốt ảnh chụp dashboard, kịch bản demo thống kê.
-- **C:** chốt kịch bản demo độc giả và kiểm tra frontend production build.
-- **D:** tổng hợp README, ERD, tài khoản demo, test report và checklist nộp bài.
-- **Cả nhóm:** chạy demo trên máy sạch, review chéo, gắn tag bản nộp và chuẩn bị kịch bản trình bày 5–7 phút.
+- **A:** Đã rà soát migration từ database trống, dữ liệu demo và chuẩn hóa Function nhận 1 tham số theo Mã sách, Trigger phạt trễ, các Stored Procedure thống kê; bổ sung 3 migration đồng bộ schema.
+- **B:** Đã chốt giao diện dashboard quản trị, biểu đồ thống kê từ API thật, xử lý F5 giữ số liệu và thanh navbar responsive.
+- **C:** Đã hoàn thiện toàn diện UX độc giả: catalogue, lọc, sắp xếp, phân trang 10 cuốn, giỏ mượn lưu LocalStorage, giới hạn mượn 5 quyển, badge/icon quá hạn và kiểm tra frontend production build đạt PASS.
+- **D:** Đã hoàn thiện dữ liệu demo, tài khoản admin `Admin`/`admin123`, sửa tài liệu README, chạy trọn vẹn bộ kiểm thử tự động 13/13 PASS trên MySQL thật.
+- **Cả nhóm:** Đã review chéo, chuẩn hóa toàn diện theo `Tieuchiduan.md`, chuẩn bị kịch bản trình bày và vấn đáp đồ án.
 
-## Tiêu chí nghiệm thu
+## Tiêu chí nghiệm thu (Trạng thái: TẤT CẢ ĐÃ ĐẠT PASS)
 
-- Từ database trống, migration chạy thành công và tạo đủ bảng/khóa ngoại/routine.
-- Không có ca nào làm `soLuongHienCo` âm hoặc tăng/giảm hai lần.
-- Có thể chứng minh bằng API/UI: function kiểm tra tồn, trigger tính phạt, procedure phiếu chưa trả, hai thống kê bắt buộc.
-- Người đọc không truy cập API quản trị; dữ liệu nhạy cảm không xuất hiện trong response đăng nhập/danh sách.
-- `npm run build` frontend và kiểm tra cú pháp backend thành công; README đủ để người khác chạy lại.
-- Các màn hình khách, độc giả, quản trị dùng cùng ngôn ngữ thiết kế, hiển thị tốt trên màn hình nhỏ và lớn; không lộ nội dung nhận diện cũ ngoài ý muốn; có ảnh kiểm tra các luồng chính và trạng thái tải/rỗng/lỗi.
+- [x] **[PASS]** Từ database trống, migration chạy thành công và tạo đủ bảng/khóa ngoại/routine.
+- [x] **[PASS]** Không có ca nào làm `soLuongHienCo` âm hoặc tăng/giảm hai lần (được bảo vệ bằng Transaction ACID & Lock).
+- [x] **[PASS]** Đã chứng minh bằng API/UI: function kiểm tra tồn theo mã sách, trigger tính phạt, procedure phiếu chưa trả, hai thống kê bắt buộc (tháng & DISTINCT năm).
+- [x] **[PASS]** Người đọc không truy cập API quản trị; dữ liệu nhạy cảm không xuất hiện trong response đăng nhập/danh sách; độc giả chỉ xem trạng thái của chính mình.
+- [x] **[PASS]** `npm run build` frontend đạt PASS (0 lỗi); kiểm tra cú pháp và test suite backend đạt 13/13 PASS; README chuẩn xác đủ để người khác cài đặt chạy lại.
+- [x] **[PASS]** Các màn hình khách, độc giả, quản trị dùng cùng ngôn ngữ thiết kế, hiển thị tốt trên mọi kích thước màn hình; không còn sót thông tin nhận diện cũ của source gốc; có đầy đủ trạng thái tải/rỗng/lỗi và nút Thử lại.

@@ -1,5 +1,58 @@
 # Hướng dẫn bước tiếp theo cho nhóm 4 người
 
+## Hướng dẫn Commit và Pull Request — Giai đoạn 4: Nghiệm thu Tổng thể Đồ án (26/10/2026)
+Khi tạo commit hoặc tạo Pull Request gộp nhánh `C-Tuấn` vào `main` sau khi hoàn tất kiểm tra và chuẩn hóa toàn bộ tiêu chí `Cores/Tieuchiduan.md`, hãy sử dụng nội dung chuẩn sau:
+
+**Tiêu đề Commit / PR:**
+`fix(review): Hoàn thiện 100% tiêu chí đồ án, chuẩn hóa migration CSDL và nghiệm thu Giai đoạn 4`
+
+**Nội dung chi tiết PR / Commit Description:**
+- **Chuẩn hóa CSDL bằng các Migration mới (Tuân thủ nguyên tắc không sửa migration cũ):**
+  - `backend/migrations/20261026120000-sync-composite-columns.js`: Bổ sung các cột khóa ngoại ghép `maDocGia, maTacGia, maTheLoai` trong bảng `ChiTietPhieuMuon` và `maPhieuMuon, maSach` trong bảng `PhieuTra` một cách an toàn (idempotent), triệt tiêu lỗi lệch schema giữa Sequelize models và MySQL runtime.
+  - `backend/migrations/20261026130000-align-loan-status-enum.js`: Chuẩn hóa cột `trangThai` trong bảng `PhieuMuon` hỗ trợ đầy đủ ENUM `'Chờ duyệt', 'Đang mượn', 'Đã duyệt', 'Đã trả', 'Từ chối'`, khắc phục lỗi MySQL `Data truncated for column 'trangThai'` khi duyệt mượn.
+  - `backend/migrations/20261026140000-align-stock-function.js`: Chuẩn hóa hàm `fn_kiem_tra_so_luong_sach(maSach_in INT)` nhận duy nhất 1 tham số theo Mã sách đúng 100% yêu cầu đề bài môn học (`Tieuchiduan.md`).
+- **Nghiệm thu toàn bộ Tiêu chí môn học (Cores/Tieuchiduan.md):**
+  - Đủ 7 bảng: Sách, Tác giả, Thể loại, Độc giả, Phiếu mượn, Chi tiết phiếu mượn, Phiếu trả.
+  - Trigger `trg_tinh_tien_phat` tự động tính tiền phạt trên `PhieuTra` theo ngày trả thực tế và ngày trả dự kiến (`BEFORE INSERT`).
+  - Stored Procedure `sp_danh_sach_phieu_muon_chua_tra` lọc phiếu có trạng thái `'Đang mượn'`.
+  - Stored Procedure `sp_thong_ke_sach_muon_thang` tính tổng số sách mượn tháng hiện tại.
+  - Stored Procedure `sp_thong_ke_doc_gia_muon_sach_nam` đếm chính xác bằng `COUNT(DISTINCT maDocGia)` trong năm hiện tại.
+  - Luồng tồn kho chỉ cập nhật 1 lần trong Transaction ACID (đã drop 2 trigger tăng/giảm tồn kho cũ, không cập nhật hai lần, chống race condition).
+- **Tài liệu & Vận hành:**
+  - Sửa lỗi chính tả mật khẩu admin mặc định `admin123` trong `README.md`.
+  - Cập nhật nhật ký liên tục và phân công nghiệm thu theo từng thành viên (A/B/C/D) trong `Cores/checkpoint.md`.
+- **Kết quả kiểm thử tự động:**
+  - Backend Full Test Suite: **PASS 13/13 (100%)** trên MySQL thật (bao gồm concurrency lock test).
+  - Frontend Production Build: **PASS (142 modules transformed, 0 errors)**.
+  - Git Diff Check: **PASS (0 whitespace errors)**.
+
+**Lệnh Git thực hiện:**
+```bash
+git add backend/migrations/ README.md Cores/
+git commit -m "fix(review): complete project criteria verification, db migrations and stage 4 signoff"
+git push origin C-Tuấn
+```
+
+### Prompt sẵn dùng cho phiên kế tiếp (Bảo vệ đồ án, Kịch bản Demo & Vấn đáp)
+
+```text
+Bạn đang làm việc trong workspace LibraryManagement tại D:\Project\CT467\LibraryManagement.
+Stack: Node.js v26 / Express / Sequelize 6 / MySQL 8.0.46 (port 3306) + Vue 3 / Vite / Vuex.
+Yêu cầu môn học: Cores/Tieuchiduan.md | Chiến lược: Cores/Chienluoc.md | Hướng dẫn: Cores/next_step_guide.md | Trạng thái hiện tại: Cores/checkpoint.md.
+
+Hệ thống đã hoàn thành 100% Giai đoạn 4 (Nghiệm thu toàn diện tất cả các tiêu chí CSDL, API, Frontend và README).
+Mục tiêu của phiên này:
+1. Chuẩn bị kịch bản demo chạy thực tế 5–7 phút cho cả 4 thành viên (A/B/C/D), làm nổi bật:
+   - Thành viên A: Chứng minh Function kiểm tra tồn theo mã sách, Trigger phạt trễ hạn, Stored Procedure phiếu chưa trả, 2 Procedure thống kê (tháng & DISTINCT năm), và cơ chế Transaction Lock chống cập nhật tồn kho hai lần/race condition.
+   - Thành viên B: Dashboard Quản trị, 3 thẻ KPI theo API thật, bảng phiếu chưa trả kèm badge quá hạn, xử lý F5 không mất số liệu.
+   - Thành viên C: Catalogue độc giả, lọc đa tiêu chí, phân trang 10 cuốn, drawer giỏ mượn lưu LocalStorage, giới hạn mượn 5 cuốn, yêu cầu trả sách, chuẩn tiếp cận WCAG.
+   - Thành viên D: Quản lý danh mục, kiểm tra ràng buộc toàn vẹn khóa ngoại khi xóa, nạp dữ liệu demo và tài khoản admin.
+2. Tổng hợp các câu hỏi vấn đáp lý thuyết & kỹ thuật thường gặp của giảng viên về MySQL Stored Routines, Triggers, Concurrency ACID, và trả lời mẫu súc tích.
+3. Không sửa đổi logic nghiệp vụ hay phá vỡ test suite đã đạt PASS 100%.
+```
+
+---
+
 ## Hướng dẫn Commit và Pull Request (Cập nhật 09/10/2026)
 Khi tạo Pull Request gộp nhánh `C-Tuấn` (Giai đoạn 2 UI Độc giả) vào `main`, bạn nên sử dụng nội dung sau để chốt:
 

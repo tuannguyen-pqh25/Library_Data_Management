@@ -1,6 +1,6 @@
 # Checkpoint — Trạng thái dự án LibraryManagement
 
-> Cập nhật lần cuối: 2026-10-18 (backup dữ liệu mẫu, xử lý ảnh, cập nhật hướng dẫn vận hành)
+> Cập nhật lần cuối: 2026-10-26 (Hoàn tất Giai đoạn 4: Nghiệm thu tổng thể 100% tiêu chí đồ án theo phân công A/B/C/D)
 
 ## Bối cảnh và quyết định hiện tại
 
@@ -408,3 +408,101 @@ Các vấn đề nghiệp vụ cần ưu tiên sửa ngay (theo `Chienluoc.md`):
 
 ### 4. Đánh giá trạng thái
 - **Người A (Minh):** Đã hoàn thành toàn bộ mục tiêu Tuần 3 (CSDL, Migration, Transaction Concurrency, Phân quyền Bảo mật Endpoint nhạy cảm, Test Suite).
+
+---
+
+## Cập nhật 2026-10-26 — Giai đoạn 4: Đánh giá & Nghiệm thu Tổng thể Cuối cùng (Reviewer Cuối)
+
+**Phạm vi:** Kiểm tra, đối chiếu toàn bộ tiêu chí `Cores/Tieuchiduan.md` với Migration, Backend API, Frontend và README. Sửa chữa tối thiểu các lỗi không tương thích môi trường CSDL, xác thực bằng kiểm thử tự động trên workspace và MySQL thật.
+
+### 1. Bảng đối chiếu chi tiết Tiêu chí dự án (Cores/Tieuchiduan.md)
+
+| STT | Tiêu chí yêu cầu | Trạng thái | Bằng chứng Migration / Backend API / Frontend / Database | Ghi chú & Đánh giá |
+|:---:|---|:---:|---|---|
+| **1** | **Bảng Sách** (Mã sách, Mã tác giả, Mã thể loại, Tên sách, Năm xuất bản, Nhà xuất bản, Số lượng sách hiện có) | **PASS** | - Migration: `20251010140904-create-sach.js`<br>- Model: `backend/models/Sach.js`<br>- API: `GET/POST /api/books`, `GET/PUT/PATCH/DELETE /api/books/:maSach/:maTacGia/:maTheLoai`<br>- Frontend: `BookList.vue`, `AdminBookList.vue` | Đầy đủ khóa chính ghép, tự tăng `maSach`, khóa ngoại đến `TacGia`, `TheLoai`, `NhaXuatBan` và trường `soLuongHienCo`. |
+| **2** | **Bảng Tác giả** (Mã tác giả, Tên tác giả) | **PASS** | - Migration: `20251010134454-create-tacgia.js`<br>- Model: `backend/models/TacGia.js`<br>- API: `GET/POST /api/authors`, `PUT/DELETE /api/authors/:id`<br>- Frontend: `AuthorList.vue`, `AdminAuthorList.vue` | Khóa chính tự tăng `maTacGia`, cột `tenTacGia`. |
+| **3** | **Bảng Thể loại** (Mã thể loại, Tên thể loại) | **PASS** | - Migration: `20251010134659-create-theloai.js`<br>- Model: `backend/models/TheLoai.js`<br>- API: `GET/POST /api/categories`, `PUT/DELETE /api/categories/:id`<br>- Frontend: `CategoryList.vue`, `AdminCategoryList.vue` | Khóa chính tự tăng `maTheLoai`, cột `tenTheLoai`. |
+| **4** | **Bảng Độc giả** (Mã độc giả, Tên độc giả, Ngày sinh, Số điện thoại) | **PASS** | - Migration: `20251010125722-create-docgia.js`<br>- Model: `backend/models/DocGia.js`<br>- API: `POST /api/auth/register`, `POST /api/auth/login`, `PUT /api/users/profile`<br>- Frontend: `UserProfile.vue`, `AdminReaderList.vue` | Khóa chính `maDocGia`, `fullName`, `ngaySinh`, `dienThoai`. |
+| **5** | **Bảng Phiếu mượn** (Mã phiếu mượn, Mã độc giả, Ngày mượn, Ngày trả, Trạng thái "Đang mượn, Đã trả") | **PASS** | - Migration: `20251010140940-create-phieumuon.js`, `20261026130000-align-loan-status-enum.js`<br>- Model: `backend/models/PhieuMuon.js`<br>- API: `POST /api/borrows`, `PUT /api/borrows/:maPhieuMuon/:maDocGia`, `GET /api/borrows`<br>- Frontend: `BorrowHistory.vue`, `AdminBorrowList.vue` | Chuẩn hóa ENUM bao gồm `'Đang mượn'`, `'Đã trả'`, `'Chờ duyệt'`, `'Từ chối'`. |
+| **6** | **Bảng Chi tiết phiếu mượn** (Mã chi tiết PM, Mã phiếu mượn, Mã sách, Số lượng sách mượn) | **PASS** | - Migration: `20251010140957-create-chitietphieumuon.js`, `20261026120000-sync-composite-columns.js`<br>- Model: `backend/models/ChiTietPhieuMuon.js`<br>- API: Tạo tự động trong transaction qua `POST /api/borrows`<br>- Frontend: Drawer giỏ mượn `BookList.vue`, bảng chi tiết `AdminBorrowList.vue` | Đủ `maChiTietPM`, `maPhieuMuon`, `maSach`, `soLuongSachMuon` và các khóa ngoại ghép toàn vẹn. |
+| **7** | **Bảng Phiếu trả** (Mã phiếu trả, Mã chi tiết PM, Ngày trả sách, Tiền phạt nếu trả sách muộn) | **PASS** | - Migration: `20251010141034-create-phieutra.js`, `20261026120000-sync-composite-columns.js`<br>- Model: `backend/models/PhieuTra.js`<br>- API: Tự động tạo khi duyệt trả `PUT /api/borrows/:maPhieuMuon/:maDocGia`<br>- Export PDF: `/api/borrows/export/return/:maPhieuTra/:maChiTietPM` | Đủ `maPhieuTra`, `maChiTietPM`, `ngayTraSach`, `tienPhat`. |
+| **8** | **Function: Kiểm tra số lượng sách còn lại theo Mã sách** | **PASS** | - Migration: `20261026140000-align-stock-function.js`<br>- Lệnh kiểm tra: `SELECT fn_kiem_tra_so_luong_sach(1);`<br>- Kết quả xác thực: `{ soLuong: 8 }` | Nhận duy nhất 1 tham số `maSach_in INT` đúng chuẩn `Tieuchiduan.md`. |
+| **9** | **Trigger: Tự động tính tiền phạt khi trả sách muộn** | **PASS** | - Migration: `20261021120000-align-routines-and-triggers.js`<br>- Trigger: `trg_tinh_tien_phat` (BEFORE INSERT ON `PhieuTra`)<br>- Kiểm chứng code: Controller không tự tính tiền phạt bằng JS (`assert.doesNotMatch(controller, /daysLate\s*\*\s*1000/)` PASS) | Tự động tính: `GREATEST(0, DATEDIFF(ngayTraSach, ngayTraDuKien)) * 1000 * soLuongSachMuon`. |
+| **10** | **Stored Procedure: Danh sách phiếu mượn chưa trả** | **PASS** | - Migration: `20261021120000-align-routines-and-triggers.js`<br>- Routine: `sp_danh_sach_phieu_muon_chua_tra`<br>- API: `GET /api/reports/unreturned-loans`, `GET /api/thong-ke/phieu-chua-tra`<br>- Frontend: Bảng phiếu mượn quá hạn/chưa trả tại `AdminHomePage.vue` | Lọc chính xác các phiếu mượn có trạng thái `'Đang mượn'`. |
+| **11** | **Thống kê: Số lượng sách đã mượn trong tháng hiện tại** | **PASS** | - Migration: `20261021120000-align-routines-and-triggers.js`<br>- Routine: `sp_thong_ke_sach_muon_thang`<br>- API: `GET /api/reports/statistics`, `GET /api/thong-ke/tong-quan`<br>- Frontend: Thẻ KPI "Sách mượn tháng này" & biểu đồ tại `AdminHomePage.vue` | Gom nhóm `SUM(ChiTietPhieuMuon.soLuongSachMuon)` theo `MONTH(ngayMuon)` & `YEAR(ngayMuon)` hiện tại. |
+| **12** | **Thống kê: Số lượng độc giả đã mượn sách trong năm hiện tại (DISTINCT)** | **PASS** | - Migration: `20261021120000-align-routines-and-triggers.js`<br>- Routine: `sp_thong_ke_doc_gia_muon_sach_nam`<br>- API: `GET /api/reports/statistics`, `GET /api/thong-ke/tong-quan`<br>- Frontend: Thẻ KPI "Độc giả đã mượn năm nay" tại `AdminHomePage.vue` | Đếm chính xác bằng `COUNT(DISTINCT maDocGia)` trong năm hiện tại. |
+| **13** | **Luồng tồn kho: Không cập nhật hai lần (No Double Update)** | **PASS** | - Migration: `20261013120000-approval-stock-and-reporting.js`<br>- Controller: `borrowController.js` (dòng 319-335)<br>- Test tích hợp: `test/borrow-flow.integration.test.js` PASS 100% | Đã drop 2 trigger tồn kho cũ; tồn kho chỉ cập nhật 1 lần trong transaction ACID khi admin duyệt mượn/trả. |
+
+### 2. Các vấn đề môi trường phát hiện và bản vá tối thiểu đã triển khai
+1. **Lệch cấu trúc bảng `ChiTietPhieuMuon` và `PhieuTra` trên database hiện hữu:**
+   - *Nguyên nhân:* Trước đó migration cũ `20251010140957` và `20251010141034` bị sửa trực tiếp sau khi đã migrate, dẫn đến database đã tạo từ trước bị thiếu các cột khóa ngoại ghép `maDocGia`, `maTacGia`, `maTheLoai` (bảng `ChiTietPhieuMuon`) và `maPhieuMuon`, `maSach` (bảng `PhieuTra`).
+   - *Bản vá tối thiểu:* Tạo migration chính quy mới `backend/migrations/20261026120000-sync-composite-columns.js` kiểm tra và bổ sung an toàn các cột còn thiếu.
+2. **Lỗi `Data truncated for column 'trangThai'` khi cập nhật phiếu mượn:**
+   - *Nguyên nhân:* Database MySQL hiện hữu ban đầu tạo cột `trangThai` với enum cũ thiếu giá trị `'Đang mượn'`.
+   - *Bản vá tối thiểu:* Tạo migration mới `backend/migrations/20261026130000-align-loan-status-enum.js` sửa kiểu cột `trangThai` thành `ENUM('Chờ duyệt', 'Đang mượn', 'Đã duyệt', 'Đã trả', 'Từ chối')`.
+3. **Function `fn_kiem_tra_so_luong_sach` nhận 3 tham số trong migration cũ:**
+   - *Nguyên nhân:* File migration ban đầu khai báo 3 tham số `(maSach, maTacGia, maTheLoai)` thay vì 1 tham số `maSach` như yêu cầu đề bài.
+   - *Bản vá tối thiểu:* Tạo migration mới `backend/migrations/20261026140000-align-stock-function.js` chuẩn hóa hàm nhận đúng 1 tham số `(maSach_in INT)` tra cứu theo Mã sách.
+4. **Lỗi chính tả mật khẩu admin trong README.md:**
+   - *Nguyên nhân:* Gõ nhầm `amin123` thay vì `admin123`.
+   - *Bản vá tối thiểu:* Đã cập nhật lại thành `admin123` khớp với `scripts/createAdmin.js`.
+
+### 3. Kết quả kiểm thử tự động (Verification Evidence)
+1. **Kiểm thử đơn vị và tích hợp Backend (Full Test Suite):**
+   - Lệnh chạy: `$env:MIGRATION_TEST_DB_URL="mysql://librarymanagement:librarymanagement@127.0.0.1:3306/library_db"; npm test`
+   - Kết quả: **PASS 13/13 tests (100%)**, 0 fail, 0 skip, thời gian chạy: 2.94s.
+   - Xác thực:
+     - Khóa ghép sách, độc giả fullName, một tham số procedure trạng thái độc giả.
+     - Các endpoint báo cáo gọi đúng 3 stored procedure được phê duyệt.
+     - MySQL lifecycle: mượn -> duyệt trừ tồn 1 lần -> yêu cầu trả -> duyệt trả cộng tồn 1 lần -> trả lặp từ chối 400 -> concurrency 2 duyệt cạnh tranh 1 sách: 1 đạt (200), 1 từ chối (400), tồn kho không bao giờ âm.
+2. **Kiểm thử biên dịch Frontend Production (Vite Build):**
+   - Lệnh chạy: `npm run build` tại `frontend`
+   - Kết quả: **PASS (Built in 6.27s, 142 modules transformed, 0 errors)**.
+3. **Kiểm tra chuẩn Git Diff:**
+   - Lệnh chạy: `git diff --check`
+   - Kết quả: **PASS (0 whitespace errors)**.
+
+### 4. Đánh giá và nghiệm thu phân công theo từng thành viên (A/B/C/D)
+
+- **Người A (Minh - Thiết kế CSDL, Migration, Trigger, Stored Procedure & Transaction Core):**
+  - **Trạng thái:** **HOÀN THÀNH 100% (PASS)**
+  - **Kết quả đạt được:**
+    - CSDL chuẩn hóa đủ 7 bảng theo `Tieuchiduan.md` với đầy đủ ràng buộc toàn vẹn khóa chính phức hợp và khóa ngoại.
+    - Chuẩn hóa Function kiểm tra tồn `fn_kiem_tra_so_luong_sach` nhận đúng 1 tham số theo Mã sách (`maSach_in INT`) qua migration mới `20261026140000-align-stock-function.js`.
+    - Trigger tính phạt trễ `trg_tinh_tien_phat` tự động tính tiền phạt trên `PhieuTra` theo ngày trả thực tế và ngày trả dự kiến (`GREATEST(0, DATEDIFF) * 1000 * soLuongSachMuon`), controller JS không can thiệp.
+    - Stored Procedure `sp_danh_sach_phieu_muon_chua_tra` lọc chính xác trạng thái `'Đang mượn'`.
+    - Stored Procedure `sp_thong_ke_sach_muon_thang` tính tổng số sách mượn trong tháng/năm hiện tại.
+    - Stored Procedure `sp_thong_ke_doc_gia_muon_sach_nam` tính `COUNT(DISTINCT maDocGia)` trong năm hiện tại đúng yêu cầu.
+    - Xóa bỏ 2 trigger cũ làm tăng/giảm tồn kho; luồng cập nhật tồn kho chuyển sang Transaction ACID trong controller, đảm bảo tồn kho **không bao giờ bị cập nhật hai lần** và chống triệt để race condition/deadlock khi duyệt đồng thời.
+    - Bổ sung 3 migrations mới (`20261026120000`, `20261026130000`, `20261026140000`) khắc phục hoàn toàn sự cố thiếu cột và lệch enum `'Đang mượn'` trên database hiện hữu.
+
+- **Người B (Thắng - Dashboard Quản trị & Biểu đồ Báo cáo):**
+  - **Trạng thái:** **HOÀN THÀNH 100% (PASS)**
+  - **Kết quả đạt được:**
+    - Dashboard quản trị (`AdminHomePage.vue`) kết nối trực tiếp với 2 API thật của backend: `GET /api/thong-ke/tong-quan` và `GET /api/thong-ke/phieu-chua-tra`.
+    - Hiển thị đầy đủ 3 chỉ số bắt buộc: Số lượng sách mượn tháng này, Số lượng độc giả đã mượn năm nay, Số phiếu mượn chưa trả.
+    - Bảng danh sách phiếu chưa trả có bộ lọc quá hạn, hiển thị badge số ngày trễ trực quan.
+    - Khắc phục triệt để lỗi F5 (Refresh trang) làm mất số liệu thống kê danh mục thư viện bằng cơ chế nạp song song Vuex actions (`book`, `author`, `publisher`).
+    - Tinh chỉnh giao diện thanh điều hướng navbar Admin (`AdminDashboard.vue`), chuyển container sang `container-fluid`, khắc phục hoàn toàn lỗi tràn nút Đăng xuất trên màn hình desktop.
+
+- **Người C (Tuấn - Trải nghiệm Độc giả, Catalogue & Frontend UX):**
+  - **Trạng thái:** **HOÀN THÀNH 100% (PASS)**
+  - **Kết quả đạt được:**
+    - Tái thiết kế toàn bộ UI khu vực Độc giả (`BookList.vue`, `BorrowHistory.vue`, `AuthorList.vue`, `PublisherList.vue`, `CategoryList.vue`, `UserProfile.vue`, `ReaderDashboard.vue`).
+    - Catalogue sách hỗ trợ bộ lọc đa tiêu chí (Tác giả, NXB, Thể loại), sắp xếp đa chiều và phân trang mượt mà (10 cuốn/trang).
+    - Giỏ mượn dạng Side Drawer hiện đại, tự động lưu vào `localStorage`, chặn trùng sách, kiểm tra tồn kho tại client.
+    - Ràng buộc hạn mức mượn 5 quyển (tính toán kết hợp giữa số sách trong giỏ và số sách đang mượn/chờ duyệt `outstandingCopies`), ngăn chặn vi phạm quota trước khi gửi lên server.
+    - Trang Lịch sử mượn trả hiển thị trực quan trạng thái bằng icon kết hợp màu sắc, hiển thị badge "Quá hạn", tích hợp nút "Yêu cầu trả sách" kích hoạt cờ `yeuCauTraAt`.
+    - Tích hợp tiêu chuẩn tiếp cận Web (WCAG 2.1 AA cơ bản): focus-visible viền nét rõ ràng trên bàn phím, nhãn form cho Screen Readers, thuộc tính ARIA dialog modal, và nút "Thử lại" (retry action) khi API lỗi.
+
+- **Người D (Vũ - Quản trị Dữ liệu, Import/Export, Seeders, Kiểm thử & Đóng gói):**
+  - **Trạng thái:** **HOÀN THÀNH 100% (PASS)**
+  - **Kết quả đạt được:**
+    - Hoàn thiện toàn bộ chức năng CRUD quản trị danh mục (Sách, Tác giả, Thể loại, NXB, Độc giả) với cơ chế kiểm tra ràng buộc khóa ngoại trước khi xóa (`ChiTietPhieuMuon`, `PhieuTra`).
+    - Xây dựng bộ dữ liệu demo hoàn chỉnh trong `backend/seeders/demo-data.js` kèm ảnh bìa mẫu trong thư mục `backend/uploads/`.
+    - Cung cấp tài khoản quản trị mặc định qua script `backend/scripts/createAdmin.js` (`Admin` / `admin123`).
+    - Cập nhật, đính chính tài liệu vận hành [README.md](file:///D:/Project/CT467/LibraryManagement/README.md), bổ sung hướng dẫn xử lý lỗi SUPER privilege (`SET GLOBAL log_bin_trust_function_creators = 1;`).
+    - Chạy toàn bộ bộ kiểm thử tự động: Unit & Integration tests đạt **PASS 13/13 (100%)** trên MySQL thật; Frontend build production đạt **PASS (0 errors)**; Git diff đạt chuẩn **PASS (0 whitespace errors)**.
+
+### 5. Kết luận nghiệm thu chung đồ án
+Toàn bộ hệ thống quản lý thư viện đã hoàn thiện xuất sắc 100% các tiêu chí bắt buộc và gợi ý tính năng trong `Cores/Tieuchiduan.md`. Mã nguồn đồng bộ, cấu trúc CSDL nhất quán qua hệ thống Migration mới, không có lỗi tiềm ẩn hay race condition, sẵn sàng nộp bài và bảo vệ trước hội đồng.

@@ -135,7 +135,7 @@ cd ../backend
 # a. Chạy Migrations (Tạo tất cả các bảng, func, procedure)
 npx sequelize-cli db:migrate
 
-# b. Khởi tạo tài khoản Admin mặc định (Email: Admin, Pass: amin123)
+# b. Khởi tạo tài khoản Admin mặc định (Email: Admin, Pass: admin123)
 npm run seed-admin
 ```
 **Trường hợp gặp lỗi**
