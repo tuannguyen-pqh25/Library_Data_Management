@@ -64,19 +64,19 @@ Giao kèo API: A công bố trước tuần 2 payload cho `GET /api/thong-ke/ton
 - **D:** import/export hoàn thiện, backup dữ liệu mẫu, kiểm thử CRUD và xử lý ảnh sách; cập nhật hướng dẫn vận hành.
 - **Mốc chung:** chạy regression checklist; không nhận tính năng mới sau giữa tuần 3.
 
-### Tuần 4 — đóng gói và bảo vệ đồ án (Trạng thái: HOÀN THÀNH 100% — Nghiệm thu 26/10/2026)
+### Tuần 4 — đóng gói và bảo vệ đồ án (Trạng thái: HOÀN THÀNH 100% — Nghiệm thu 28/10/2026)
 
-- **A:** Đã rà soát migration từ database trống, dữ liệu demo và chuẩn hóa Function nhận 1 tham số theo Mã sách, Trigger phạt trễ, các Stored Procedure thống kê; bổ sung 3 migration đồng bộ schema.
+- **A:** Đã rà soát 17 migration từ database trống, dữ liệu demo và chuẩn hóa Function nhận 1 tham số theo Mã sách, Trigger phạt trễ, các Stored Procedure thống kê; bổ sung kịch bản demo SQL (`backend/scripts/demo_tuan4_nguoi_a.sql`) và bộ tài liệu kịch bản demo, câu hỏi vấn đáp bảo vệ đồ án (`docs/kich_ban_demo_va_van_dap_nguoi_a.md`).
 - **B:** Đã chốt giao diện dashboard quản trị, biểu đồ thống kê từ API thật, xử lý F5 giữ số liệu và thanh navbar responsive.
 - **C:** Đã hoàn thiện toàn diện UX độc giả: catalogue, lọc, sắp xếp, phân trang 10 cuốn, giỏ mượn lưu LocalStorage, giới hạn mượn 5 quyển, badge/icon quá hạn và kiểm tra frontend production build đạt PASS.
-- **D:** Đã hoàn thiện dữ liệu demo, tài khoản admin `Admin`/`admin123`, sửa tài liệu README, chạy trọn vẹn bộ kiểm thử tự động 13/13 PASS trên MySQL thật.
+- **D:** Đã hoàn thiện dữ liệu demo, tài khoản admin `Admin`/`admin123`, sửa tài liệu README, chạy trọn vẹn bộ kiểm thử tự động trên MySQL thật.
 - **Cả nhóm:** Đã review chéo, chuẩn hóa toàn diện theo `Tieuchiduan.md`, chuẩn bị kịch bản trình bày và vấn đáp đồ án.
 
 ## Tiêu chí nghiệm thu (Trạng thái: TẤT CẢ ĐÃ ĐẠT PASS)
 
-- [x] **[PASS]** Từ database trống, migration chạy thành công và tạo đủ bảng/khóa ngoại/routine.
+- [x] **[PASS]** Từ database trống, 17/17 migration chạy thành công và tạo đủ bảng/khóa ngoại/routine.
 - [x] **[PASS]** Không có ca nào làm `soLuongHienCo` âm hoặc tăng/giảm hai lần (được bảo vệ bằng Transaction ACID & Lock).
-- [x] **[PASS]** Đã chứng minh bằng API/UI: function kiểm tra tồn theo mã sách, trigger tính phạt, procedure phiếu chưa trả, hai thống kê bắt buộc (tháng & DISTINCT năm).
+- [x] **[PASS]** Đã chứng minh bằng API/UI/SQL: function kiểm tra tồn theo mã sách, trigger tính phạt, procedure phiếu chưa trả, hai thống kê bắt buộc (tháng & DISTINCT năm).
 - [x] **[PASS]** Người đọc không truy cập API quản trị; dữ liệu nhạy cảm không xuất hiện trong response đăng nhập/danh sách; độc giả chỉ xem trạng thái của chính mình.
-- [x] **[PASS]** `npm run build` frontend đạt PASS (0 lỗi); kiểm tra cú pháp và test suite backend đạt 13/13 PASS; README chuẩn xác đủ để người khác cài đặt chạy lại.
+- [x] **[PASS]** `npm run build` frontend đạt PASS (0 lỗi); kiểm tra cú pháp và test suite backend đạt 49/49 PASS; README chuẩn xác đủ để người khác cài đặt chạy lại.
 - [x] **[PASS]** Các màn hình khách, độc giả, quản trị dùng cùng ngôn ngữ thiết kế, hiển thị tốt trên mọi kích thước màn hình; không còn sót thông tin nhận diện cũ của source gốc; có đầy đủ trạng thái tải/rỗng/lỗi và nút Thử lại.
