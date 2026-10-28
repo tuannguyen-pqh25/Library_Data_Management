@@ -129,12 +129,14 @@ export default {
     const allBooks = computed(() => store.getters['book/allBooks']);
 
     const authors = computed(() => {
-      if (!searchTerm.value) return allAuthors.value;
-      const search = searchTerm.value.toLowerCase();
-      return allAuthors.value.filter(author => 
-        author.tenTacGia.toLowerCase().includes(search) ||
-        author.maTacGia.toLowerCase().includes(search)
-      );
+      const search = searchTerm.value.trim().toLowerCase();
+      if (!search) return allAuthors.value;
+
+      return allAuthors.value.filter(author => {
+        const tenTacGia = String(author?.tenTacGia ?? '').toLowerCase();
+        const maTacGia = String(author?.maTacGia ?? '').toLowerCase();
+        return tenTacGia.includes(search) || maTacGia.includes(search);
+      });
     });
 
     const authorBooks = computed(() => {

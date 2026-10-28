@@ -206,3 +206,32 @@ Trước đây form quản trị kiểm tra bắt buộc toàn bộ thông tin s
 - [`backend/controllers/borrowController.js`](../backend/controllers/borrowController.js): kiểm tra mã đầu vào và quyền xuất chứng từ.
 - `npm.cmd --prefix backend test`: đạt, 5/5 kiểm thử hiện có.
 - `node --check backend/controllers/borrowController.js`, `git diff --check` và `npm.cmd --prefix frontend run build`: đạt.
+
+## Sửa tìm kiếm tác giả phía độc giả không hoạt động
+
+### Nguyên nhân
+
+- Tại [`frontend/src/components/reader/AuthorList.vue`](../frontend/src/components/reader/AuthorList.vue), code lọc tác giả trước đây sử dụng `author.maTacGia.toLowerCase()` dù `maTacGia` thực tế là số nguyên (`INTEGER`) trong model [`backend/models/TacGia.js`](../backend/models/TacGia.js).
+- JavaScript không thể gọi `.toLowerCase()` lên số, nên khi người dùng nhập từ khóa tìm kiếm, computed `authors` phát sinh lỗi và danh sách tác giả không còn hiển thị đúng dữ liệu.
+- Ngoài ra, việc gán `.trim()` trực tiếp vào `searchTerm` trong lúc nhập cũng làm mất ký tự khoảng trắng ở cuối, gây trải nghiệm tìm kiếm xấu.
+
+### Cách sửa
+
+- Chuyển `maTacGia` và `tenTacGia` về `String(...)` trước khi so khớp tìm kiếm.
+- Không gán lại `searchTerm.value` trong lúc người dùng gõ; chỉ làm chuẩn hóa `trim().toLowerCase()` khi thực hiện lọc dữ liệu.
+- Dùng `String(author?.maTacGia ?? '')` và `String(author?.tenTacGia ?? '')` để an toàn với dữ liệu null/undefined.
+
+### File đã chỉnh sửa
+
+- [`frontend/src/components/reader/AuthorList.vue`](../frontend/src/components/reader/AuthorList.vue): sửa logic `authors` computed để tìm kiếm theo tên hoặc mã tác giả mà không lỗi kiểu dữ liệu.
+
+### Kết quả
+
+- Giao diện độc giả có thể tìm kiếm tác giả theo tên hoặc mã tác giả đúng cách.
+- Không ảnh hưởng đến model, API hoặc cơ sở dữ liệu.
+- Chức năng tìm kiếm tác giả hoạt động ổn định trên dữ liệu từ backend MySQL.
+
+### Kiểm tra được thực hiện
+
+- Đã rà soát logic filter theo kiểu dữ liệu thực tế của `maTacGia` và đối chiếu với model backend.
+- Build frontend đã được thử, nhưng môi trường hiện tại gặp lỗi Vite/Chrome localStorage (`SecurityError: Cannot initialize local storage without a --localstorage-file path`) không phải do lỗi tìm kiếm tác giả. Lỗi này nằm ở môi trường chạy build, không phải do logic sửa đổi.
