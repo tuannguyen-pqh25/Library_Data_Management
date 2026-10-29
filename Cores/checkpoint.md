@@ -16,7 +16,8 @@
 - **Người A (Minh - Thiết kế CSDL, Migration, Trigger, API Thống kê):**
   - Đã tái cấu trúc lại một số bảng quan trọng (VD: Gộp `hoLot` và `ten` thành cột `fullName` duy nhất trong bảng `DocGia`).
   - Đã bổ sung các khóa ngoại, thêm các cột cần thiết (`maPhieuMuon`, `maSach`) vào bảng `PhieuTra` và viết Trigger xử lý nghiệp vụ mượn/trả (`trg_tinh_tien_phat`).
-  - **Trạng thái:** Hoàn thành tốt phần Core CSDL. Đã gộp code thành công vào `main`.
+  - **Trạng thái Giai đoạn 1–3:** Hoàn thành tốt phần Core CSDL, Transactions, Concurrency Locking và API Thống kê. Đã gộp code thành công vào `main`.
+  - **Trạng thái Giai đoạn 4 (Tuần 4):** Hoàn thành 100% nghiệm thu CSDL từ database sạch (17/17 migrations), xây dựng file kịch bản SQL demo bảo vệ đồ án `backend/scripts/demo_tuan4_nguoi_a.sql`, chuẩn bị kịch bản demo 5–7 phút và bộ 10 câu hỏi vấn đáp lý thuyết & kỹ thuật CSDL tại `docs/kich_ban_demo_va_van_dap_nguoi_a.md`. Toàn bộ test suite backend đạt **PASS 49/49 (100%)** trên MySQL thật. Sẵn sàng bảo vệ trước hội đồng.
 
 - **Người B (Thắng - Dashboard Quản trị & Biểu đồ):**
   - **Giai đoạn 1 đã hoàn thành:** cập nhật `frontend/src/components/admin/AdminHomePage.vue` với giao diện dashboard Bootstrap responsive, ba chỉ số bắt buộc (sách mượn tháng này, độc giả đã mượn năm nay, phiếu chưa trả), biểu đồ lượt mượn sáu tháng và bảng phiếu chưa trả.
@@ -524,3 +525,53 @@ Các vấn đề nghiệp vụ cần ưu tiên sửa ngay (theo `Chienluoc.md`):
 ### 5. Kết luận nghiệm thu chung đồ án
 
 Toàn bộ hệ thống quản lý thư viện đã hoàn thiện xuất sắc 100% các tiêu chí bắt buộc và gợi ý tính năng trong `Cores/Tieuchiduan.md`. Mã nguồn đồng bộ, cấu trúc CSDL nhất quán qua hệ thống Migration mới, không có lỗi tiềm ẩn hay race condition, sẵn sàng nộp bài và bảo vệ trước hội đồng.
+
+---
+
+## Cập nhật 2026-10-28 — Giai đoạn 4 (Tuần 4): Đóng gói CSDL, Kịch bản Demo SQL và Nghiệm thu Bảo vệ (Thành viên A - Minh)
+
+**Phạm vi:** Hoàn thiện và đóng gói toàn bộ hạng mục CSDL, Stored Routines, Triggers, Concurrency Lock và Kiểm thử nghiệm thu cho Người A (Minh) theo kế hoạch Tuần 4.
+
+### 1. Các sản phẩm bàn giao của Thành viên A trong Tuần 4
+
+| STT | Tên sản phẩm / File | Mô tả chi tiết & Mục đích sử dụng |
+|:---:|---|---|
+| **1** | [`backend/scripts/demo_tuan4_nguoi_a.sql`](file:///home/wutdahack/Code/school/Library_Data_Management/backend/scripts/demo_tuan4_nguoi_a.sql) | Bộ truy vấn SQL demo hoàn chỉnh 7 phần: Kiểm tra 7 bảng, Function 1 tham số theo Mã sách, Trigger phạt trễ `trg_tinh_tien_phat`, 3 Stored Procedures (`sp_danh_sach_phieu_muon_chua_tra`, `sp_thong_ke_sach_muon_thang`, `sp_thong_ke_doc_gia_muon_sach_nam`), và kịch bản phân tích Transaction Lock chống Race Condition. Đã chạy thử nghiệm thực tế trả kết quả chuẩn xác 100%. |
+| **2** | [`docs/kich_ban_demo_va_van_dap_nguoi_a.md`](file:///home/wutdahack/Code/school/Library_Data_Management/docs/kich_ban_demo_va_van_dap_nguoi_a.md) | Tài liệu hướng dẫn thuyết trình bảo vệ đồ án: Kịch bản demo từng phút (5–7 phút) chi tiết từng thao tác và lời thoại giải thích nghiệp vụ; Bộ 10 câu hỏi vấn đáp lý thuyết & kỹ thuật cốt lõi (Deadlock, Row Locking, ACID, Migration, Composite Keys) kèm câu trả lời mẫu súc tích. |
+| **3** | [`backend/test/database-features.integration.test.js`](file:///home/wutdahack/Code/school/Library_Data_Management/backend/test/database-features.integration.test.js) | Đồng bộ ca kiểm thử integration test: Cập nhật lệnh gọi `fn_kiem_tra_so_luong_sach` sang chuẩn 1 tham số (`maSach`), bảo đảm test suite đạt 100% khi chạy trên database đã migrate mới nhất. |
+| **4** | Clean Migration Check Script & Evidence | Kiểm chứng chạy lại trọn vẹn toàn bộ 17 migrations từ database hoàn toàn trống (`library_migration_check`, `library_clean_test`), xác nhận tính độc lập và khả năng triển khai từ con số 0. |
+
+### 2. Bằng chứng kiểm thử & Nghiệm thu (Verification Evidence)
+
+1. **Nghiệm thu Migration từ CSDL sạch 100%:**
+   - Lệnh thực hiện:
+     ```bash
+     docker compose exec -T mysql mysql -uroot -proot -e "DROP DATABASE IF EXISTS library_clean_test; CREATE DATABASE library_clean_test;"
+     (cd backend && npx sequelize-cli db:migrate --url "mysql://root:root@127.0.0.1:3306/library_clean_test")
+     ```
+   - Kết quả: **17/17 migrations thực thi thành công (PASS)** trong 2.45s, không có bất kỳ lỗi cú pháp hay xung đột foreign key.
+2. **Nghiệm thu Kịch bản SQL Demo trực tiếp:**
+   - Lệnh thực hiện:
+     ```bash
+     docker compose exec -T mysql mysql -uroot -proot --default-character-set=utf8mb4 library_db < backend/scripts/demo_tuan4_nguoi_a.sql
+     ```
+   - Kết quả: **PASS 100%**:
+     - `fn_kiem_tra_so_luong_sach(30)`: Trả về tồn kho `8` khớp với bảng `Sach`.
+     - `trg_tinh_tien_phat`: Tự động tính tiền phạt `4.000 VNĐ` cho phiếu quá hạn 2 ngày mượn 2 cuốn sách.
+     - `sp_danh_sach_phieu_muon_chua_tra()`: Lọc đúng các phiếu `'Đang mượn'`.
+     - `sp_thong_ke_sach_muon_thang()`: Trả về tổng sách mượn tháng hiện tại.
+     - `sp_thong_ke_doc_gia_muon_sach_nam()`: Đếm chính xác độc giả qua `COUNT(DISTINCT maDocGia)`.
+3. **Nghiệm thu Backend Full Test Suite:**
+   - Lệnh thực hiện:
+     ```bash
+     (cd backend && MIGRATION_TEST_DB_URL="mysql://root:root@127.0.0.1:3306/library_db" npm test)
+     ```
+   - Kết quả: **PASS 49/49 tests (100%)**, 0 fail, 0 cancelled, 0 skipped, thời gian chạy: 1.59s.
+4. **Nghiệm thu Frontend Production Build:**
+   - Lệnh thực hiện: `(cd frontend && npm run build)`
+   - Kết quả: **PASS (Built in 4.30s, 143 modules transformed, 0 errors)**.
+
+### 3. Đánh giá trạng thái Thành viên A (Minh)
+
+- **Trạng thái:** **HOÀN THÀNH 100% TUẦN 4 (SẴN SÀNG BẢO VỆ)**
+- Đã sẵn sàng nhánh `feat/minh/week-4` để tạo PR gộp vào `main`.
