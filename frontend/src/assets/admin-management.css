@@ -628,6 +628,18 @@
   .publisher-management,
   .reader-management,
   .staff-management
+) .modal-dialog.modal-lg {
+  width: min(100%, 780px);
+}
+
+:is(
+  .author-management,
+  .book-management,
+  .borrow-management,
+  .category-management,
+  .publisher-management,
+  .reader-management,
+  .staff-management
 ) .modal-content {
   overflow: visible;
   border: 1px solid rgb(229 234 240 / 90%);

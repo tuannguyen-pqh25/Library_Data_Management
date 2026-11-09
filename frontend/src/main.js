@@ -14,6 +14,7 @@ import store from './store';
 
 // Import component Toast tùy chỉnh (dùng để hiển thị thông báo)
 import Toast from './components/Toast.vue';
+import { setToastInstance } from './utils/notifications';
 
 // Import các stylesheet từ Bootstrap và Font Awesome
 import 'bootstrap/dist/css/bootstrap.min.css';               // CSS của Bootstrap
@@ -33,6 +34,7 @@ const toast = {
 
     // Mount component Toast vào div vừa tạo
     const toastInstance = createApp(Toast).mount(toastContainer);
+    setToastInstance(toastInstance);
     
     // Đăng ký hàm `$toast.show()` để có thể gọi từ bất kỳ component nào
     app.config.globalProperties.$toast = {

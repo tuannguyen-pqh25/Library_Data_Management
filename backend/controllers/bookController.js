@@ -4,6 +4,18 @@ const { sequelize, Sach, ChiTietPhieuMuon, TacGia, NhaXuatBan, TheLoai } = requi
 const fs = require('fs');
 const path = require('path');
 
+const parseProcedureResult = (results) => {
+  if (results == null) return null;
+  if (typeof results === 'object') {
+    if (results.isValid !== undefined) return Number(results.isValid);
+    for (const key of Object.keys(results)) {
+      const val = parseProcedureResult(results[key]);
+      if (val !== null && !Number.isNaN(val)) return val;
+    }
+  }
+  return null;
+};
+
 const getAllBooks = async (req, res) => {
   try {
     logger.info('Fetching all books');
@@ -28,7 +40,7 @@ const createBook = async (req, res) => {
     logger.info('Creating book', { data: req.body });
 
     // Call the stored procedure to validate foreign keys
-    const [results] = await sequelize.query(
+    const results = await sequelize.query(
       'CALL sp_validate_book_foreign_keys(:maTacGia, :maNXB, :maTheLoai, @isValid)',
       {
         replacements: {
@@ -40,10 +52,9 @@ const createBook = async (req, res) => {
       }
     );
 
-    // Extract isValid from the result set
-    const isValid = results[0]?.isValid;
+    const isValid = parseProcedureResult(results);
 
-    if (!isValid) {
+    if (isValid !== 1) {
       logger.warn('Invalid foreign keys', { maTacGia, maNXB, maTheLoai });
       return res.status(400).json({ message: 'Invalid author, publisher, or category ID' });
     }
@@ -108,7 +119,7 @@ const updateBook = async (req, res) => {
     }
 
     if (Object.prototype.hasOwnProperty.call(body, 'soLuongHienCo') ||
-        Object.prototype.hasOwnProperty.call(body, 'soQuyen')) {
+      Object.prototype.hasOwnProperty.call(body, 'soQuyen')) {
       bookData.soLuongHienCo = Object.prototype.hasOwnProperty.call(body, 'soLuongHienCo')
         ? body.soLuongHienCo
         : body.soQuyen;
@@ -155,7 +166,7 @@ const updateBook = async (req, res) => {
     }
     for (const field of ['tenSach', 'nguonGoc']) {
       if (Object.prototype.hasOwnProperty.call(bookData, field) &&
-          (typeof bookData[field] !== 'string' || !bookData[field].trim())) {
+        (typeof bookData[field] !== 'string' || !bookData[field].trim())) {
         await transaction.rollback();
         return res.status(400).json({ message: `${field} không được để trống` });
       }
@@ -165,7 +176,7 @@ const updateBook = async (req, res) => {
     }
 
     if (['maTacGia', 'maNXB', 'maTheLoai'].some((field) => Object.prototype.hasOwnProperty.call(bookData, field))) {
-      const [results] = await sequelize.query(
+      const results = await sequelize.query(
         'CALL sp_validate_book_foreign_keys(:maTacGia, :maNXB, :maTheLoai, @isValid)',
         {
           replacements: {
@@ -177,7 +188,7 @@ const updateBook = async (req, res) => {
           transaction,
         }
       );
-      if (Number(results[0]?.isValid) !== 1) {
+      if (parseProcedureResult(results) !== 1) {
         await transaction.rollback();
         logger.warn('Invalid book foreign keys during update', {
           maTacGia: mergedData.maTacGia,
@@ -188,14 +199,20 @@ const updateBook = async (req, res) => {
       }
     }
 
-    await book.update(bookData, { transaction });
+    await Sach.update(bookData, {
+      where: bookKey,
+      transaction,
+    });
     await transaction.commit();
+
+    const finalMaTacGia = bookData.maTacGia !== undefined ? Number(bookData.maTacGia) : maTacGia;
+    const finalMaTheLoai = bookData.maTheLoai !== undefined ? Number(bookData.maTheLoai) : maTheLoai;
 
     const updatedBook = await Sach.findOne({
       where: {
         maSach,
-        maTacGia: book.maTacGia,
-        maTheLoai: book.maTheLoai,
+        maTacGia: finalMaTacGia,
+        maTheLoai: finalMaTheLoai,
       },
       include: [
         { model: TacGia, as: 'TacGia' },
@@ -217,7 +234,7 @@ const updateBook = async (req, res) => {
     });
     const databaseError = error.parent || error.original;
     if (databaseError?.code === 'ER_ROW_IS_REFERENCED_2' ||
-        databaseError?.code === 'ER_NO_REFERENCED_ROW_2') {
+      databaseError?.code === 'ER_NO_REFERENCED_ROW_2') {
       return res.status(409).json({
         message: 'Không thể cập nhật khóa sách vì dữ liệu mượn/trả đang tham chiếu đến sách',
       });
@@ -250,6 +267,25 @@ const deleteBook = async (req, res) => {
       await transaction.rollback();
       logger.warn('Book not found', bookKey);
       return res.status(404).json({ message: 'Không tìm thấy sách' });
+    }
+
+    // 1. Kiểm tra nếu sách đang có phiếu mượn chưa hoàn tất (đang mượn hoặc chờ duyệt)
+    const [activeLoans] = await sequelize.query(`
+      SELECT 1 FROM ChiTietPhieuMuon ct
+      INNER JOIN PhieuMuon pm ON pm.maPhieuMuon = ct.maPhieuMuon AND pm.maDocGia = ct.maDocGia
+      WHERE ct.maSach = :maSach AND pm.trangThai IN ('Đang mượn', 'Chờ duyệt')
+      LIMIT 1
+    `, {
+      replacements: { maSach },
+      transaction,
+    });
+
+    if (activeLoans && activeLoans.length > 0) {
+      await transaction.rollback();
+      logger.warn('Cannot delete book due to active loan requests', { ...bookKey });
+      return res.status(409).json({
+        message: 'Không thể xóa sách vì sách hiện đang được mượn hoặc đang chờ duyệt mượn'
+      });
     }
 
     if (book.soLuongHienCo > 0) {

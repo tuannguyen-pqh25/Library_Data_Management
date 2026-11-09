@@ -71,7 +71,11 @@
                 </div>
               </li>
               <li class="nav-item">
-                <router-link class="nav-link admin-reader-link" to="/reader">
+                <a v-if="isPort5174" class="nav-link admin-reader-link" :href="readerPortalUrl" target="_blank" rel="noopener">
+                  <i class="fas fa-book-open" aria-hidden="true"></i>
+                  <span>Giao diện độc giả</span>
+                </a>
+                <router-link v-else class="nav-link admin-reader-link" to="/reader">
                   <i class="fas fa-book-open" aria-hidden="true"></i>
                   <span>Giao diện độc giả</span>
                 </router-link>
@@ -130,16 +134,20 @@
       });
   
       const currentUser = computed(() => store.getters['auth/currentUser']);
-  
+      const isPort5174 = typeof window !== 'undefined' && window.location.port === '5174';
+      const readerPortalUrl = computed(() => (isPort5174 ? 'http://localhost:5173/' : '/reader'));
+
       const handleLogout = async () => {
         await store.dispatch('auth/logout');
         localStorage.removeItem('adminCurrentComponent');
-        router.push('/login');
+        router.push(isPort5174 ? '/admin/login' : '/login');
       };
-  
+
       return {
         currentComponent,
         currentUser,
+        isPort5174,
+        readerPortalUrl,
         handleLogout
       };
     }

@@ -1,5 +1,87 @@
 # Hướng dẫn bước tiếp theo cho nhóm 4 người
 
+## Hướng dẫn Commit và Pull Request — Cập nhật 09/11/2026: Tách 2 Cổng Độc giả/Admin, Fix Stored Procedure Thể loại, Cô lập Upload Ảnh & Nâng cấp UX
+Khi tạo commit hoặc tạo Pull Request gộp nhánh `C-Tuấn` vào `main` sau khi hoàn tất các hạng mục nâng cấp hệ thống và sửa lỗi ngày 09/11/2026, hãy sử dụng nội dung chuẩn sau:
+
+**Tiêu đề Commit / PR:**
+`feat(portal): Tách 2 cổng Reader 5173 / Admin 5174, sửa lỗi Stored Procedure Thể loại, cô lập upload ảnh và nâng cấp UX Modal`
+
+**Nội dung chi tiết PR / Commit Description:**
+- **Kiến trúc 2 Cổng mạng Độc lập (Two-Port Architecture):**
+  - Cấu hình lệnh khởi động trong `frontend/package.json`: `npm run dev:reader` (cổng `5173`) và `npm run dev:admin` (cổng `5174`).
+  - Phân tách bảo mật trong `frontend/src/router/index.js`:
+    - Trên cổng `5173`: Ẩn hoàn toàn tab chuyển đổi sang Quản trị viên trong `LoginForm.vue`; Navigation Guard chặn cứng URL `/admin`, `/admin/login`, tự động chuyển hướng về `/login` của độc giả.
+    - Trên cổng `5174`: Cổng quản trị chuyên biệt, tự động chuyển hướng người dùng chưa đăng nhập về `/admin/login`.
+  - Quyết định kiến trúc: Duy trì 1 thư mục `frontend` duy nhất (Single-repository), dùng chung Core API Client, Vuex Store và Assets; vận hành 3 terminal riêng biệt (Backend 5000, Reader 5173, Admin 5174) chuẩn kiến trúc doanh nghiệp.
+- **Sửa triệt để lỗi Cập nhật Thể loại Sách (`backend/controllers/bookController.js`):**
+  - Nâng cấp hàm `parseProcedureResult` duyệt đệ quy đa tầng để bóc tách chính xác `isValid: 1` từ Stored Procedure `sp_validate_book_foreign_keys` do driver `mysql2` trả về dạng `[{ "0": { isValid: 1 } }]`. Triệt tiêu hoàn toàn lỗi 400 *"Một hoặc nhiều khóa ngoại không hợp lệ"*.
+  - Chuyển thao tác cập nhật sách sang `Sach.update(bookData, { where: bookKey, transaction })` cấp Model để khắc phục việc Sequelize tự động bỏ qua các cột thuộc khóa chính phức hợp `(maSach, maTacGia, maTheLoai)` trên instance, kích hoạt `ON UPDATE CASCADE` sang `ChiTietPhieuMuon`.
+  - Bổ sung kiểm tra ràng buộc phiếu mượn chưa hoàn tất trong hàm `deleteBook`: chặn xóa sách nếu đang có phiếu mượn ở trạng thái `'Đang mượn'` hoặc `'Chờ duyệt'` kèm HTTP 409.
+- **Cô lập DOM Upload File và tích hợp Xem trước Ảnh bìa (`frontend/src/components/admin/BookManagement.vue`):**
+  - Thêm `ref="fileInputRef"` và hàm reset `clearSelectedImage()`: xóa sạch giá trị DOM của thẻ input file (`fileInputRef.value.value = ''`) và giải phóng `URL.revokeObjectURL` khi mở Thêm mới, Sửa, hoặc Hủy modal. Chấm dứt triệt để lỗi file ảnh sách này bị ghi đè sang sách khác.
+  - Tích hợp khung Xem trước (Preview) ảnh bìa: hiển thị ảnh hiện tại, ảnh mới chọn, tên file và nút "Bỏ chọn" linh hoạt.
+- **Tối ưu hóa giao diện Modal & Thông báo Toast (`BookManagement.vue`, `notifications.js`, `main.js`):**
+  - Chuyển modal sửa sách sang lưới 2 cột responsive (`modal-lg modal-dialog-centered modal-dialog-scrollable`) với footer cố định, giải quyết lỗi nút bấm bị tràn khỏi màn hình laptop.
+  - Xây dựng Modal Cảnh báo Xóa sách (Warning Dialog Modal) hiển thị giải thích chi tiết quy tắc toàn vẹn khi sách còn tồn kho hoặc đang có người mượn.
+  - Khắc phục lỗi hiển thị Toast thông báo sau các thao tác bất đồng bộ `async/await` bằng cơ chế gắn kết thể hiện `setToastInstance` trong `main.js`.
+- **Tích hợp Lịch trình Mượn & Hẹn trả trong Giỏ mượn sách (`BookList.vue`, `borrowController.js`):**
+  - Giỏ mượn tích hợp bộ chọn ngày `borrowDate` và `returnDate` (tính toán tự động thời hạn 14 ngày, validate không chọn ngày quá khứ), truyền dữ liệu chuẩn xác lên API backend `PhieuMuon`.
+- **Kết quả nghiệm thu kiểm thử tự động:**
+  - Backend Test Suite: **PASS 47/47 tests (100%)** trên MySQL thật.
+  - Frontend Production Build: **PASS (Built in 12.51s, 143 modules transformed, 0 errors)**.
+
+**Lệnh Git thực hiện:**
+```bash
+git add backend/controllers/bookController.js backend/controllers/borrowController.js frontend/ Cores/
+git commit -m "feat(portal): separate reader/admin ports, fix category update procedure, isolate image upload and enhance modal UX"
+git push origin C-Tuấn
+```
+
+---
+
+### Prompt sẵn dùng cho phiên kế tiếp (Ngữ cảnh tối ưu cho AI Assistant)
+
+```text
+Bạn đang làm việc trong workspace LibraryManagement tại D:\Project\CT467\LibraryManagement trên hệ điều hành Windows.
+Tài liệu tham chiếu cốt lõi:
+- Cores/Tieuchiduan.md (Tiêu chuẩn kỹ thuật môn học & phân công A/B/C/D)
+- Cores/Chienluoc.md (Chiến lược dự án & kiến trúc hệ thống)
+- Cores/checkpoint.md (Nhật ký trạng thái dự án liên tục — chỉ cập nhật/bổ sung, không tạo mới hay xóa)
+- Cores/next_step_guide.md (Kế hoạch hành động, mẫu PR commit & prompt ngữ cảnh)
+
+Kiến trúc vận hành 3 Terminal độc lập chuẩn Doanh nghiệp:
+1. Backend Engine (Port 5000):
+   cd backend && npm run dev
+   - Node.js Express / Sequelize 6 / MySQL 8.0.46 (DB: library_db, user: librarymanagement, pass: librarymanagement)
+   - Đầy đủ 7 bảng, khóa chính phức hợp Sach(maSach, maTacGia, maTheLoai), ChiTietPhieuMuon, PhieuTra.
+   - Routines & Triggers: fn_kiem_tra_so_luong_sach (1 tham số maSach), trg_tinh_tien_phat, sp_danh_sach_phieu_muon_chua_tra, sp_thong_ke_sach_muon_thang, sp_thong_ke_doc_gia_muon_sach_nam, sp_validate_book_foreign_keys.
+   - Backend Test Suite: npm test (47/47 tests PASS).
+2. Reader Portal (Port 5173):
+   cd frontend && npm run dev:reader
+   - Dành riêng cho Độc giả. Đã ẩn hoàn toàn tab/liên kết Admin. URL /admin và /admin/login bị chặn cứng và điều hướng về /login.
+   - Tài khoản độc giả mẫu: demo.reader@example.test / mật khẩu độc giả tương ứng.
+3. Admin Portal (Port 5174):
+   cd frontend && npm run dev:admin
+   - Dành riêng cho Cán bộ Quản trị / Thủ thư. Chưa đăng nhập tự động đưa về /admin/login. Độc giả thường bị từ chối truy cập.
+   - Tài khoản Admin mặc định: Admin / admin123.
+
+Trạng thái kỹ thuật hiện tại:
+- Frontend được tổ chức trong duy nhất 1 thư mục `frontend/` (không tách thành 2 thư mục để tránh trùng lặp mã và phình to node_modules).
+- Stored Procedure `sp_validate_book_foreign_keys` được bóc tách bằng hàm đệ quy `parseProcedureResult` trong `bookController.js`.
+- Thao tác cập nhật sách dùng `Sach.update(bookData, { where: bookKey })` để hỗ trợ sửa đổi khóa chính phức hợp và kích hoạt ON UPDATE CASCADE.
+- Modal Quản lý sách hỗ trợ lưới 2 cột, sticky footer, isolated file input DOM (`fileInputRef`), preview ảnh bìa và Warning Modal khi xóa sách còn ràng buộc.
+- Giỏ mượn sách có tính năng chọn ngày nhận và ngày hẹn trả sách (mặc định 14 ngày).
+- Build production đạt PASS (0 errors).
+
+Yêu cầu khi hỗ trợ người dùng:
+1. Giữ nguyên cấu trúc thư mục frontend hiện tại (không tách 2 thư mục frontend/admin và frontend/user).
+2. Khi sửa controller/model, luôn bảo toàn tính toàn vẹn khóa chính phức hợp (maSach, maTacGia, maTheLoai).
+3. Đảm bảo chạy lệnh kiểm tra cú pháp và build trước khi bàn giao (cd backend; npm test | cd frontend; npm run build).
+4. Phản hồi ngắn gọn, rõ ràng, dẫn link file dạng [basename](file:///path/to/file) và sử dụng tiếng Việt thân thiện, chuyên nghiệp.
+```
+
+---
+
 ## Hướng dẫn Commit và Pull Request — Giai đoạn 4: Nghiệm thu Tổng thể Đồ án (26/10/2026)
 Khi tạo commit hoặc tạo Pull Request gộp nhánh `C-Tuấn` vào `main` sau khi hoàn tất kiểm tra và chuẩn hóa toàn bộ tiêu chí `Cores/Tieuchiduan.md`, hãy sử dụng nội dung chuẩn sau:
 

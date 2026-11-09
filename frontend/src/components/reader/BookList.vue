@@ -49,6 +49,53 @@
               </div>
             </div>
 
+            <!-- Chọn ngày nhận và ngày hẹn trả sách -->
+            <div class="cart-dates-box" v-if="borrowCart.length">
+              <div class="cart-dates-header">
+                <i class="fas fa-calendar-alt text-primary me-2" aria-hidden="true"></i>
+                <span class="cart-dates-title">Lịch trình nhận & trả sách</span>
+              </div>
+
+              <div class="cart-dates-grid">
+                <div class="date-field">
+                  <label class="date-label" for="borrow-date-input">
+                    <i class="fas fa-calendar-check text-success me-1"></i>Ngày nhận sách
+                  </label>
+                  <input
+                    type="date"
+                    id="borrow-date-input"
+                    class="date-input"
+                    v-model="borrowDate"
+                    :min="minBorrowDate"
+                    @change="onBorrowDateChange"
+                    required
+                  />
+                </div>
+                <div class="date-field">
+                  <label class="date-label" for="return-date-input">
+                    <i class="fas fa-calendar-day text-danger me-1"></i>Ngày hẹn trả
+                  </label>
+                  <input
+                    type="date"
+                    id="return-date-input"
+                    class="date-input"
+                    v-model="returnDate"
+                    :min="borrowDate || minBorrowDate"
+                    @change="onReturnDateChange"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div v-if="dateError" class="date-error" role="alert">
+                <i class="fas fa-circle-exclamation me-1"></i>{{ dateError }}
+              </div>
+              <div v-else class="date-hint">
+                <span>Thời hạn mượn: <strong>{{ loanDurationDays }} ngày</strong></span>
+                <span class="text-muted">(Mặc định 14 ngày)</span>
+              </div>
+            </div>
+
             <ul class="cart-list" aria-label="Danh sách sách trong giỏ mượn">
               <li
                 v-for="item in borrowCart"
@@ -120,7 +167,7 @@
             <button
               class="btn-primary-custom"
               @click="handleConfirmBorrow"
-              :disabled="loading || !isValidCart || !borrowCart.length || isOverLimit"
+              :disabled="loading || !isValidCart || !borrowCart.length || isOverLimit || !!dateError"
             >
               <i v-if="loading" class="fas fa-spinner fa-spin me-2" aria-hidden="true"></i>
               <span v-else><i class="fas fa-paper-plane me-2" aria-hidden="true"></i></span>
@@ -420,6 +467,49 @@ export default {
     const showConfirmModal = ref(false);
     const selectedBook = ref(null);
 
+    // Date helpers for YYYY-MM-DD
+    const getTodayStr = () => {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    };
+
+    const addDays = (baseStr, days) => {
+      if (!baseStr) return '';
+      const [y, m, d] = baseStr.split('-').map(Number);
+      const date = new Date(y, m - 1, d + days);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    };
+
+    const minBorrowDate = ref(getTodayStr());
+    const borrowDate = ref(getTodayStr());
+    const returnDate = ref(addDays(getTodayStr(), 14));
+
+    const onBorrowDateChange = () => {
+      if (borrowDate.value && (!returnDate.value || returnDate.value <= borrowDate.value)) {
+        returnDate.value = addDays(borrowDate.value, 14);
+      }
+    };
+
+    const onReturnDateChange = () => {};
+
+    const loanDurationDays = computed(() => {
+      if (!borrowDate.value || !returnDate.value) return 0;
+      const [y1, m1, d1] = borrowDate.value.split('-').map(Number);
+      const [y2, m2, d2] = returnDate.value.split('-').map(Number);
+      const t1 = new Date(y1, m1 - 1, d1).getTime();
+      const t2 = new Date(y2, m2 - 1, d2).getTime();
+      return Math.max(0, Math.round((t2 - t1) / (1000 * 60 * 60 * 24)));
+    });
+
+    const dateError = computed(() => {
+      if (!borrowDate.value) return 'Vui lòng chọn ngày nhận sách';
+      if (!returnDate.value) return 'Vui lòng chọn ngày hẹn trả';
+      if (borrowDate.value < minBorrowDate.value) return 'Ngày nhận sách không thể ở quá khứ';
+      if (returnDate.value < borrowDate.value) return 'Ngày hẹn trả phải sau hoặc cùng ngày nhận sách';
+      if (loanDurationDays.value > 30) return 'Thời gian mượn tối đa không quá 30 ngày';
+      return null;
+    });
+
     const API_URL = import.meta.env.VITE_API_IMAGE_URL || '';
 
     const toastMsg = ref({ show: false, text: '', type: 'success' });
@@ -535,7 +625,8 @@ export default {
     const isValidCart = computed(() =>
       borrowCart.value.length > 0 &&
       borrowCart.value.every(isItemValid) &&
-      !isOverLimit.value
+      !isOverLimit.value &&
+      !dateError.value
     );
 
     const isBookInCart = (book) =>
@@ -590,14 +681,23 @@ export default {
       }
     };
 
-    const showBorrowCart = () => { showConfirmModal.value = true; };
+    const showBorrowCart = () => {
+      minBorrowDate.value = getTodayStr();
+      if (!borrowDate.value || borrowDate.value < minBorrowDate.value) {
+        borrowDate.value = minBorrowDate.value;
+      }
+      if (!returnDate.value || returnDate.value <= borrowDate.value) {
+        returnDate.value = addDays(borrowDate.value, 14);
+      }
+      showConfirmModal.value = true;
+    };
 
     const closeConfirmModal = () => {
       showConfirmModal.value = false;
     };
 
     const handleConfirmBorrow = async () => {
-      if (!isValidCart.value) return;
+      if (!isValidCart.value || !!dateError.value) return;
       try {
         loading.value = true;
         const chiTiet = borrowCart.value.map(item => ({
@@ -606,10 +706,14 @@ export default {
           maTheLoai: item.maTheLoai,
           soLuongSachMuon: item.soLuongSachMuon,
         }));
-        await store.dispatch('borrow/createBorrowRequest', { chiTiet });
+        await store.dispatch('borrow/createBorrowRequest', {
+          chiTiet,
+          ngayMuon: borrowDate.value,
+          ngayTra: returnDate.value
+        });
         closeConfirmModal();
         borrowCart.value = [];
-        showToast('Yêu cầu mượn đã được gửi. Trạng thái: Chờ duyệt — vui lòng chờ quản lý xác nhận.', 'success');
+        showToast('Yêu cầu mượn đã được gửi thành công. Trạng thái: Chờ duyệt — vui lòng chờ quản lý xác nhận.', 'success');
         await fetchData();
       } catch (err) {
         showToast(err.response?.data?.message || 'Có lỗi xảy ra khi gửi yêu cầu', 'error');
@@ -633,6 +737,7 @@ export default {
       getImageUrl, onImgError,
       isValidCart, isItemValid, isBookInCart,
       totalCartQty, outstandingCopies, remainingBorrowLimit, isOverLimit,
+      borrowDate, returnDate, minBorrowDate, onBorrowDateChange, onReturnDateChange, loanDurationDays, dateError,
       addToBorrowCart, removeFromCart, changeQty, validateQuantity,
       showBorrowCart, closeConfirmModal, handleConfirmBorrow, clearError, fetchData,
       API_URL,
@@ -1267,6 +1372,68 @@ export default {
   border: 1px solid #fca5a5;
   border-radius: 8px;
   padding: 0.45rem 0.75rem;
+}
+
+/* ── Cart Dates Box ───────────────────────────────────────── */
+.cart-dates-box {
+  background: #f8fafc;
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.25rem;
+  transition: all var(--trans);
+}
+.cart-dates-header {
+  display: flex;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--c-text);
+  margin-bottom: 0.65rem;
+}
+.cart-dates-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.date-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+}
+.date-input {
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+  color: var(--c-text);
+  background: #ffffff;
+  outline: none;
+  transition: border-color var(--trans);
+}
+.date-input:focus {
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+.date-error {
+  color: var(--c-danger);
+  font-size: 0.75rem;
+  margin-top: 0.4rem;
+  display: flex;
+  align-items: center;
+}
+.date-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-top: 0.45rem;
 }
 
 .borrow-drawer__footer {

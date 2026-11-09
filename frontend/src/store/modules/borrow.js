@@ -70,10 +70,10 @@ export default {
       }
     },
 
-    async createBorrowRequest({ commit }, { chiTiet }) {
+    async createBorrowRequest({ commit }, payload) {
       commit('SET_LOADING', true);
       try {
-        const response = await api.post('/muonsach/request', { chiTiet });
+        const response = await api.post('/muonsach/request', payload);
         return response.data;
       } catch (error) {
         commit('SET_ERROR', error.response?.data?.message || 'Có lỗi xảy ra');

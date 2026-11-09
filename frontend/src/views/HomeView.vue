@@ -86,8 +86,11 @@
       </section>
 
       <footer class="site-footer">
-        <span>THƯ VIỆN SÁCH TM</span>
+        <span>THƯ VIỆN SÁCH CTU</span>
         <span>Một trang sách hay, một ngày thật đẹp.</span>
+        <a href="http://localhost:5174" style="color: var(--muted); font-size: 13px; text-decoration: none;" title="Mở Cổng Quản trị nội bộ tại cổng 5174">
+          <i class="fas fa-user-shield me-1"></i> Cổng Quản trị viên (Port 5174)
+        </a>
       </footer>
     </div>
   </main>
