@@ -8,7 +8,10 @@
     <div class="glow-orb glow-orb--3" aria-hidden="true"></div>
 
     <!-- Back to Home Link -->
-    <router-link to="/" class="btn-back-home" aria-label="Quay về trang chủ">
+    <a v-if="isPort5174" href="http://localhost:5173" class="btn-back-home" aria-label="Quay về Cổng Độc giả">
+      <i class="fas fa-arrow-left me-2" aria-hidden="true"></i>Cổng Độc giả
+    </a>
+    <router-link v-else to="/" class="btn-back-home" aria-label="Quay về trang chủ">
       <i class="fas fa-arrow-left me-2" aria-hidden="true"></i>Về trang chủ
     </router-link>
 
@@ -19,25 +22,32 @@
         <div class="showcase-content">
           <div class="brand-badge">
             <div class="brand-icon">
-              <i class="fas fa-university" aria-hidden="true"></i>
+              <i :class="isStaff ? 'fas fa-user-shield' : 'fas fa-university'" aria-hidden="true"></i>
             </div>
             <div class="brand-info">
-              <span class="brand-sub">HỆ THỐNG QUẢN LÝ</span>
-              <span class="brand-name">THƯ VIỆN SỐ CTU</span>
+              <span class="brand-sub">{{ isStaff ? 'HỆ THỐNG QUẢN TRỊ NỘI BỘ' : 'HỆ THỐNG QUẢN LÝ' }}</span>
+              <span class="brand-name">{{ isStaff ? 'CÁN BỘ THƯ VIỆN CTU' : 'THƯ VIỆN SỐ CTU' }}</span>
             </div>
           </div>
 
           <div class="showcase-hero">
-            <h2 class="showcase-title">
+            <h2 class="showcase-title" v-if="!isStaff">
               Khám phá kho tàng <br />
               <span class="text-gradient">tri thức học thuật</span>
             </h2>
-            <p class="showcase-desc">
+            <h2 class="showcase-title" v-else>
+              Không gian vận hành <br />
+              <span class="text-gradient">quản trị thư viện</span>
+            </h2>
+            <p class="showcase-desc" v-if="!isStaff">
               Truy cập nhanh chóng hàng chục ngàn tài liệu giáo trình, sách nghiên cứu và quản lý lịch trình mượn trả trực tuyến 24/7.
+            </p>
+            <p class="showcase-desc" v-else>
+              Giám sát chỉ số KPI, quản trị danh mục sách, tác giả và kiểm soát giao dịch duyệt mượn trả an toàn với ACID transaction.
             </p>
           </div>
 
-          <div class="feature-pills">
+          <div class="feature-pills" v-if="!isStaff">
             <div class="feature-item">
               <div class="feature-icon"><i class="fas fa-book-open" aria-hidden="true"></i></div>
               <div class="feature-text">
@@ -63,10 +73,36 @@
             </div>
           </div>
 
+          <div class="feature-pills" v-else>
+            <div class="feature-item">
+              <div class="feature-icon"><i class="fas fa-chart-line" aria-hidden="true"></i></div>
+              <div class="feature-text">
+                <strong>Dashboard & KPI</strong>
+                <span>Giám sát lưu lượng mượn sách thời gian thực</span>
+              </div>
+            </div>
+
+            <div class="feature-item">
+              <div class="feature-icon"><i class="fas fa-tasks" aria-hidden="true"></i></div>
+              <div class="feature-text">
+                <strong>Duyệt mượn & Trả sách</strong>
+                <span>An toàn với Transaction và Row Locking</span>
+              </div>
+            </div>
+
+            <div class="feature-item">
+              <div class="feature-icon"><i class="fas fa-database" aria-hidden="true"></i></div>
+              <div class="feature-text">
+                <strong>Toàn vẹn CSDL</strong>
+                <span>Kiểm soát khóa ngoại, ngăn chặn xóa lỗi 409</span>
+              </div>
+            </div>
+          </div>
+
           <div class="showcase-footer">
             <div class="footer-badge">
               <i class="fas fa-check-circle text-success me-2" aria-hidden="true"></i>
-              Hệ thống vận hành chính thức CT467
+              {{ isStaff ? 'Cổng quản trị nội bộ chính thức' : 'Hệ thống vận hành chính thức CT467' }}
             </div>
           </div>
         </div>
@@ -76,37 +112,13 @@
       <div class="auth-form-panel">
         <div class="form-panel-header">
           <div class="mobile-brand d-lg-none mb-3">
-            <i class="fas fa-book-reader me-2 text-primary" aria-hidden="true"></i>
-            <strong>THƯ VIỆN CTU</strong>
+            <i :class="isStaff ? 'fas fa-user-shield me-2 text-primary' : 'fas fa-book-reader me-2 text-primary'" aria-hidden="true"></i>
+            <strong>{{ isStaff ? 'CÁN BỘ THƯ VIỆN' : 'THƯ VIỆN CTU' }}</strong>
           </div>
-          <h1 class="form-title">Đăng nhập</h1>
-          <p class="form-subtitle">Chào mừng bạn trở lại! Vui lòng đăng nhập để tiếp tục.</p>
-        </div>
-
-        <!-- Role Switcher (Pill Tabs) -->
-        <div class="role-switcher" role="tablist" aria-label="Chọn vai trò đăng nhập">
-          <button
-            type="button"
-            class="role-btn"
-            :class="{ active: userType === 'reader' }"
-            @click="switchUserType('reader')"
-            role="tab"
-            :aria-selected="userType === 'reader'"
-          >
-            <i class="fas fa-user-graduate me-2" aria-hidden="true"></i>
-            <span>Độc giả</span>
-          </button>
-          <button
-            type="button"
-            class="role-btn"
-            :class="{ active: userType === 'staff' }"
-            @click="switchUserType('staff')"
-            role="tab"
-            :aria-selected="userType === 'staff'"
-          >
-            <i class="fas fa-user-tie me-2" aria-hidden="true"></i>
-            <span>Nhân viên / Admin</span>
-          </button>
+          <h1 class="form-title">{{ isStaff ? 'Đăng nhập Quản trị' : 'Đăng nhập Độc giả' }}</h1>
+          <p class="form-subtitle">
+            {{ isStaff ? 'Cổng đăng nhập dành riêng cho Cán bộ thư viện & Quản trị hệ thống.' : 'Chào mừng bạn trở lại! Vui lòng đăng nhập để tiếp tục.' }}
+          </p>
         </div>
 
 
@@ -231,18 +243,32 @@
           >
             <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
             <span v-if="!loading"><i class="fas fa-sign-in-alt me-2" aria-hidden="true"></i></span>
-            {{ loading ? 'Đang xác thực...' : 'Đăng nhập vào hệ thống' }}
+            {{ loading ? 'Đang xác thực...' : (isStaff ? 'Đăng nhập Quản trị viên' : 'Đăng nhập Độc giả') }}
           </button>
         </form>
 
         <!-- Footer / Register Link -->
         <div class="form-panel-footer">
-          <p class="register-hint">
-            Chưa có tài khoản độc giả?
-            <router-link to="/register" class="link-register">
-              Đăng ký ngay <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i>
-            </router-link>
-          </p>
+          <template v-if="!isStaff">
+            <p class="register-hint mb-2">
+              Chưa có tài khoản độc giả?
+              <router-link to="/register" class="link-register">
+                Đăng ký ngay <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i>
+              </router-link>
+            </p>
+            <div class="text-center mt-2">
+              <a href="http://localhost:5174" class="text-muted small text-decoration-none" title="Mở Cổng Quản trị tại cổng 5174">
+                <i class="fas fa-user-shield me-1"></i> Cổng Quản trị viên (Port 5174) ➔
+              </a>
+            </div>
+          </template>
+          <template v-else>
+            <div class="text-center">
+              <a href="http://localhost:5173" class="link-register" title="Mở Cổng Độc giả tại cổng 5173">
+                <i class="fas fa-arrow-left me-1"></i> Mở Cổng Dịch vụ Độc giả (Port 5173)
+              </a>
+            </div>
+          </template>
         </div>
       </div>
     </div>
@@ -252,17 +278,31 @@
 <script>
 import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
 import { showError } from '@/utils/notifications';
 
 export default {
   name: 'LoginForm',
   components: { LoadingSpinner },
-  setup() {
+  props: {
+    portalType: {
+      type: String,
+      default: 'reader'
+    }
+  },
+  setup(props) {
     const store = useStore();
     const router = useRouter();
-    const userType = ref('reader');
+    const route = useRoute();
+
+    const isPort5174 = typeof window !== 'undefined' && window.location.port === '5174';
+
+    const isStaff = computed(() => {
+      return isPort5174 || props.portalType === 'staff' || route.path.startsWith('/admin') || route.query.role === 'staff';
+    });
+
+    const userType = computed(() => (isStaff.value ? 'staff' : 'reader'));
     const credentials = ref({
       hoTenNV: '',
       email: '',
@@ -276,7 +316,6 @@ export default {
     const error = computed(() => store.state.auth.error);
 
     const switchUserType = (type) => {
-      userType.value = type;
       errors.value = {};
       clearError();
     };
@@ -377,6 +416,8 @@ export default {
     };
 
     return {
+      isPort5174,
+      isStaff,
       userType,
       credentials,
       loading,

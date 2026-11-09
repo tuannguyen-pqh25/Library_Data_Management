@@ -129,8 +129,8 @@ const createBorrowRequest = async (req, res) => {
     if (req.userType !== 'reader') {
       return res.status(403).json({ message: 'Chỉ độc giả mới có thể yêu cầu mượn sách' });
     }
-    const { chiTiet } = req.body;
-    logger.info('Creating borrow request', { maDocGia: req.user.maDocGia, chiTiet });
+    const { chiTiet, ngayMuon: customNgayMuon, ngayTra: customNgayTra } = req.body;
+    logger.info('Creating borrow request', { maDocGia: req.user.maDocGia, chiTiet, customNgayMuon, customNgayTra });
     if (!chiTiet || !Array.isArray(chiTiet) || chiTiet.length === 0) {
       logger.warn('Invalid borrow request data', { chiTiet });
       return res.status(400).json({ message: 'Danh sách sách mượn không hợp lệ' });
@@ -151,8 +151,24 @@ const createBorrowRequest = async (req, res) => {
     }
 
     normalizedDetails.sort((a, b) => a.maSach - b.maSach || a.maTacGia - b.maTacGia || a.maTheLoai - b.maTheLoai);
-    const ngayMuon = new Date();
-    const ngayTra = getDueDate(ngayMuon);
+    let ngayMuon = new Date();
+    if (customNgayMuon) {
+      const parsedMuon = new Date(customNgayMuon);
+      if (!isNaN(parsedMuon.getTime())) {
+        ngayMuon = parsedMuon;
+      }
+    }
+
+    let ngayTra = getDueDate(ngayMuon);
+    if (customNgayTra) {
+      const parsedTra = new Date(customNgayTra);
+      if (!isNaN(parsedTra.getTime())) {
+        if (parsedTra < ngayMuon) {
+          return res.status(400).json({ message: 'Ngày hẹn trả không thể trước ngày nhận sách' });
+        }
+        ngayTra = parsedTra;
+      }
+    }
     logger.debug('Calculated borrow dates', { ngayMuon, ngayTra });
 
     transaction = await sequelize.transaction();

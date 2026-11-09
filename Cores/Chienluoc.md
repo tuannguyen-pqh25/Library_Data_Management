@@ -18,6 +18,8 @@ Nguyên tắc phối hợp:
 - Mọi thay đổi cấu trúc CSDL là migration mới; không sửa migration đã chạy và không dùng `sequelize.sync({ alter: true })` ở môi trường nộp bài.
 - Pull request phải có ca kiểm thử tối thiểu cho chức năng thay đổi và dữ liệu mẫu để demo.
 - Trạng thái lưu trong enum hiện hành: `Chờ duyệt`, `Đang mượn`, `Đã trả`, `Từ chối`. Trong tài liệu kế hoạch, `Đã duyệt` nghĩa là phiếu đã được duyệt và tương ứng với `Đang mượn`; code, DB và API tiếp tục dùng `Đang mượn`.
+- Kiến trúc phân tách Cổng dịch vụ (Two-Port Architecture): Duy trì 1 thư mục `frontend` duy nhất (Single-repository) dùng chung Core Services, Store và CSS base; phân tách môi trường bằng 2 cổng chạy độc lập: `5173` (`npm run dev:reader` dành cho Độc giả) và `5174` (`npm run dev:admin` dành cho Cán bộ Quản trị). Vận hành 3 terminal độc lập (Backend 5000, Reader 5173, Admin 5174) theo chuẩn enterprise mà không làm phân mảnh cấu trúc mã nguồn.
+- Quy tắc cập nhật khóa chính phức hợp: Bảng `Sach` mang khóa chính phức hợp `(maSach, maTacGia, maTheLoai)`. Các thao tác cập nhật sách bắt buộc dùng `Sach.update(bookData, { where: bookKey })` cấp Model để tránh bị Sequelize nuốt các trường khóa chính, đồng thời kích hoạt cơ chế `ON UPDATE CASCADE` sang `ChiTietPhieuMuon`.
 
 ## Các việc bắt buộc trước khi bổ sung (Trạng thái: ĐÃ HOÀN THÀNH 100% — Nghiệm thu 26/10/2026)
 

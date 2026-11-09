@@ -1,6 +1,6 @@
 # Checkpoint — Trạng thái dự án LibraryManagement
 
-> Cập nhật lần cuối: 2026-10-26 (Hoàn tất Giai đoạn 4: Nghiệm thu tổng thể 100% tiêu chí đồ án theo phân công A/B/C/D)
+> Cập nhật lần cuối: 2026-11-09 (Tách Cổng Độc giả 5173 / Admin 5174, Nâng cấp UI Modal, Sửa lỗi Stored Procedure Thể loại & Tải ảnh Bìa)
 
 ## Bối cảnh và quyết định hiện tại
 
@@ -575,3 +575,59 @@ Toàn bộ hệ thống quản lý thư viện đã hoàn thiện xuất sắc 1
 
 - **Trạng thái:** **HOÀN THÀNH 100% TUẦN 4 (SẴN SÀNG BẢO VỆ)**
 - Đã sẵn sàng nhánh `feat/minh/week-4` để tạo PR gộp vào `main`.
+
+---
+
+## Cập nhật 2026-11-09 — Kiến trúc 2 Cổng Độc giả/Admin, Nâng cấp UI Modal, Khắc phục lỗi Lưu Thể loại & Tải ảnh Bìa (Thành viên C & D)
+
+**Phạm vi:** Hoàn thiện trải nghiệm phân tách cổng truy cập thực tế, tối ưu hóa giao diện Quản lý Sách phía Admin và khắc phục triệt để các lỗi phát sinh trong quá trình vận hành CSDL & upload file.
+
+### 1. Kiến trúc 2 Cổng mạng Độc lập (Two-Port Architecture)
+- **Cấu hình cổng mạng trong `frontend/package.json`:**
+  - `npm run dev`: Mặc định khởi động cổng `5173`.
+  - `npm run dev:reader`: Khởi động Cổng Dịch vụ Độc giả trên cổng `5173`.
+  - `npm run dev:admin`: Khởi động Cổng Quản trị Nội bộ trên cổng `5174`.
+- **Cơ chế cô lập tại Router (`frontend/src/router/index.js`):**
+  - Xây dựng hàm `isAdminPortal()` nhận diện cổng truy cập hiện tại qua `window.location.port === '5174'` hoặc biến môi trường `VITE_PORTAL`.
+  - **Trên Cổng 5173 (Độc giả):** Loại bỏ hoàn toàn tab chuyển đổi sang Quản trị viên trong component đăng nhập `LoginForm.vue`. Bất kỳ ai cố tình gõ URL `/admin` hoặc `/admin/login` đều bị Navigation Guard tự động điều hướng về `/login` của độc giả, bảo mật tuyệt đối đường dẫn nội bộ.
+  - **Trên Cổng 5174 (Admin/Thủ thư):** Mọi truy vấn chưa xác thực đều được tự động đưa về `/admin/login`. Độc giả thông thường nếu đăng nhập ở cổng này sẽ bị từ chối và đăng xuất ngay lập tức.
+- **Quyết định kiến trúc:** Giữ nguyên 1 thư mục `frontend` duy nhất dùng chung Core services, Vuex Store, CSS base và các components dùng chung; vận hành bằng 3 terminal riêng biệt (Backend 5000, Reader 5173, Admin 5174) nhằm bảo đảm tính chuyên nghiệp của hệ thống doanh nghiệp mà không làm phình to thư mục hay trùng lặp mã nguồn.
+
+### 2. Khắc phục triệt để lỗi Cập nhật Thể loại Sách (`bookController.js`)
+- **Khắc phục lỗi Stored Procedure (`sp_validate_book_foreign_keys`):**
+  - *Nguyên nhân:* Driver `mysql2` khi thực thi lệnh `CALL` dạng `SELECT` trả về mảng lồng object dạng `[{ "0": { isValid: 1 } }, { fieldCount: 0, ... }]`. Hàm parse cũ đọc `results[0].isValid` bị `undefined !== 1` khiến backend trả về lỗi HTTP 400 *"Một hoặc nhiều khóa ngoại không hợp lệ"*, dù dữ liệu NXB, Tác giả, Thể loại đều tồn tại trong DB.
+  - *Giải pháp:* Nâng cấp hàm `parseProcedureResult(results)` duyệt đệ quy đa tầng qua mọi cấp object/mảng, đảm bảo trích xuất chính xác giá trị `isValid` (trả về `1` hoặc `0`) trong mọi tình huống.
+- **Khắc phục cơ chế Sequelize với Primary Key phức hợp:**
+  - *Nguyên nhân:* Bảng `Sach` sử dụng khóa chính phức hợp gồm `(maSach, maTacGia, maTheLoai)`. Khi gọi `book.update(bookData)` trên instance, Sequelize có cơ chế bảo vệ nội bộ tự động bỏ qua (ignore) việc gán giá trị mới cho các cột thuộc khóa chính.
+  - *Giải pháp:* Chuyển sang cập nhật cấp Model bằng `Sach.update(bookData, { where: bookKey, transaction })`. Nhờ đó, MySQL thực thi câu lệnh `UPDATE Sach SET maTheLoai = ... WHERE maSach = ...` chuẩn xác và kích hoạt cơ chế `ON UPDATE CASCADE` sang bảng `ChiTietPhieuMuon`.
+
+### 3. Khắc phục lỗi Upload file ảnh bìa bị ghi đè chung giữa các sách (`BookManagement.vue`)
+- **Cô lập DOM File Input:** Thêm `ref="fileInputRef"` và hàm `clearSelectedImage()`. Khi người dùng mở "Thêm sách mới", bấm "Sửa" một cuốn sách bất kỳ, hoặc bấm "Hủy / Đóng modal", giá trị DOM của thẻ `<input type="file">` được reset hoàn toàn (`fileInputRef.value.value = ''`), đồng thời thu hồi URL xem trước tạm thời bằng `URL.revokeObjectURL`. Nhờ đó, file ảnh của sách này không bao giờ bị lưu vết sang sách khác.
+- **Tích hợp khung Xem trước (Preview) ảnh bìa:**
+  - Hiển thị trực quan ảnh bìa hiện tại của cuốn sách đang chỉnh sửa từ server.
+  - Khi người dùng chọn file ảnh mới (.jpg, .png, .webp), giao diện hiển thị ngay ảnh xem trước, tên file đã chọn và icon xác nhận màu xanh.
+  - Cung cấp nút **"Bỏ chọn"** màu đỏ để người dùng hủy file mới đã chọn và quay lại ảnh bìa ban đầu bất cứ lúc nào.
+
+### 4. Nâng cấp trải nghiệm người dùng (UX) Quản trị Sách
+- **Tái thiết kế Modal Sửa/Thêm sách:** Chuyển đổi toàn bộ form sang bố cục lưới 2 cột (`row g-3`), modal responsive với lớp `modal-lg modal-dialog-centered modal-dialog-scrollable`.
+- **Cố định chân Modal (Sticky Footer):** Đặt các nút "Hủy" và "Cập nhật / Thêm mới" vào phần footer cố định của modal, giải quyết hoàn toàn lỗi các nút thao tác bị chìm khỏi màn hình trên các thiết bị laptop hoặc màn hình độ phân giải thấp.
+- **Modal Cảnh báo Xóa sách (Warning Dialog Modal):**
+  - Khi sách còn tồn kho (`soLuongHienCo > 0`) hoặc đang có phiếu mượn chưa hoàn tất (trạng thái `'Đang mượn'` hoặc `'Chờ duyệt'`), hệ thống hiển thị một Modal Cảnh báo trang trọng với icon cảnh báo màu đỏ và thông điệp giải thích rõ ràng lý do toàn vẹn CSDL (thay vì thanh banner alert màu hồng đơn điệu).
+- **Sửa lỗi Toast Notification:** Kết nối thể hiện Toast thông báo (`showSuccess`, `showError`) trực tiếp vào vòng đời ứng dụng Vue thông qua `setToastInstance` trong `main.js`, đảm bảo thông báo luôn hiển thị mượt mà ngay cả sau các thao tác bất đồng bộ `async/await`.
+
+### 5. Nâng cấp Giỏ mượn sách Độc giả (`BookList.vue`)
+- **Lịch trình nhận & hẹn trả sách:**
+  - Tích hợp khung chọn ngày `borrowDate` (Ngày nhận sách, mặc định là hôm nay) và `returnDate` (Ngày hẹn trả, mặc định là 14 ngày sau).
+  - Tự động kiểm tra tính hợp lệ: không cho chọn ngày nhận ở quá khứ, bắt buộc ngày hẹn trả phải sau hoặc cùng ngày nhận sách.
+  - Gửi đầy đủ `ngayMuon` và `ngayTra` lên API backend `POST /api/phieumuon` để lưu trữ chính xác vào bảng `PhieuMuon`.
+
+### 6. Bằng chứng kiểm thử & Nghiệm thu (Verification Evidence)
+1. **Backend Test Suite:**
+   - Lệnh thực hiện: `cd backend; npm test`
+   - Kết quả: **PASS 47/47 tests (100%)**, 0 fail, 2 skipped (dành cho integration DB ngoài). Toàn bộ nghiệp vụ kiểm soát số lượng, hạn mức 5 cuốn, ACID Transaction Lock và Procedures đều đạt chuẩn.
+2. **Frontend Production Build:**
+   - Lệnh thực hiện: `cd frontend; npm run build`
+   - Kết quả: **PASS (Built in 12.51s, 143 modules transformed, 0 errors)**.
+3. **Cú pháp Backend (`node -c`):**
+   - Lệnh thực hiện: `node -c backend/controllers/bookController.js`
+   - Kết quả: **PASS (0 syntax errors)**.

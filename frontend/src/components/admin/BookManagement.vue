@@ -5,7 +5,7 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h2>Quản lý sách</h2>
-      <button class="btn btn-primary" @click="showAddModal = true">
+      <button class="btn btn-primary" @click="openAddModal">
         <i class="fas fa-plus"></i> Thêm sách mới
       </button>
     </div>
@@ -85,199 +85,312 @@
 
     <!-- Add/Edit Modal -->
     <div class="modal" tabindex="-1" :class="{ 'd-block': showAddModal }">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">{{ editingBook ? 'Sửa thông tin sách' : 'Thêm sách mới' }}</h5>
-            <button type="button" class="btn-close" @click="closeModal"></button>
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content shadow-lg">
+          <div class="modal-header bg-light">
+            <h5 class="modal-title fw-bold text-dark">
+              <i :class="editingBook ? 'fas fa-pen-to-square text-primary me-2' : 'fas fa-plus-circle text-primary me-2'"></i>
+              {{ editingBook ? 'Sửa thông tin sách' : 'Thêm sách mới' }}
+            </h5>
+            <button type="button" class="btn-close" @click="closeModal" aria-label="Đóng"></button>
           </div>
-          <div class="modal-body">
-            <p v-if="editingBook" class="text-muted">
-              Chỉ cần chỉnh sửa những trường muốn thay đổi; các thông tin còn lại sẽ được giữ nguyên.
-            </p>
-            <form @submit.prevent="handleSubmit" novalidate>
-              <div class="mb-3" v-if="editingBook">
-                <label class="form-label">Mã sách <span class="text-danger">*</span></label>
-                <input 
-                  type="text" 
-                  class="form-control"
-                  :class="{ 'is-invalid': errors.maSach }"
-                  v-model="bookForm.maSach"
-                  readonly
-                >
-                <div class="invalid-feedback" v-if="errors.maSach">
-                  {{ errors.maSach }}
+
+          <form @submit.prevent="handleSubmit" novalidate class="d-flex flex-column" style="min-height: 0;">
+            <div class="modal-body py-3 px-4">
+              <div v-if="editingBook" class="alert alert-light border small text-muted py-2 px-3 mb-3 d-flex align-items-center gap-2">
+                <i class="fas fa-info-circle text-primary"></i>
+                <span>Chỉ cần chỉnh sửa những trường muốn thay đổi, sau đó bấm <strong>"Cập nhật"</strong> để lưu.</span>
+              </div>
+
+              <div class="row g-3">
+                <!-- Mã sách (chỉ hiện khi sửa) -->
+                <div class="col-md-4" v-if="editingBook">
+                  <label class="form-label fw-medium small mb-1">Mã sách <span class="text-danger">*</span></label>
+                  <input 
+                    type="text" 
+                    class="form-control bg-light"
+                    :class="{ 'is-invalid': errors.maSach }"
+                    v-model="bookForm.maSach"
+                    readonly
+                  >
+                  <div class="invalid-feedback" v-if="errors.maSach">{{ errors.maSach }}</div>
+                </div>
+
+                <!-- Tên sách -->
+                <div :class="editingBook ? 'col-md-8' : 'col-12'">
+                  <label class="form-label fw-medium small mb-1">Tên sách <span v-if="!editingBook" class="text-danger">*</span></label>
+                  <input 
+                    type="text" 
+                    class="form-control"
+                    :class="{ 'is-invalid': errors.tenSach }"
+                    v-model="bookForm.tenSach"
+                    placeholder="Nhập tên sách..."
+                    :required="!editingBook"
+                    @input="validateField('tenSach')"
+                  >
+                  <div class="invalid-feedback" v-if="errors.tenSach">{{ errors.tenSach }}</div>
+                </div>
+
+                <!-- Nhà xuất bản -->
+                <div class="col-md-6">
+                  <label class="form-label fw-medium small mb-1" for="book-publisher">Nhà xuất bản <span v-if="!editingBook" class="text-danger">*</span></label>
+                  <AdminSelect
+                    id="book-publisher"
+                    v-model="bookForm.maNXB"
+                    :options="publisherOptions"
+                    :invalid="!!errors.maNXB"
+                    placeholder="Chọn nhà xuất bản"
+                    @change="validateField('maNXB')"
+                  />
+                  <div class="invalid-feedback" v-if="errors.maNXB">{{ errors.maNXB }}</div>
+                </div>
+
+                <!-- Tác giả -->
+                <div class="col-md-6">
+                  <label class="form-label fw-medium small mb-1" for="book-author">Tác giả <span v-if="!editingBook" class="text-danger">*</span></label>
+                  <AdminSelect
+                    id="book-author"
+                    v-model="bookForm.maTacGia"
+                    :options="authorOptions"
+                    :invalid="!!errors.maTacGia"
+                    placeholder="Chọn tác giả"
+                    @change="validateField('maTacGia')"
+                  />
+                  <div class="invalid-feedback" v-if="errors.maTacGia">{{ errors.maTacGia }}</div>
+                </div>
+
+                <!-- Thể loại -->
+                <div class="col-md-6">
+                  <label class="form-label fw-medium small mb-1" for="book-category">Thể loại <span v-if="!editingBook" class="text-danger">*</span></label>
+                  <AdminSelect
+                    id="book-category"
+                    v-model="bookForm.maTheLoai"
+                    :options="categoryOptions"
+                    :invalid="!!errors.maTheLoai"
+                    placeholder="Chọn thể loại"
+                    @change="validateField('maTheLoai')"
+                  />
+                  <div class="invalid-feedback" v-if="errors.maTheLoai">{{ errors.maTheLoai }}</div>
+                </div>
+
+                <!-- Năm xuất bản -->
+                <div class="col-md-6">
+                  <label class="form-label fw-medium small mb-1">Năm xuất bản <span v-if="!editingBook" class="text-danger">*</span></label>
+                  <input 
+                    type="number" 
+                    class="form-control"
+                    :class="{ 'is-invalid': errors.namXuatBan }"
+                    v-model.number="bookForm.namXuatBan"
+                    min="1900"
+                    :max="new Date().getFullYear()"
+                    :required="!editingBook"
+                    @input="validateField('namXuatBan')"
+                  >
+                  <div class="invalid-feedback" v-if="errors.namXuatBan">{{ errors.namXuatBan }}</div>
+                </div>
+
+                <!-- Đơn giá -->
+                <div class="col-md-6">
+                  <label class="form-label fw-medium small mb-1">Đơn giá (VNĐ) <span v-if="!editingBook" class="text-danger">*</span></label>
+                  <input 
+                    type="number" 
+                    class="form-control"
+                    :class="{ 'is-invalid': errors.donGia }"
+                    v-model.number="bookForm.donGia"
+                    min="0"
+                    placeholder="VD: 85000"
+                    :required="!editingBook"
+                    @input="validateField('donGia')"
+                  >
+                  <div class="invalid-feedback" v-if="errors.donGia">{{ errors.donGia }}</div>
+                </div>
+
+                <!-- Số lượng hiện có -->
+                <div class="col-md-6">
+                  <label class="form-label fw-medium small mb-1">Số quyển hiện có <span v-if="!editingBook" class="text-danger">*</span></label>
+                  <input 
+                    type="number" 
+                    class="form-control"
+                    :class="{ 'is-invalid': errors.soLuongHienCo }"
+                    v-model.number="bookForm.soLuongHienCo"
+                    min="0"
+                    placeholder="VD: 10"
+                    :required="!editingBook"
+                    @input="validateField('soLuongHienCo')"
+                  >
+                  <div class="invalid-feedback" v-if="errors.soLuongHienCo">{{ errors.soLuongHienCo }}</div>
+                </div>
+
+                <!-- Nguồn gốc -->
+                <div class="col-md-6">
+                  <label class="form-label fw-medium small mb-1">Nguồn gốc <span v-if="!editingBook" class="text-danger">*</span></label>
+                  <input 
+                    type="text" 
+                    class="form-control"
+                    :class="{ 'is-invalid': errors.nguonGoc }"
+                    v-model="bookForm.nguonGoc"
+                    placeholder="VD: Việt Nam"
+                    :required="!editingBook"
+                    @input="validateField('nguonGoc')"
+                  >
+                  <div class="invalid-feedback" v-if="errors.nguonGoc">{{ errors.nguonGoc }}</div>
+                </div>
+
+                <!-- Hình ảnh bìa sách -->
+                <div class="col-12 mt-2">
+                  <label class="form-label fw-medium small mb-1">Hình ảnh bìa sách</label>
+                  <div class="p-3 border rounded-3 bg-light d-flex align-items-center gap-3">
+                    <!-- Ảnh bìa Preview / Hiện tại -->
+                    <div class="position-relative flex-shrink-0" style="width: 64px; height: 86px;">
+                      <img 
+                        v-if="imagePreviewUrl" 
+                        :src="imagePreviewUrl" 
+                        alt="Preview ảnh mới" 
+                        class="w-100 h-100 rounded border shadow-sm"
+                        style="object-fit: cover;"
+                      />
+                      <img 
+                        v-else-if="editingBook && bookForm.imagePath" 
+                        :src="`${API_URL}/${bookForm.imagePath}`" 
+                        @error="$event.target.style.display = 'none'"
+                        alt="Ảnh bìa hiện tại" 
+                        class="w-100 h-100 rounded border shadow-sm"
+                        style="object-fit: cover;"
+                      />
+                      <div 
+                        v-else 
+                        class="w-100 h-100 rounded border bg-white d-flex flex-column align-items-center justify-content-center text-muted"
+                        style="font-size: 11px;"
+                      >
+                        <i class="fas fa-image fa-2x mb-1 text-secondary opacity-50"></i>
+                        <span>Chưa có ảnh</span>
+                      </div>
+                    </div>
+
+                    <!-- Input chọn file và nút hủy chọn -->
+                    <div class="flex-grow-1">
+                      <div class="d-flex align-items-center gap-2 mb-1">
+                        <input 
+                          ref="fileInputRef"
+                          type="file" 
+                          class="form-control form-control-sm"
+                          @change="handleImageUpload"
+                          accept="image/*"
+                        >
+                        <button 
+                          v-if="imageFile" 
+                          type="button" 
+                          class="btn btn-outline-danger btn-sm text-nowrap"
+                          @click="clearSelectedImage"
+                          title="Hủy chọn file mới"
+                        >
+                          <i class="fas fa-times me-1"></i>Bỏ chọn
+                        </button>
+                      </div>
+                      <div class="small text-muted" style="font-size: 12px;">
+                        <span v-if="imageFile" class="text-success fw-medium">
+                          <i class="fas fa-check-circle me-1"></i>Đã chọn: {{ imageFile.name }}
+                        </span>
+                        <span v-else-if="editingBook">
+                          <i class="fas fa-info-circle me-1 text-primary"></i>Để trống ô tải ảnh nếu muốn giữ nguyên ảnh bìa hiện tại.
+                        </span>
+                        <span v-else>
+                          <i class="fas fa-info-circle me-1 text-secondary"></i>Tùy chọn tải ảnh bìa cho sách (.jpg, .png, .webp).
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
+            </div>
 
-              <div class="mb-3">
-                <label class="form-label">Tên sách <span v-if="!editingBook" class="text-danger">*</span></label>
-                <input 
-                  type="text" 
-                  class="form-control"
-                  :class="{ 'is-invalid': errors.tenSach }"
-                  v-model="bookForm.tenSach"
-                  :required="!editingBook"
-                  @input="validateField('tenSach')"
-                >
-                <div class="invalid-feedback" v-if="errors.tenSach">
-                  {{ errors.tenSach }}
-                </div>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label" for="book-publisher">Nhà xuất bản <span v-if="!editingBook" class="text-danger">*</span></label>
-                <AdminSelect
-                  id="book-publisher"
-                  v-model="bookForm.maNXB"
-                  :options="publisherOptions"
-                  :invalid="!!errors.maNXB"
-                  placeholder="Chọn nhà xuất bản"
-                  @change="validateField('maNXB')"
-                />
-                <div class="invalid-feedback" v-if="errors.maNXB">
-                  {{ errors.maNXB }}
-                </div>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label" for="book-author">Tác giả <span v-if="!editingBook" class="text-danger">*</span></label>
-                <AdminSelect
-                  id="book-author"
-                  v-model="bookForm.maTacGia"
-                  :options="authorOptions"
-                  :invalid="!!errors.maTacGia"
-                  placeholder="Chọn tác giả"
-                  @change="validateField('maTacGia')"
-                />
-                <div class="invalid-feedback" v-if="errors.maTacGia">
-                  {{ errors.maTacGia }}
-                </div>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label" for="book-category">Thể loại <span v-if="!editingBook" class="text-danger">*</span></label>
-                <AdminSelect
-                  id="book-category"
-                  v-model="bookForm.maTheLoai"
-                  :options="categoryOptions"
-                  :invalid="!!errors.maTheLoai"
-                  placeholder="Chọn thể loại"
-                  @change="validateField('maTheLoai')"
-                />
-                <div class="invalid-feedback" v-if="errors.maTheLoai">
-                  {{ errors.maTheLoai }}
-                </div>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label">Đơn giá <span v-if="!editingBook" class="text-danger">*</span></label>
-                <input 
-                  type="number" 
-                  class="form-control"
-                  :class="{ 'is-invalid': errors.donGia }"
-                  v-model.number="bookForm.donGia"
-                  min="0"
-                  :required="!editingBook"
-                  @input="validateField('donGia')"
-                >
-                <div class="invalid-feedback" v-if="errors.donGia">
-                  {{ errors.donGia }}
-                </div>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label">Số lượng hiện có <span v-if="!editingBook" class="text-danger">*</span></label>
-                <input 
-                  type="number" 
-                  class="form-control"
-                  :class="{ 'is-invalid': errors.soLuongHienCo }"
-                  v-model.number="bookForm.soLuongHienCo"
-                  min="0"
-                  :required="!editingBook"
-                  @input="validateField('soLuongHienCo')"
-                >
-                <div class="invalid-feedback" v-if="errors.soLuongHienCo">
-                  {{ errors.soLuongHienCo }}
-                </div>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label">Năm xuất bản <span v-if="!editingBook" class="text-danger">*</span></label>
-                <input 
-                  type="number" 
-                  class="form-control"
-                  :class="{ 'is-invalid': errors.namXuatBan }"
-                  v-model.number="bookForm.namXuatBan"
-                  min="1900"
-                  :max="new Date().getFullYear()"
-                  :required="!editingBook"
-                  @input="validateField('namXuatBan')"
-                >
-                <div class="invalid-feedback" v-if="errors.namXuatBan">
-                  {{ errors.namXuatBan }}
-                </div>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label">Nguồn gốc <span v-if="!editingBook" class="text-danger">*</span></label>
-                <input 
-                  type="text" 
-                  class="form-control"
-                  :class="{ 'is-invalid': errors.nguonGoc }"
-                  v-model="bookForm.nguonGoc"
-                  :required="!editingBook"
-                  @input="validateField('nguonGoc')"
-                >
-                <div class="invalid-feedback" v-if="errors.nguonGoc">
-                  {{ errors.nguonGoc }}
-                </div>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label">Hình ảnh bìa sách</label>
-                <input 
-                  type="file" 
-                  class="form-control"
-                  @change="handleImageUpload"
-                  accept="image/*"
-                >
-              </div>
-
-              <div class="text-end">
-                <button type="button" class="btn btn-secondary me-2" @click="closeModal">Hủy</button>
-                <button type="submit" class="btn btn-primary" :disabled="loading || Object.keys(errors).length > 0">
-                  {{ loading ? 'Đang xử lý...' : (editingBook ? 'Cập nhật' : 'Thêm mới') }}
-                </button>
-              </div>
-            </form>
-          </div>
+            <!-- Modal Footer (Luôn hiển thị cố định ở chân modal, không bị che khuất) -->
+            <div class="modal-footer bg-light border-top justify-content-end py-2 px-4">
+              <button type="button" class="btn btn-secondary px-3" @click="closeModal">
+                <i class="fas fa-times me-1"></i>Hủy
+              </button>
+              <button type="submit" class="btn btn-primary px-4 fw-medium" :disabled="loading || Object.keys(errors).length > 0">
+                <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+                <i v-else :class="editingBook ? 'fas fa-save me-2' : 'fas fa-plus me-2'"></i>
+                {{ loading ? 'Đang xử lý...' : (editingBook ? 'Cập nhật' : 'Thêm mới') }}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
     <div class="modal-backdrop fade show" v-if="showAddModal"></div>
 
     <!-- Delete Confirmation Modal -->
-    <div class="modal" tabindex="-1" :class="{ 'd-block': showDeleteModal }">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Xác nhận xóa</h5>
-            <button type="button" class="btn-close" @click="showDeleteModal = false"></button>
+    <div class="modal fade" tabindex="-1" :class="{ 'd-block show': showDeleteModal }">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+          <div class="modal-header bg-danger text-white py-3 px-4">
+            <h5 class="modal-title d-flex align-items-center gap-2 mb-0 fw-semibold fs-5">
+              <i class="fas fa-trash-alt"></i>
+              Xác nhận xóa sách
+            </h5>
+            <button type="button" class="btn-close btn-close-white" @click="showDeleteModal = false"></button>
           </div>
-          <div class="modal-body">
-            <p>Bạn có chắc chắn muốn xóa sách "{{ selectedBook?.tenSach }}" không?</p>
+          <div class="modal-body text-center p-4">
+            <div class="mb-3">
+              <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 64px; height: 64px; background-color: #FEE2E2; color: #DC2626;">
+                <i class="fas fa-book-dead fa-2x"></i>
+              </div>
+            </div>
+            <p class="fs-6 mb-1 text-secondary">Bạn có chắc chắn muốn xóa cuốn sách:</p>
+            <h5 class="fw-bold text-danger mb-3">"{{ selectedBook?.tenSach }}"</h5>
+            <div class="p-2 px-3 rounded-3 small text-muted" style="background-color: #F8FAFC; border: 1px dashed #CBD5E1;">
+              <i class="fas fa-info-circle me-1 text-primary"></i>
+              Hệ thống sẽ kiểm tra tính toàn vẹn (tồn kho và lịch sử mượn) trước khi thực hiện xóa.
+            </div>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="showDeleteModal = false">Hủy</button>
-            <button type="button" class="btn btn-danger" @click="handleDelete" :disabled="loading">
-              {{ loading ? 'Đang xử lý...' : 'Xóa' }}
+          <div class="modal-footer bg-light border-0 justify-content-end py-3 px-4">
+            <button type="button" class="btn btn-secondary px-4 rounded-pill" @click="showDeleteModal = false">Hủy</button>
+            <button type="button" class="btn btn-danger px-4 rounded-pill" @click="handleDelete" :disabled="loading">
+              <span v-if="loading" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+              {{ loading ? 'Đang xử lý...' : 'Xác nhận xóa' }}
             </button>
           </div>
         </div>
       </div>
     </div>
     <div class="modal-backdrop fade show" v-if="showDeleteModal"></div>
+
+    <!-- Warning / Error Dialog Modal -->
+    <div class="modal fade" tabindex="-1" :class="{ 'd-block show': showWarningModal }">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+          <div class="modal-header bg-danger text-white py-3 px-4">
+            <h5 class="modal-title d-flex align-items-center gap-2 mb-0 fw-semibold fs-5">
+              <i class="fas fa-shield-alt"></i>
+              {{ warningTitle }}
+            </h5>
+            <button type="button" class="btn-close btn-close-white" @click="showWarningModal = false" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center p-4">
+            <div class="mb-3">
+              <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 72px; height: 72px; background-color: #FEE2E2; color: #DC2626;">
+                <i class="fas fa-exclamation-triangle fa-2x"></i>
+              </div>
+            </div>
+            <h5 class="fw-bold text-dark mb-2">{{ warningMessage }}</h5>
+            <div v-if="warningHint" class="alert alert-light border text-start small mb-0 p-3 mt-3 rounded-3" style="background-color: #F8FAFC; border-color: #E2E8F0 !important;">
+              <div class="d-flex align-items-start gap-2">
+                <i class="fas fa-info-circle text-primary mt-1"></i>
+                <div class="text-secondary">{{ warningHint }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer bg-light border-0 justify-content-center py-3">
+            <button type="button" class="btn btn-primary px-4 py-2 rounded-pill fw-medium" @click="showWarningModal = false">
+              <i class="fas fa-check me-2"></i>Đã hiểu
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-backdrop fade show" v-if="showWarningModal"></div>
   </div>
 </template>
 
@@ -298,11 +411,17 @@ export default {
     const store = useStore();
     const showAddModal = ref(false);
     const showDeleteModal = ref(false);
+    const showWarningModal = ref(false);
+    const warningTitle = ref('Không thể xóa sách');
+    const warningMessage = ref('');
+    const warningHint = ref('');
     const editingBook = ref(null);
     const selectedBook = ref(null);
     const errors = ref({});
     const searchTerm = ref('');
     const imageFile = ref(null);
+    const imagePreviewUrl = ref(null);
+    const fileInputRef = ref(null);
     const API_URL = import.meta.env.VITE_API_IMAGE_URL;
 
     const bookForm = ref({
@@ -507,6 +626,36 @@ export default {
       }
     };
 
+    const clearSelectedImage = () => {
+      imageFile.value = null;
+      if (imagePreviewUrl.value) {
+        URL.revokeObjectURL(imagePreviewUrl.value);
+        imagePreviewUrl.value = null;
+      }
+      if (fileInputRef.value) {
+        fileInputRef.value.value = '';
+      }
+    };
+
+    const openAddModal = () => {
+      editingBook.value = null;
+      errors.value = {};
+      bookForm.value = {
+        maSach: '',
+        tenSach: '',
+        maNXB: '',
+        maTacGia: '',
+        maTheLoai: '',
+        donGia: null,
+        soLuongHienCo: null,
+        namXuatBan: new Date().getFullYear(),
+        nguonGoc: '',
+        imagePath: ''
+      };
+      clearSelectedImage();
+      showAddModal.value = true;
+    };
+
     const closeModal = () => {
       showAddModal.value = false;
       editingBook.value = null;
@@ -520,9 +669,10 @@ export default {
         donGia: null,
         soLuongHienCo: null,
         namXuatBan: new Date().getFullYear(),
-        nguonGoc: ''
+        nguonGoc: '',
+        imagePath: ''
       };
-      imageFile.value = null;
+      clearSelectedImage();
     };
 
     const getQuantityClass = (quantity) => {
@@ -540,6 +690,7 @@ export default {
     const editBook = (book) => {
       editingBook.value = book;
       errors.value = {};
+      clearSelectedImage();
       bookForm.value = { 
         maSach: book.maSach,
         tenSach: book.tenSach,
@@ -550,9 +701,8 @@ export default {
         soLuongHienCo: book.soLuongHienCo ?? null,
         namXuatBan: book.namXuatBan,
         nguonGoc: book.nguonGoc,
-        imagePath: book.imagePath || 'Uploads/default-book.jpg'
+        imagePath: book.imagePath || ''
       };
-      imageFile.value = null;
       showAddModal.value = true;
     };
 
@@ -577,8 +727,23 @@ export default {
         console.log('Book deleted successfully');
       } catch (error) {
         const errorMessage = error.response?.data?.message || error.message || 'Lỗi khi xóa sách';
-        store.commit('book/SET_ERROR', errorMessage);
+        store.commit('book/SET_ERROR', null);
         showDeleteModal.value = false;
+
+        warningTitle.value = 'Không thể xóa sách!';
+        warningMessage.value = errorMessage;
+
+        if (errorMessage.includes('đang được mượn') || errorMessage.includes('chờ duyệt')) {
+          warningHint.value = 'Quy tắc toàn vẹn: Sách này hiện đang có độc giả mượn hoặc nằm trong phiếu chờ duyệt. Không thể xóa sách khi độc giả chưa hoàn tất trả sách.';
+        } else if (errorMessage.includes('còn trong kho')) {
+          warningHint.value = 'Quy tắc toàn vẹn: Sách vẫn còn số lượng trong kho. Nếu sách đã thanh lý hết, vui lòng bấm "Sửa" và cập nhật số quyển về 0 trước khi xóa.';
+        } else if (errorMessage.includes('lịch sử mượn/trả')) {
+          warningHint.value = 'Quy tắc toàn vẹn: Sách đã phát sinh dữ liệu mượn/trả trong quá khứ. Hệ thống khóa xóa để bảo toàn dữ liệu lịch sử và báo cáo tài chính/thống kê của thư viện.';
+        } else {
+          warningHint.value = 'Quy tắc toàn vẹn: Vui lòng kiểm tra lại các ràng buộc dữ liệu liên quan đến cuốn sách này.';
+        }
+
+        showWarningModal.value = true;
         selectedBook.value = null;
         console.error('Error deleting book:', {
           message: error.message,
@@ -681,8 +846,15 @@ export default {
     };
 
     const handleImageUpload = (event) => {
-      imageFile.value = event.target.files[0];
-      console.log('Image selected:', imageFile.value?.name);
+      const file = event.target.files?.[0];
+      if (file) {
+        imageFile.value = file;
+        if (imagePreviewUrl.value) {
+          URL.revokeObjectURL(imagePreviewUrl.value);
+        }
+        imagePreviewUrl.value = URL.createObjectURL(file);
+        console.log('Image selected:', file.name);
+      }
     };
 
     const formatCurrency = (value) => {
@@ -705,6 +877,10 @@ export default {
     return {
       showAddModal,
       showDeleteModal,
+      showWarningModal,
+      warningTitle,
+      warningMessage,
+      warningHint,
       editingBook,
       selectedBook,
       bookForm,
@@ -722,6 +898,7 @@ export default {
       categoryOptions,
       searchTerm,
       filteredBooks,
+      openAddModal,
       closeModal,
       editBook,
       confirmDelete,
@@ -732,6 +909,10 @@ export default {
       validateField,
       searchBooks,
       handleImageUpload,
+      clearSelectedImage,
+      imageFile,
+      imagePreviewUrl,
+      fileInputRef,
       API_URL
     };
   }
