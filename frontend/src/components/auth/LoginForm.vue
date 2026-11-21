@@ -256,11 +256,6 @@
                 Đăng ký ngay <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i>
               </router-link>
             </p>
-            <div class="text-center mt-2">
-              <a href="http://localhost:5174" class="text-muted small text-decoration-none" title="Mở Cổng Quản trị tại cổng 5174">
-                <i class="fas fa-user-shield me-1"></i> Cổng Quản trị viên (Port 5174) ➔
-              </a>
-            </div>
           </template>
           <template v-else>
             <div class="text-center">

@@ -98,47 +98,51 @@
               {{ errors.email }}
             </div>
           </div>
-          <div class="mb-3 position-relative">
+          <div class="mb-3">
             <label class="form-label">Mật khẩu <span class="text-danger">*</span></label>
-            <input 
-              :type="showPassword ? 'text' : 'password'" 
-              class="form-control"
-              :class="{ 'is-invalid': errors.password }"
-              v-model="formData.password"
-              required
-              @input="validateField('password')"
-            >
-            <button
-              type="button"
-              class="btn btn-outline-secondary position-absolute top-50 end-0 translate-middle-y me-2"
-              @click="togglePasswordVisibility"
-              style="z-index: 1;"
-            >
-              <i :class="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
-            </button>
-            <div class="invalid-feedback" v-if="errors.password">
+            <div class="password-input-wrapper">
+              <input
+                :type="showPassword ? 'text' : 'password'"
+                class="form-control"
+                :class="{ 'is-invalid': errors.password }"
+                v-model="formData.password"
+                required
+                @input="validateField('password')"
+              >
+              <button
+                type="button"
+                class="password-toggle"
+                :aria-label="showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'"
+                @click="togglePasswordVisibility"
+              >
+                <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div class="invalid-feedback d-block" v-if="errors.password">
               {{ errors.password }}
             </div>
           </div>
-          <div class="mb-3 position-relative">
+          <div class="mb-3">
             <label class="form-label">Xác nhận mật khẩu <span class="text-danger">*</span></label>
-            <input 
-              :type="showPassword ? 'text' : 'password'" 
-              class="form-control"
-              :class="{ 'is-invalid': errors.confirmPassword }"
-              v-model="formData.confirmPassword"
-              required
-              @input="validateField('confirmPassword')"
-            >
-            <button
-              type="button"
-              class="btn btn-outline-secondary position-absolute top-50 end-0 translate-middle-y me-2"
-              @click="togglePasswordVisibility"
-              style="z-index: 1;"
-            >
-              <i :class="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
-            </button>
-            <div class="invalid-feedback" v-if="errors.confirmPassword">
+            <div class="password-input-wrapper">
+              <input
+                :type="showPassword ? 'text' : 'password'"
+                class="form-control"
+                :class="{ 'is-invalid': errors.confirmPassword }"
+                v-model="formData.confirmPassword"
+                required
+                @input="validateField('confirmPassword')"
+              >
+              <button
+                type="button"
+                class="password-toggle"
+                :aria-label="showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'"
+                @click="togglePasswordVisibility"
+              >
+                <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div class="invalid-feedback d-block" v-if="errors.confirmPassword">
               {{ errors.confirmPassword }}
             </div>
           </div>
@@ -365,8 +369,25 @@ export default {
   border-top: 1px solid rgba(0,0,0,.125);
   padding: 1rem;
 }
-.position-relative .btn {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
+.password-input-wrapper {
+  position: relative;
+}
+.password-input-wrapper .form-control {
+  padding-right: 2.75rem;
+}
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: #6c757d;
+  padding: 0.375rem;
+  line-height: 1;
+}
+.password-toggle:hover,
+.password-toggle:focus-visible {
+  color: #212529;
 }
 </style>

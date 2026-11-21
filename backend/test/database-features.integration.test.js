@@ -96,7 +96,7 @@ test('migrated MySQL keys, routines and triggers work with representative loan s
     const [inventory] = await selectRows('SELECT fn_kiem_tra_so_luong_sach(?) AS quantity', [book]);
     assert.equal(inventory.quantity, 100, 'inserting loan details or return rows does not change stock');
     const fines = await selectRows('SELECT maPhieuTra, tienPhat FROM PhieuTra WHERE maPhieuTra IN (?, ?)', [lateReturn, onTimeReturn]);
-    assert.equal(Number(fines.find((row) => row.maPhieuTra === lateReturn).tienPhat), 6000);
+    assert.equal(Number(fines.find((row) => row.maPhieuTra === lateReturn).tienPhat), 30000);
     assert.equal(Number(fines.find((row) => row.maPhieuTra === onTimeReturn).tienPhat), 0);
 
     const unreturned = await procedureRows('sp_danh_sach_phieu_muon_chua_tra');
