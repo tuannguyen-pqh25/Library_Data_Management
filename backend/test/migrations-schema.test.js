@@ -131,6 +131,21 @@ test('additive return migration down tolerates a retry after the index is alread
   assert.ok(queries.some((query) => /CREATE TRIGGER trg_tinh_tien_phat\b/i.test(query)));
 });
 
+test('fine-rate migration sets 5000 VND per late day and copy and rolls back to 1000', async () => {
+  const migration = require('../migrations/20261121120000-set-fine-rate-5000');
+  const queries = [];
+  const queryInterface = { sequelize: { query: async (sql) => queries.push(sql) } };
+
+  await migration.up(queryInterface);
+  assert.match(queries[1], /5000\s*\*\s*soLuongSachMuon/i);
+  assert.match(queries[1], /FOR UPDATE/i);
+  assert.match(queries[1], /maDocGia\s*=\s*PhieuMuon\.maDocGia/i);
+
+  queries.length = 0;
+  await migration.down(queryInterface);
+  assert.match(queries[1], /1000\s*\*\s*soLuongSachMuon/i);
+});
+
 test('database routines use complete keys, due date, quantities and actual-loan statuses', async () => {
   const queries = [];
   await require('../migrations/20251010141232-add-func-trig-proc').up({

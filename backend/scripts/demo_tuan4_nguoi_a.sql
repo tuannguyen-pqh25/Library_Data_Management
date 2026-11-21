@@ -63,7 +63,7 @@ SELECT
 -- ===================================================================================
 -- PHẦN 3: TRIGGER - TỰ ĐỘNG TÍNH TIỀN PHẠT KHI TRẢ SÁCH MUỘN (BEFORE INSERT)
 -- Tiêu chí 9: Trigger trg_tinh_tien_phat tự động tính tiền phạt trên PhieuTra
--- Công thức: GREATEST(0, DATEDIFF(ngayTraSach, ngayTraDuKien)) * 1000 * soLuongSachMuon
+-- Công thức: GREATEST(0, DATEDIFF(ngayTraSach, ngayTraDuKien)) * 5000 * soLuongSachMuon
 -- ===================================================================================
 
 -- 3.1. Xem định nghĩa Trigger trong MySQL
@@ -89,7 +89,7 @@ INSERT INTO ChiTietPhieuMuon (maPhieuMuon, maDocGia, maSach, maTacGia, maTheLoai
 VALUES (@maPhieuMuonDemo, @maDocGiaDemo, @maSachDemo, @maTacGiaDemo, @maTheLoaiDemo, 2, NOW(), NOW());
 SET @maChiTietPMDemo = LAST_INSERT_ID();
 
--- Bước b: Thêm phiếu trả vào ngày hôm nay (trễ 2 ngày, mượn 2 cuốn -> Phạt: 2 ngày * 1000 * 2 cuốn = 4000 VNĐ)
+-- Bước b: Thêm phiếu trả vào ngày hôm nay (trễ 2 ngày, mượn 2 cuốn -> Phạt: 2 ngày * 5000 * 2 cuốn = 20000 VNĐ)
 -- Chú ý: Ta KHÔNG truyền tienPhat vào câu lệnh INSERT để Trigger tự động tính toán!
 INSERT INTO PhieuTra (maChiTietPM, maPhieuMuon, maSach, ngayTraSach, createdAt, updatedAt)
 VALUES (@maChiTietPMDemo, @maPhieuMuonDemo, @maSachDemo, CURRENT_DATE(), NOW(), NOW());
@@ -104,7 +104,7 @@ SELECT
     DATEDIFF(pt.ngayTraSach, pm.ngayTra) AS soNgayTre,
     ct.soLuongSachMuon,
     pt.tienPhat AS tienPhatDoTriggerTinh,
-    (DATEDIFF(pt.ngayTraSach, pm.ngayTra) * 1000 * ct.soLuongSachMuon) AS tienPhatKyVong
+    (DATEDIFF(pt.ngayTraSach, pm.ngayTra) * 5000 * ct.soLuongSachMuon) AS tienPhatKyVong
 FROM PhieuTra pt
 JOIN ChiTietPhieuMuon ct ON pt.maChiTietPM = ct.maChiTietPM
 JOIN PhieuMuon pm ON ct.maPhieuMuon = pm.maPhieuMuon
