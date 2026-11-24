@@ -67,7 +67,7 @@
             <th>Ngày trả</th>
             <th>Tiền phạt</th>
             <th>Trạng thái</th>
-            <th>Thao tác</th>
+            <th style="min-width: 240px;">Thao tác</th>
           </tr>
         </thead>
         <tbody>
@@ -91,12 +91,19 @@
             <td>{{ formatDate(request.ngayMuon) }}</td>
             <td>
               {{ request.ngayTra ? formatDate(request.ngayTra) : '-' }}
+              <span v-if="isOverdue(request)" class="badge bg-danger ms-2" title="Quá hạn trả sách">
+                <i class="fas fa-exclamation-circle me-1"></i> Quá hạn ({{ getDaysOverdue(request) }} ngày)
+              </span>
             </td>
             <td>
-              <span v-if="request.trangThai === 'Đã trả' && hasReturns(request)">
-                {{ getTotalFine(request) }} VND
-              </span>
-              <span v-else>-</span>
+              <div v-if="request.trangThai === 'Đã trả' && hasReturns(request) && getTotalFine(request) > 0" class="text-danger fw-bold">
+                {{ formatCurrency(getTotalFine(request)) }}
+              </div>
+              <div v-else-if="isOverdue(request) && getEstimatedFine(request) > 0" class="text-danger fw-bold">
+                <div>{{ formatCurrency(getEstimatedFine(request)) }}</div>
+                <small class="d-block text-danger fw-normal" style="font-size: 11px;">(Tạm tính - trễ {{ getDaysOverdue(request) }} ngày)</small>
+              </div>
+              <span v-else class="text-muted">-</span>
             </td>
             <td>
               <span :class="getStatusBadgeClass(request.trangThaiHienThi || request.trangThai)">
@@ -107,43 +114,45 @@
               </span>
             </td>
             <td>
-              <template v-if="request.trangThai === 'Chờ duyệt'">
-                <button class="btn btn-sm btn-success me-2"
-                        @click="showConfirmAction('approve', request)">
-                  <i class="fas fa-check"></i> Duyệt
+              <div class="d-flex flex-wrap align-items-center gap-2 py-1">
+                <template v-if="request.trangThai === 'Chờ duyệt'">
+                  <button class="btn btn-sm btn-success text-nowrap"
+                          @click="showConfirmAction('approve', request)">
+                    <i class="fas fa-check me-1"></i> Duyệt
+                  </button>
+                  <button class="btn btn-sm btn-danger text-nowrap"
+                          @click="showConfirmAction('reject', request)">
+                    <i class="fas fa-times me-1"></i> Từ chối
+                  </button>
+                </template>
+                <template v-if="request.trangThai === 'Đang mượn' && request.yeuCauTraAt">
+                  <button class="btn btn-sm btn-info text-white text-nowrap"
+                          @click="showConfirmAction('return', request)">
+                    <i class="fas fa-undo me-1"></i> Xác nhận đã nhận sách
+                  </button>
+                </template>
+                <button
+                  v-if="['Đang mượn', 'Đã trả'].includes(request.trangThai)"
+                  class="btn btn-sm btn-primary text-nowrap"
+                  @click="downloadBorrowSlip(request.maPhieuMuon, request.maDocGia || request.DocGia?.maDocGia)"
+                >
+                  <i class="fas fa-download me-1"></i> Phiếu mượn
                 </button>
-                <button class="btn btn-sm btn-danger me-2"
-                        @click="showConfirmAction('reject', request)">
-                  <i class="fas fa-times"></i> Từ chối
+                <button
+                  v-if="request.trangThai === 'Đã trả' && hasReturns(request)"
+                  class="btn btn-sm btn-info text-white text-nowrap"
+                  @click="downloadReturnSlip(firstReturn(request)?.returnRow.maPhieuTra, firstReturn(request)?.detail.maChiTietPM)"
+                >
+                  <i class="fas fa-download me-1"></i> Phiếu trả
                 </button>
-              </template>
-              <template v-if="request.trangThai === 'Đang mượn' && request.yeuCauTraAt">
-                <button class="btn btn-sm btn-info me-2"
-                        @click="showConfirmAction('return', request)">
-                  <i class="fas fa-undo"></i> Xác nhận đã nhận sách
+                <button
+                  v-if="request.trangThai === 'Đã trả' && firstPenalizedReturn(request) !== null"
+                  class="btn btn-sm btn-warning text-dark text-nowrap"
+                  @click="downloadPenaltyForm(firstPenalizedReturn(request)?.returnRow.maPhieuTra, firstPenalizedReturn(request)?.detail.maChiTietPM)"
+                >
+                  <i class="fas fa-download me-1"></i> Phiếu phạt
                 </button>
-              </template>
-              <button
-                v-if="['Đang mượn', 'Đã trả'].includes(request.trangThai)"
-                class="btn btn-sm btn-primary me-2"
-                @click="downloadBorrowSlip(request.maPhieuMuon, request.maDocGia || request.DocGia?.maDocGia)"
-              >
-                <i class="fas fa-download"></i> Phiếu mượn
-              </button>
-              <button
-                v-if="request.trangThai === 'Đã trả' && hasReturns(request)"
-                class="btn btn-sm btn-info me-2"
-                @click="downloadReturnSlip(firstReturn(request)?.returnRow.maPhieuTra, firstReturn(request)?.detail.maChiTietPM)"
-              >
-                <i class="fas fa-download"></i> Phiếu trả
-              </button>
-              <button
-                v-if="request.trangThai === 'Đã trả' && firstPenalizedReturn(request) !== null"
-                class="btn btn-sm btn-warning"
-                @click="downloadPenaltyForm(firstPenalizedReturn(request)?.returnRow.maPhieuTra, firstPenalizedReturn(request)?.detail.maChiTietPM)"
-              >
-                <i class="fas fa-download"></i> Phiếu phạt
-              </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -239,6 +248,56 @@ export default {
       (total, { returnRow }) => total + Number(returnRow.tienPhat || 0), 0
     );
 
+    const parseDateOnly = (value) => {
+      if (!value) return null;
+      if (typeof value === 'string') {
+        const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (match) {
+          return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+        }
+      }
+      const d = new Date(value);
+      return Number.isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    };
+
+    const isOverdue = (request) => {
+      if (!['Đang mượn', 'Đã duyệt', 'Chờ xác nhận trả'].includes(request.trangThai)) return false;
+      const due = parseDateOnly(request.ngayTra);
+      if (!due) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return due.getTime() < today.getTime();
+    };
+
+    const getDaysOverdue = (request) => {
+      const due = parseDateOnly(request.ngayTra);
+      if (!due) return 0;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const diffTime = today.getTime() - due.getTime();
+      return diffTime > 0 ? Math.floor(diffTime / (1000 * 60 * 60 * 24)) : 0;
+    };
+
+    const getEstimatedFine = (request) => {
+      if (request.trangThai === 'Đã trả') {
+        return getTotalFine(request);
+      }
+      if (!isOverdue(request)) return 0;
+      const days = getDaysOverdue(request);
+      const totalCopies = (request.ChiTietPhieuMuons || []).reduce(
+        (sum, ct) => sum + Number(ct.soLuongSachMuon || 1),
+        0
+      );
+      return days * 5000 * (totalCopies || 1);
+    };
+
+    const formatCurrency = (value) => {
+      return new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND'
+      }).format(value);
+    };
+
     const getActionTitle = computed(() => {
       const titles = {
         approve: 'duyệt yêu cầu',
@@ -250,10 +309,14 @@ export default {
 
     const confirmMessage = computed(() => {
       if (!selectedRequest.value) return '';
+      const req = selectedRequest.value;
+      const overdueNote = isOverdue(req)
+        ? ` (Lưu ý: Phiếu đã quá hạn ${getDaysOverdue(req)} ngày. Tiền phạt dự kiến: ${formatCurrency(getEstimatedFine(req))})`
+        : '';
       const messages = {
-        approve: `Bạn có chắc muốn duyệt yêu cầu mượn sách của độc giả "${selectedRequest.value.DocGia?.fullName}" không?`,
-        reject: `Bạn có chắc muốn từ chối yêu cầu mượn sách của độc giả "${selectedRequest.value.DocGia?.fullName}" không?`,
-        return: `Chỉ xác nhận sau khi đã nhận sách thực tế từ độc giả "${selectedRequest.value.DocGia?.fullName}". Tiếp tục?`
+        approve: `Bạn có chắc muốn duyệt yêu cầu mượn sách của độc giả "${req.DocGia?.fullName}" không?`,
+        reject: `Bạn có chắc muốn từ chối yêu cầu mượn sách của độc giả "${req.DocGia?.fullName}" không?`,
+        return: `Chỉ xác nhận sau khi đã nhận sách thực tế từ độc giả "${req.DocGia?.fullName}".${overdueNote} Tiếp tục?`
       };
       return messages[selectedAction.value] || '';
     });
@@ -420,6 +483,10 @@ export default {
       firstReturn,
       firstPenalizedReturn,
       getTotalFine,
+      isOverdue,
+      getDaysOverdue,
+      getEstimatedFine,
+      formatCurrency,
       confirmMessage,
       getActionButtonClass,
       getActionButtonText,

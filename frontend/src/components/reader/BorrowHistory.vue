@@ -87,15 +87,19 @@
               <td>{{ formatDate(request.ngayMuon) }}</td>
               <td>
                 {{ request.ngayTra ? formatDate(request.ngayTra) : '—' }}
-                <span v-if="(request.trangThai === 'Đã duyệt' || request.trangThai === 'Đang mượn') && new Date(request.ngayTra) < new Date()" class="badge bg-danger ms-2">
-                  <i class="fas fa-exclamation-circle me-1" aria-hidden="true"></i> Quá hạn
+                <span v-if="isOverdue(request)" class="badge bg-danger ms-2" title="Quá hạn trả sách">
+                  <i class="fas fa-exclamation-circle me-1" aria-hidden="true"></i> Quá hạn ({{ getDaysOverdue(request) }} ngày)
                 </span>
               </td>
               <td>
-                <span v-if="request.trangThai === 'Đã trả' && hasReturns(request) && getTotalFine(request) > 0" class="text-danger fw-bold">
+                <div v-if="request.trangThai === 'Đã trả' && hasReturns(request) && getTotalFine(request) > 0" class="text-danger fw-bold">
                   {{ formatCurrency(getTotalFine(request)) }}
-                </span>
-                <span v-else>—</span>
+                </div>
+                <div v-else-if="isOverdue(request) && getEstimatedFine(request) > 0" class="text-danger fw-bold">
+                  <div>{{ formatCurrency(getEstimatedFine(request)) }}</div>
+                  <small class="d-block text-danger fw-normal" style="font-size: 11px;">(Tạm tính trễ {{ getDaysOverdue(request) }} ngày)</small>
+                </div>
+                <span v-else class="text-muted">—</span>
               </td>
               <td>
                 <span class="status-badge" :class="getStatusBadgeClass(request.trangThaiHienThi || request.trangThai)">
@@ -223,6 +227,49 @@ export default {
     const getTotalFine = (request) => getReturns(request).reduce(
       (total, { returnRow }) => total + Number(returnRow.tienPhat || 0), 0
     );
+
+    const parseDateOnly = (value) => {
+      if (!value) return null;
+      if (typeof value === 'string') {
+        const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (match) {
+          return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+        }
+      }
+      const d = new Date(value);
+      return Number.isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    };
+
+    const isOverdue = (request) => {
+      if (!['Đang mượn', 'Đã duyệt', 'Chờ xác nhận trả'].includes(request.trangThai)) return false;
+      const due = parseDateOnly(request.ngayTra);
+      if (!due) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return due.getTime() < today.getTime();
+    };
+
+    const getDaysOverdue = (request) => {
+      const due = parseDateOnly(request.ngayTra);
+      if (!due) return 0;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const diffTime = today.getTime() - due.getTime();
+      return diffTime > 0 ? Math.floor(diffTime / (1000 * 60 * 60 * 24)) : 0;
+    };
+
+    const getEstimatedFine = (request) => {
+      if (request.trangThai === 'Đã trả') {
+        return getTotalFine(request);
+      }
+      if (!isOverdue(request)) return 0;
+      const days = getDaysOverdue(request);
+      const totalCopies = (request.ChiTietPhieuMuons || []).reduce(
+        (sum, ct) => sum + Number(ct.soLuongSachMuon || 1),
+        0
+      );
+      return days * 5000 * (totalCopies || 1);
+    };
 
     const formatCurrency = (value) => {
       return new Intl.NumberFormat('vi-VN', {
@@ -372,6 +419,9 @@ export default {
       firstReturn,
       firstPenalizedReturn,
       getTotalFine,
+      isOverdue,
+      getDaysOverdue,
+      getEstimatedFine,
       getStatusBadgeClass,
       getStatusIconClass,
       clearError,
