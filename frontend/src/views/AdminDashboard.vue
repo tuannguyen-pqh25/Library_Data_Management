@@ -134,7 +134,12 @@
       });
   
       const currentUser = computed(() => store.getters['auth/currentUser']);
-      const isPort5174 = typeof window !== 'undefined' && window.location.port === '5174';
+      const isPort5174 = typeof window !== 'undefined' && (
+        window.location.port === '5174' ||
+        import.meta.env.VITE_PORTAL === 'admin' ||
+        import.meta.env.MODE === 'admin' ||
+        new URLSearchParams(window.location.search).get('portal') === 'admin'
+      );
       const readerPortalUrl = computed(() => (isPort5174 ? 'http://localhost:5173/' : '/reader'));
 
       const handleLogout = async () => {

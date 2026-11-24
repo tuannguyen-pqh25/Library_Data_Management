@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --port 5173",
     "dev:reader": "vite --port 5173",
-    "dev:admin": "vite --port 5174",
+    "dev:admin": "vite --port 5174 --mode admin",
     "build": "vite build",
     "preview": "vite preview"
   },

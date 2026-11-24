@@ -165,10 +165,106 @@ Mở một Terminal mới, chuyển đến thư mục frontend và khởi độn
 
 ```bash
 cd ../frontend
-npm run dev
+npm run dev:reader # demo.reader@example.test DemoReader123!
+npm run dev:admin # Admin admin123
 ```
 
 Ứng dụng sẽ tự động mở trong trình duyệt của bạn (thường là http://localhost:5173).
+
+---
+
+## Hướng dẫn Public Link Demo với Cloudflare Tunnel (Cho Buổi Báo Cáo)
+
+Để giảng viên và bạn bè trong buổi báo cáo có thể dùng điện thoại hoặc laptop cá nhân truy cập và test thử trực tiếp mà không cần dùng chung mạng Wi-Fi, bạn có thể dùng tính năng **Cloudflare Quick Tunnel** (hoàn toàn **miễn phí**, **không cần đăng ký tài khoản Cloudflare**, không cần mua domain và tự động hỗ trợ HTTPS).
+
+> [!NOTE]
+> Do dự án chạy mô hình Client-Server riêng biệt (**Backend: port 5000**, **Frontend: port 5173 / 5174**), để người ngoài dùng được đầy đủ tính năng (gọi API, xem ảnh bìa sách), bạn cần mở tunnel cho **cả Backend và Frontend**.
+
+---
+
+### Bước 1: Cài đặt công cụ `cloudflared`
+
+Chọn 1 trong các cách sau:
+  ```powershell
+  winget install --id Cloudflare.cloudflared
+  ```
+  *(Sau khi cài xong, tắt và mở lại PowerShell/CMD để lệnh có hiệu lực).*
+
+Kiểm tra cài đặt:
+```bash
+cloudflared --version
+```
+
+---
+
+### Bước 2: Cấu hình `allowedHosts` trong Vite (Đã cấu hình sẵn)
+
+Mặc định Vite 6 chặn các hostname bên ngoài `localhost`. File `frontend/vite.config.js` đã được thêm cấu hình `server: { allowedHosts: true }` để cho phép truy cập qua domain `.trycloudflare.com`:
+
+```javascript
+server: {
+  allowedHosts: true, // Cho phép truy cập qua Cloudflare Quick Tunnel
+}
+```
+
+---
+
+### Bước 3: Mở Quick Tunnel cho Backend (Port 5000)
+
+1. Mở một **Terminal mới**, chạy lệnh:
+   ```bash
+   cloudflared tunnel --url http://localhost:5000
+   ```
+2. Chờ 3–5 giây, quan sát terminal tìm dòng có định dạng:
+   ```text
+   Your quick Tunnel has been created! Visit it at (it may take some time to be reachable):
+   https://xxxx-xxxx-xxxx.trycloudflare.com
+   ```
+3. **Sao chép URL HTTPS này** (đây là URL Backend public tạm thời). **Giữ nguyên terminal này chạy, không tắt.**
+
+---
+
+### Bước 4: Cập nhật Frontend trỏ về URL Backend public
+
+Mở file `frontend/.env` và thay thế `http://localhost:5000` bằng URL vừa copy ở Bước 3:
+
+```env
+VITE_API_URL=https://xxxx-xxxx-xxxx.trycloudflare.com/api
+VITE_API_IMAGE_URL=https://xxxx-xxxx-xxxx.trycloudflare.com
+```
+
+> [!IMPORTANT]
+> Sau khi sửa file `.env`, bạn phải **khởi động lại** Frontend dev server:
+> Nhấn `Ctrl + C` tại terminal frontend đang chạy, rồi chạy lại:
+> - Giao diện Độc giả: `npm run dev:reader` (Port 5173)
+> - Giao diện Quản trị: `npm run dev:admin` (Port 5174)
+
+---
+
+### Bước 5: Mở Quick Tunnel cho Frontend
+
+Mở thêm một **Terminal mới** khác và chạy tunnel cho port Frontend muốn demo:
+
+```bash
+# Nếu demo giao diện Độc giả (Port 5173):
+cloudflared tunnel --url http://localhost:5173
+
+# HOẶC nếu demo giao diện Quản trị (Port 5174):
+cloudflared tunnel --url http://localhost:5174
+```
+
+Terminal sẽ in ra đường link public của Frontend, ví dụ:
+```text
+https://yyyy-yyyy-yyyy.trycloudflare.com
+```
+
+---
+
+### Bước 6: Trình chiếu & Chia sẻ cho buổi báo cáo
+
+- **Gửi link:** Copy link Frontend gửi lên nhóm chat/Zalo.
+- **Tạo mã QR chiếu lên slide:** Dán link frontend vào các trang tạo QR miễn phí (ví dụ: [qr-code-generator.com](https://www.qr-code-generator.com/) hoặc [me-qr.com](https://me-qr.com/)) rồi chèn ảnh QR vào slide báo cáo. Mọi người chỉ cần dùng camera điện thoại quét là vào test trực tiếp được ngay!
+
 
 
 ## Hoàn tất

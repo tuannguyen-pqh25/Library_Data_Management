@@ -291,7 +291,12 @@ export default {
     const router = useRouter();
     const route = useRoute();
 
-    const isPort5174 = typeof window !== 'undefined' && window.location.port === '5174';
+    const isPort5174 = typeof window !== 'undefined' && (
+      window.location.port === '5174' ||
+      import.meta.env.VITE_PORTAL === 'admin' ||
+      import.meta.env.MODE === 'admin' ||
+      new URLSearchParams(window.location.search).get('portal') === 'admin'
+    );
 
     const isStaff = computed(() => {
       return isPort5174 || props.portalType === 'staff' || route.path.startsWith('/admin') || route.query.role === 'staff';

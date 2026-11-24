@@ -77,8 +77,12 @@ const router = createRouter({
 
 // Hàm kiểm tra xem ứng dụng có đang chạy trên Cổng Quản trị (Port 5174) hay không
 export const isAdminPortal = () => {
-  if (import.meta.env.VITE_PORTAL === 'admin') return true;
-  if (typeof window !== 'undefined' && window.location.port === '5174') return true;
+  if (import.meta.env.VITE_PORTAL === 'admin' || import.meta.env.MODE === 'admin') return true;
+  if (typeof window !== 'undefined') {
+    if (window.location.port === '5174') return true;
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('portal') === 'admin') return true;
+  }
   return false;
 };
 
