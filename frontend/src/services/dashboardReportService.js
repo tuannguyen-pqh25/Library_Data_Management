@@ -32,9 +32,10 @@ const normalizeCount = (value, field) => {
 
 export default {
   async getDashboardReport() {
-    const [summaryResponse, loansResponse] = await Promise.all([
+    const [summaryResponse, loansResponse, allRequestsResponse] = await Promise.all([
       api.get('/thong-ke/tong-quan'),
       api.get('/thong-ke/phieu-chua-tra'),
+      api.get('/muonsach/admin/requests').catch(() => ({ data: [] })),
     ]);
 
     const summary = summaryResponse.data;
@@ -43,7 +44,43 @@ export default {
     }
 
     const booksBorrowedThisMonth = normalizeCount(summary.sachMuonThang, 'sachMuonThang');
-    const monthlyLoans = normalizeMonthlyLoans(summary.monthlyLoans);
+    let monthlyLoans = normalizeMonthlyLoans(summary.monthlyLoans);
+
+    // Nếu API tổng quan chưa có monthlyLoans, tổng hợp từ toàn bộ lịch sử phiếu mượn thực tế
+    if (monthlyLoans.length === 0 && Array.isArray(allRequestsResponse.data) && allRequestsResponse.data.length > 0) {
+      const currentYear = new Date().getFullYear();
+      const monthMap = new Map();
+
+      for (const req of allRequestsResponse.data) {
+        if (!req.ngayMuon) continue;
+        if (!['Đang mượn', 'Đã trả'].includes(req.trangThai)) continue;
+
+        const date = new Date(req.ngayMuon);
+        if (Number.isNaN(date.getTime())) continue;
+        if (date.getFullYear() !== currentYear) continue;
+
+        const m = date.getMonth() + 1;
+        const totalCopies = (req.ChiTietPhieuMuons || []).reduce(
+          (sum, ct) => sum + Number(ct.soLuongSachMuon || 1), 0
+        );
+        monthMap.set(m, (monthMap.get(m) || 0) + totalCopies);
+      }
+
+      // Đảm bảo tháng hiện tại có số liệu khớp với sachMuonThang
+      const currentMonth = new Date().getMonth() + 1;
+      if (!monthMap.has(currentMonth) && booksBorrowedThisMonth > 0) {
+        monthMap.set(currentMonth, booksBorrowedThisMonth);
+      }
+
+      if (monthMap.size > 0) {
+        const sortedMonths = Array.from(monthMap.keys()).sort((a, b) => a - b);
+        monthlyLoans = sortedMonths.map((m) => ({
+          label: `Thg ${m}`,
+          value: monthMap.get(m),
+        }));
+      }
+    }
+
     if (monthlyLoans.length === 0) {
       const now = new Date();
       monthlyLoans.push({ label: `Thg ${now.getMonth() + 1}`, value: booksBorrowedThisMonth });
@@ -56,7 +93,6 @@ export default {
         phieuChuaTra: normalizeCount(summary.phieuChuaTra, 'phieuChuaTra'),
       },
       unreturnedLoans: normalizeLoans(loansResponse.data),
-      // Hợp đồng hiện tại có tổng tháng này nhưng chưa có lịch sử nhiều tháng.
       monthlyLoans,
     };
   },

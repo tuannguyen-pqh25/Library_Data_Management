@@ -112,7 +112,7 @@
             Lượt mượn theo tháng
           </h2>
           <p class="section-caption mb-0">
-            Số liệu từ API; hiện chỉ có tổng tháng này, chưa có lịch sử so sánh.
+            {{ monthlyLoans.length > 1 ? 'Thống kê số lượng sách được mượn qua các tháng trong năm.' : 'Số liệu từ API; hiện chỉ có tổng tháng này, chưa có lịch sử so sánh.' }}
           </p>
         </div>
         <span class="chart-unit">Đơn vị: quyển sách</span>
