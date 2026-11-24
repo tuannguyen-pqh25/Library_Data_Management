@@ -53,6 +53,21 @@ const enrichLoans = async (loans) => Promise.all(loans.map(async (loan) => {
   loan.setDataValue('DocGia', await DocGia.findByPk(loan.maDocGia));
   loan.setDataValue('ChiTietPhieuMuons', await getDetails(loan));
   loan.setDataValue('trangThaiHienThi', getLoanDisplayStatus(loan));
+
+  // Tính số ngày quá hạn và tiền phạt tạm tính (5.000 VNĐ / ngày trễ / quyển)
+  const dueDate = loan.ngayTra ? new Date(loan.ngayTra) : null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (dueDate && ['Đang mượn', 'Chờ duyệt'].includes(loan.trangThai)) {
+    const dueTime = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate()).getTime();
+    if (dueTime < today.getTime()) {
+      const daysOverdue = Math.max(0, Math.floor((today.getTime() - dueTime) / (1000 * 60 * 60 * 24)));
+      const details = loan.ChiTietPhieuMuons || [];
+      const totalCopies = details.reduce((sum, ct) => sum + Number(ct.soLuongSachMuon || 1), 0);
+      loan.setDataValue('soNgayQuaHan', daysOverdue);
+      loan.setDataValue('tienPhatUocTinh', daysOverdue * 5000 * (totalCopies || 1));
+    }
+  }
   return loan;
 }));
 
