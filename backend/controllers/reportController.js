@@ -1,6 +1,7 @@
 const { sequelize } = require('../models');
 const logger = require('../src/logger');
 const { QueryTypes } = require('sequelize');
+const { buildLibraryReportWorkbook } = require('../utils/excelReportBuilder');
 
 const procedureRows = async (name) => {
   const result = await sequelize.query(`CALL ${name}()`);
@@ -62,29 +63,71 @@ const getStatistics = async (req, res) => {
   }
 };
 
+const loadSummaryMetrics = async () => {
+  const [books, readers, unreturned] = await Promise.all([
+    getMonthlyBorrowCount(),
+    procedureRows('sp_thong_ke_doc_gia_muon_sach_nam'),
+    sequelize.query(
+      "SELECT COUNT(*) AS phieuChuaTra FROM PhieuMuon WHERE trangThai = 'Đang mượn'",
+      { type: QueryTypes.SELECT },
+    ),
+  ]);
+  const counts = unreturned[0];
+  if (!counts || !Object.hasOwn(counts, 'phieuChuaTra')) throw new Error('Unexpected unreturned-loan count result');
+  const phieuChuaTra = Number(counts.phieuChuaTra);
+  if (!Number.isFinite(phieuChuaTra)) throw new Error('Invalid unreturned-loan count result');
+  return {
+    sachMuonThang: procedureNumber(books, 'tongSachMuonThang', 'sp_thong_ke_sach_muon_thang'),
+    docGiaMuonNam: procedureNumber(readers, 'tongDocGiaMuonSachNam', 'sp_thong_ke_doc_gia_muon_sach_nam'),
+    phieuChuaTra,
+  };
+};
+
 const getDashboardSummary = async (req, res) => {
   try {
-    const [books, readers, unreturned] = await Promise.all([
-      getMonthlyBorrowCount(),
-      procedureRows('sp_thong_ke_doc_gia_muon_sach_nam'),
-      sequelize.query(
-        "SELECT COUNT(*) AS phieuChuaTra FROM PhieuMuon WHERE trangThai = 'Đang mượn'",
-        { type: QueryTypes.SELECT },
-      ),
-    ]);
-    const counts = unreturned[0];
-    if (!counts || !Object.hasOwn(counts, 'phieuChuaTra')) throw new Error('Unexpected unreturned-loan count result');
-    const phieuChuaTra = Number(counts.phieuChuaTra);
-    if (!Number.isFinite(phieuChuaTra)) throw new Error('Invalid unreturned-loan count result');
-    res.json({
-      sachMuonThang: procedureNumber(books, 'tongSachMuonThang', 'sp_thong_ke_sach_muon_thang'),
-      docGiaMuonNam: procedureNumber(readers, 'tongDocGiaMuonSachNam', 'sp_thong_ke_doc_gia_muon_sach_nam'),
-      phieuChuaTra,
-    });
+    res.json(await loadSummaryMetrics());
   } catch (error) {
     logger.error('Failed to load dashboard summary', { error: error.message });
     res.status(500).json({ message: error.message });
   }
+};
+
+const foldUnreturnedLoanRows = (rows, { includeContact = false } = {}) => {
+  const loans = new Map();
+  for (const row of rows) {
+    const key = `${row.maPhieuMuon}:${row.maDocGia}`;
+    let loan = loans.get(key);
+    if (!loan) {
+      loan = {
+        maPhieuMuon: row.maPhieuMuon,
+        maDocGia: row.maDocGia,
+        fullName: row.fullName,
+        ngayMuon: row.ngayMuon,
+        ngayTra: row.ngayTra,
+        trangThai: row.trangThai,
+        ...(includeContact ? {
+          dienThoai: row.dienThoai,
+          email: row.email,
+          yeuCauTraAt: row.yeuCauTraAt,
+        } : {}),
+        chiTiet: [],
+      };
+      loans.set(key, loan);
+    }
+    if (row.maChiTietPM !== null && row.maChiTietPM !== undefined) {
+      loan.chiTiet.push({
+        maChiTietPM: row.maChiTietPM,
+        maPhieuMuon: row.maPhieuMuon,
+        maDocGia: row.maDocGia,
+        maSach: row.maSach,
+        maTacGia: row.maTacGia,
+        maTheLoai: row.maTheLoai,
+        tenSach: row.tenSach,
+        soLuongSachMuon: row.soLuongSachMuon,
+      });
+    }
+  }
+  return [...loans.values()];
 };
 
 const getDetailedUnreturnedLoans = async (req, res) => {
@@ -102,38 +145,162 @@ const getDetailedUnreturnedLoans = async (req, res) => {
     `, { type: QueryTypes.SELECT });
     if (!Array.isArray(rows)) throw new Error('Unexpected detailed unreturned-loan result');
 
-    const loans = new Map();
-    for (const row of rows) {
-      const key = `${row.maPhieuMuon}:${row.maDocGia}`;
-      let loan = loans.get(key);
-      if (!loan) {
-        loan = {
-          maPhieuMuon: row.maPhieuMuon,
-          maDocGia: row.maDocGia,
-          fullName: row.fullName,
-          ngayMuon: row.ngayMuon,
-          ngayTra: row.ngayTra,
-          trangThai: row.trangThai,
-          chiTiet: [],
-        };
-        loans.set(key, loan);
-      }
-      loan.chiTiet.push({
-        maChiTietPM: row.maChiTietPM,
-        maPhieuMuon: row.maPhieuMuon,
-        maDocGia: row.maDocGia,
-        maSach: row.maSach,
-        maTacGia: row.maTacGia,
-        maTheLoai: row.maTheLoai,
-        tenSach: row.tenSach,
-        soLuongSachMuon: row.soLuongSachMuon,
-      });
-    }
-    res.json([...loans.values()]);
+    res.json(foldUnreturnedLoanRows(rows));
   } catch (error) {
     logger.error('Failed to load detailed unreturned loans', { error: error.message });
     res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { getUnreturnedLoans, getStatistics, getDashboardSummary, getDetailedUnreturnedLoans };
+const selectRows = (sql) => sequelize.query(sql, { type: QueryTypes.SELECT });
+
+const exportExcelReport = async (req, res) => {
+  try {
+    const generatedAt = new Date();
+    const [
+      summary,
+      monthlyLoans,
+      unreturnedRows,
+      loanDetails,
+      books,
+      readers,
+      authors,
+      categories,
+      publishers,
+      staff,
+    ] = await Promise.all([
+      loadSummaryMetrics(),
+      selectRows(`
+        SELECT MONTH(pm.ngayMuon) AS month,
+               COUNT(DISTINCT CONCAT(pm.maPhieuMuon, ':', pm.maDocGia)) AS totalLoans,
+               COALESCE(SUM(ct.soLuongSachMuon), 0) AS totalBooks
+        FROM PhieuMuon pm
+        LEFT JOIN ChiTietPhieuMuon ct
+          ON ct.maPhieuMuon = pm.maPhieuMuon AND ct.maDocGia = pm.maDocGia
+        WHERE YEAR(pm.ngayMuon) = YEAR(CURRENT_DATE())
+          AND pm.trangThai IN ('Đang mượn', 'Đã trả')
+        GROUP BY MONTH(pm.ngayMuon)
+        ORDER BY month ASC
+      `),
+      selectRows(`
+        SELECT pm.maPhieuMuon, pm.maDocGia, dg.fullName, dg.dienThoai, dg.email,
+               pm.ngayMuon, pm.ngayTra, pm.trangThai, pm.yeuCauTraAt,
+               ct.maChiTietPM, ct.maSach, ct.maTacGia, ct.maTheLoai,
+               s.tenSach, ct.soLuongSachMuon
+        FROM PhieuMuon pm
+        JOIN DocGia dg ON dg.maDocGia = pm.maDocGia
+        LEFT JOIN ChiTietPhieuMuon ct
+          ON ct.maPhieuMuon = pm.maPhieuMuon AND ct.maDocGia = pm.maDocGia
+        LEFT JOIN Sach s
+          ON s.maSach = ct.maSach AND s.maTacGia = ct.maTacGia AND s.maTheLoai = ct.maTheLoai
+        WHERE pm.trangThai = 'Đang mượn'
+        ORDER BY pm.ngayTra ASC, pm.maPhieuMuon ASC, ct.maChiTietPM ASC
+      `),
+      selectRows(`
+        SELECT pm.maPhieuMuon, pm.maDocGia, dg.fullName,
+               pm.ngayMuon, pm.ngayTra, pm.trangThai, pm.yeuCauTraAt,
+               ct.maChiTietPM, ct.maSach, ct.soLuongSachMuon,
+               s.tenSach, tg.tenTacGia, tl.tenTheLoai,
+               pt.ngayTraSach, COALESCE(pt.tienPhat, 0) AS tienPhat
+        FROM PhieuMuon pm
+        JOIN DocGia dg ON dg.maDocGia = pm.maDocGia
+        LEFT JOIN ChiTietPhieuMuon ct
+          ON ct.maPhieuMuon = pm.maPhieuMuon AND ct.maDocGia = pm.maDocGia
+        LEFT JOIN Sach s
+          ON s.maSach = ct.maSach AND s.maTacGia = ct.maTacGia AND s.maTheLoai = ct.maTheLoai
+        LEFT JOIN TacGia tg ON tg.maTacGia = s.maTacGia
+        LEFT JOIN TheLoai tl ON tl.maTheLoai = s.maTheLoai
+        LEFT JOIN PhieuTra pt
+          ON pt.maChiTietPM = ct.maChiTietPM AND pt.maPhieuMuon = ct.maPhieuMuon AND pt.maSach = ct.maSach
+        ORDER BY pm.ngayMuon DESC, pm.maPhieuMuon DESC, ct.maChiTietPM ASC
+      `),
+      selectRows(`
+        SELECT s.maSach, s.tenSach, s.donGia, s.soLuongHienCo, s.namXuatBan, s.nguonGoc,
+               tg.tenTacGia, tl.tenTheLoai, nxb.tenNXB,
+               COALESCE(SUM(CASE WHEN pm.trangThai IN ('Đang mượn', 'Đã trả') THEN ct.soLuongSachMuon ELSE 0 END), 0) AS tongLuotMuon
+        FROM Sach s
+        LEFT JOIN TacGia tg ON tg.maTacGia = s.maTacGia
+        LEFT JOIN TheLoai tl ON tl.maTheLoai = s.maTheLoai
+        LEFT JOIN NhaXuatBan nxb ON nxb.maNXB = s.maNXB
+        LEFT JOIN ChiTietPhieuMuon ct
+          ON ct.maSach = s.maSach AND ct.maTacGia = s.maTacGia AND ct.maTheLoai = s.maTheLoai
+        LEFT JOIN PhieuMuon pm
+          ON pm.maPhieuMuon = ct.maPhieuMuon AND pm.maDocGia = ct.maDocGia
+        GROUP BY s.maSach, s.maTacGia, s.maTheLoai, s.tenSach, s.donGia, s.soLuongHienCo,
+                 s.namXuatBan, s.nguonGoc, tg.tenTacGia, tl.tenTheLoai, nxb.tenNXB
+        ORDER BY s.maSach ASC
+      `),
+      selectRows(`
+        SELECT dg.maDocGia, dg.fullName, dg.phai, dg.ngaySinh, dg.dienThoai, dg.email, dg.diaChi,
+               COUNT(DISTINCT pm.maPhieuMuon) AS tongPhieuMuon,
+               COALESCE(SUM(CASE WHEN pm.trangThai = 'Đang mượn' THEN ct.soLuongSachMuon ELSE 0 END), 0) AS sachDangMuon,
+               COALESCE(SUM(pt.tienPhat), 0) AS tongTienPhat
+        FROM DocGia dg
+        LEFT JOIN PhieuMuon pm ON pm.maDocGia = dg.maDocGia
+        LEFT JOIN ChiTietPhieuMuon ct
+          ON ct.maPhieuMuon = pm.maPhieuMuon AND ct.maDocGia = pm.maDocGia
+        LEFT JOIN PhieuTra pt
+          ON pt.maChiTietPM = ct.maChiTietPM AND pt.maPhieuMuon = ct.maPhieuMuon AND pt.maSach = ct.maSach
+        GROUP BY dg.maDocGia, dg.fullName, dg.phai, dg.ngaySinh, dg.dienThoai, dg.email, dg.diaChi
+        ORDER BY dg.maDocGia ASC
+      `),
+      selectRows(`
+        SELECT tg.maTacGia, tg.tenTacGia, tg.soDienThoai, tg.diaChi, COUNT(s.maSach) AS soDauSach
+        FROM TacGia tg
+        LEFT JOIN Sach s ON s.maTacGia = tg.maTacGia
+        GROUP BY tg.maTacGia, tg.tenTacGia, tg.soDienThoai, tg.diaChi
+        ORDER BY tg.maTacGia ASC
+      `),
+      selectRows(`
+        SELECT tl.maTheLoai, tl.tenTheLoai, COUNT(s.maSach) AS soDauSach
+        FROM TheLoai tl
+        LEFT JOIN Sach s ON s.maTheLoai = tl.maTheLoai
+        GROUP BY tl.maTheLoai, tl.tenTheLoai
+        ORDER BY tl.maTheLoai ASC
+      `),
+      selectRows(`
+        SELECT nxb.maNXB, nxb.tenNXB, nxb.diaChi, COUNT(s.maSach) AS soDauSach
+        FROM NhaXuatBan nxb
+        LEFT JOIN Sach s ON s.maNXB = nxb.maNXB
+        GROUP BY nxb.maNXB, nxb.tenNXB, nxb.diaChi
+        ORDER BY nxb.maNXB ASC
+      `),
+      selectRows('SELECT MSNV, hoTenNV, chucVu, soDienThoai, diaChi FROM NhanVien ORDER BY MSNV ASC'),
+    ]);
+
+    const workbook = await buildLibraryReportWorkbook({
+      generatedAt,
+      exporterName: req.user?.hoTenNV || 'Quản trị viên',
+      summary,
+      monthlyLoans,
+      unreturnedLoans: foldUnreturnedLoanRows(unreturnedRows, { includeContact: true }),
+      loanDetails,
+      books,
+      readers,
+      authors,
+      categories,
+      publishers,
+      staff,
+    });
+
+    const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+    const dateStamp = `${generatedAt.getFullYear()}-${String(generatedAt.getMonth() + 1).padStart(2, '0')}-${String(generatedAt.getDate()).padStart(2, '0')}`;
+    const filename = `BaoCao_ThuVien_${dateStamp}.xlsx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+    res.send(buffer);
+  } catch (error) {
+    logger.error('Failed to export Excel report', { error: error.message });
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = {
+  getUnreturnedLoans,
+  getStatistics,
+  getDashboardSummary,
+  getDetailedUnreturnedLoans,
+  exportExcelReport,
+};

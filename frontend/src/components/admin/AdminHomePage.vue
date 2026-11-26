@@ -10,10 +10,43 @@
           Theo dõi tình hình mượn sách và các phiếu cần xử lý.
         </p>
       </div>
-      <span class="period-chip"
-        ><i class="fas fa-calendar-alt me-2" aria-hidden="true"></i
-        >{{ currentPeriod }}</span
+      <div class="heading-actions d-flex flex-wrap align-items-center gap-2">
+        <span class="period-chip"
+          ><i class="fas fa-calendar-alt me-2" aria-hidden="true"></i
+          >{{ currentPeriod }}</span
+        >
+        <button
+          type="button"
+          class="btn btn-export-excel"
+          :disabled="exportLoading"
+          @click="handleExportExcel"
+        >
+          <span
+            v-if="exportLoading"
+            class="spinner-border spinner-border-sm me-2"
+            aria-hidden="true"
+          ></span>
+          <i v-else class="fas fa-file-excel me-2" aria-hidden="true"></i>
+          <span>{{ exportLoading ? 'Đang xuất báo cáo...' : 'In báo cáo (Xuất Excel)' }}</span>
+        </button>
+      </div>
+    </div>
+
+    <div
+      v-if="exportError"
+      class="alert alert-danger d-flex justify-content-between align-items-center gap-2 mb-4"
+      role="alert"
+    >
+      <span
+        ><i class="fas fa-circle-exclamation me-2" aria-hidden="true"></i
+        >{{ exportError }}</span
       >
+      <button
+        type="button"
+        class="btn-close"
+        aria-label="Đóng thông báo lỗi"
+        @click="exportError = ''"
+      ></button>
     </div>
 
     <section class="mb-4" aria-labelledby="report-heading">
@@ -327,6 +360,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useStore } from "vuex";
 import dashboardReportService from "@/services/dashboardReportService";
+import { showError, showSuccess } from "@/utils/notifications";
 
 export default {
   name: "AdminHomePage",
@@ -340,6 +374,8 @@ export default {
     const unreturnedLoans = ref([]);
     const reportLoading = ref(false);
     const reportError = ref("");
+    const exportLoading = ref(false);
+    const exportError = ref("");
     const monthlyLoans = ref([]);
     const overdueFilter = ref("all");
     const totalBooks = computed(
@@ -458,6 +494,33 @@ export default {
         : "—";
     };
 
+    const handleExportExcel = async () => {
+      if (exportLoading.value) return;
+      exportLoading.value = true;
+      exportError.value = "";
+      let objectUrl = null;
+      try {
+        const { blob, filename } = await dashboardReportService.exportExcelReport();
+        objectUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showSuccess("Xuất báo cáo Excel thành công!");
+      } catch (error) {
+        const message = error.message || "Không thể xuất báo cáo Excel.";
+        exportError.value = message;
+        showError(message);
+      } finally {
+        if (objectUrl) {
+          window.URL.revokeObjectURL(objectUrl);
+        }
+        exportLoading.value = false;
+      }
+    };
+
     onMounted(loadDashboard);
 
     return {
@@ -466,6 +529,8 @@ export default {
       monthlyLoans,
       reportLoading,
       reportError,
+      exportLoading,
+      exportError,
       currentPeriod,
       chartMax,
       monthlyChartLabel,
@@ -481,6 +546,7 @@ export default {
       formatNumber,
       formatDate,
       loadDashboard,
+      handleExportExcel,
     };
   },
 };
@@ -526,6 +592,30 @@ export default {
   font-size: 0.78rem;
   padding: 0.55rem 0.75rem;
   white-space: nowrap;
+}
+.btn-export-excel {
+  align-items: center;
+  background: #2e5b44;
+  border: 1px solid #2e5b44;
+  border-radius: 0.55rem;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.55rem 0.9rem;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.btn-export-excel:hover:not(:disabled) {
+  background: #244a37;
+  border-color: #244a37;
+  color: #fff;
+}
+.btn-export-excel:disabled {
+  background: #6c8f7d;
+  border-color: #6c8f7d;
+  color: #fff;
+  opacity: 0.85;
 }
 .live-badge {
   align-items: center;
