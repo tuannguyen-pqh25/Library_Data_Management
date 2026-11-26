@@ -96,4 +96,38 @@ export default {
       monthlyLoans,
     };
   },
+
+  async exportExcelReport() {
+    try {
+      const response = await api.get('/thong-ke/export-excel', {
+        responseType: 'blob',
+      });
+      const disposition = response.headers?.['content-disposition'] || '';
+      const match = disposition.match(/filename="?([^";]+)"?/i);
+      const today = new Date();
+      const fallbackName = `BaoCao_ThuVien_${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}.xlsx`;
+
+      return {
+        blob: new Blob([response.data], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        }),
+        filename: match?.[1] || fallbackName,
+      };
+    } catch (error) {
+      if (error?.response?.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          const parsed = JSON.parse(text);
+          if (parsed?.message) {
+            throw new Error(parsed.message);
+          }
+        } catch (parseErr) {
+          if (parseErr instanceof Error && parseErr.message && !parseErr.message.startsWith('Unexpected')) {
+            throw parseErr;
+          }
+        }
+      }
+      throw new Error(error?.response?.data?.message || error?.message || 'Không thể xuất báo cáo Excel.');
+    }
+  },
 };
