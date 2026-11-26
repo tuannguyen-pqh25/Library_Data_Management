@@ -27,8 +27,11 @@ async function loadReportController(query) {
 
 const response = () => ({
   statusCode: 200,
+  headers: {},
+  setHeader(key, value) { this.headers[key] = value; return this; },
   status(code) { this.statusCode = code; return this; },
   json(body) { this.body = body; return this; },
+  send(payload) { this.body = payload; return this; },
 });
 
 test('dashboard summary returns the two procedure statistics and counts unreturned loans', async () => {
@@ -101,8 +104,62 @@ test('statistics endpoints are exposed only through the authenticated admin repo
   const server = source('server.js');
   assert.match(routes, /router\.get\('\/tong-quan',\s*getDashboardSummary\)/);
   assert.match(routes, /router\.get\('\/phieu-chua-tra',\s*getDetailedUnreturnedLoans\)/);
+  assert.match(routes, /router\.get\('\/export-excel',\s*exportExcelReport\)/);
   assert.match(routes, /router\.use\(auth,\s*adminAuth\)/);
   assert.match(server, /app\.use\('\/api\/thong-ke',\s*reportRoutes\)/);
+});
+
+test('exportExcelReport streams a valid 6-sheet xlsx buffer with attachment headers', async () => {
+  const ExcelJS = require('exceljs');
+  const loaded = await loadReportController(async (sql) => {
+    if (sql.includes('sp_thong_ke_sach_muon_thang')) return [[{ tongSachMuonThang: 13 }]];
+    if (sql.includes('sp_thong_ke_doc_gia_muon_sach_nam')) return [[{ tongDocGiaMuonSachNam: 6 }]];
+    if (sql.includes('AS phieuChuaTra')) return [{ phieuChuaTra: 1 }];
+    if (sql.includes('AS totalLoans')) return [{ month: 11, totalLoans: 5, totalBooks: 13 }];
+    if (sql.includes('dg.dienThoai') && sql.includes("pm.trangThai = 'Đang mượn'")) {
+      return [{
+        maPhieuMuon: 12, maDocGia: 3, fullName: 'Lê Văn C', dienThoai: '0909123456', email: 'c@example.com',
+        ngayMuon: '2026-11-10', ngayTra: '2026-11-24', trangThai: 'Đang mượn', yeuCauTraAt: null,
+        maChiTietPM: 1, maSach: 9, tenSach: 'Lập trình Web', soLuongSachMuon: 1,
+      }];
+    }
+    if (sql.includes('pt.ngayTraSach')) return [];
+    if (sql.includes('AS tongLuotMuon')) return [];
+    if (sql.includes('AS tongPhieuMuon')) return [];
+    if (sql.includes('FROM TacGia')) return [];
+    if (sql.includes('FROM TheLoai')) return [];
+    if (sql.includes('FROM NhaXuatBan')) return [];
+    if (sql.includes('FROM NhanVien')) return [];
+    return [];
+  });
+  try {
+    const res = response();
+    await loaded.controller.exportExcelReport({ user: { hoTenNV: 'Admin Test' } }, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(
+      res.headers['Content-Type'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    assert.match(res.headers['Content-Disposition'], /^attachment; filename="BaoCao_ThuVien_.*\.xlsx"$/);
+    assert.ok(Buffer.isBuffer(res.body));
+
+    const parsed = new ExcelJS.Workbook();
+    await parsed.xlsx.load(res.body);
+    assert.equal(parsed.worksheets.length, 6);
+  } finally { loaded.restore(); }
+});
+
+test('exportExcelReport returns 500 JSON when database query fails', async () => {
+  const loaded = await loadReportController(async () => {
+    throw new Error('DB read failure');
+  });
+  try {
+    const res = response();
+    await loaded.controller.exportExcelReport({ user: { hoTenNV: 'Admin Test' } }, res);
+    assert.equal(res.statusCode, 500);
+    assert.equal(res.body.message, 'DB read failure');
+    assert.equal(res.headers['Content-Disposition'], undefined);
+  } finally { loaded.restore(); }
 });
 
 test('statistics authorization rejects anonymous and reader requests', async () => {
